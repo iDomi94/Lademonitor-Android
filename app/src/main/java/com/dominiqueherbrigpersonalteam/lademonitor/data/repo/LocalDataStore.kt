@@ -226,7 +226,17 @@ object LocalDataStore {
         payload.chargingType?.let { session.chargingType = it }
         payload.socStart?.let { session.socStart = it }
         payload.socEnd?.let { session.socEnd = it }
-        payload.energyKwh?.let { session.energyKwh = it }
+        payload.energyKwh?.let {
+            // Korrigierte Energiemenge (z.B. aus der App des Ladeanbieters abgelesen)
+            // ist nicht mehr geschaetzt - identisch zur Regel in update_session() im
+            // Backend: nur eine tatsaechliche Wertaenderung zaehlt als Korrektur,
+            // reines Oeffnen + Speichern laesst das Flag stehen.
+            val previous = session.energyKwh
+            if (session.energyIsEstimated && (previous == null || kotlin.math.abs(it - previous) > 1e-6)) {
+                session.energyIsEstimated = false
+            }
+            session.energyKwh = it
+        }
         payload.pricePerKwh?.let { session.pricePerKwh = it }
         payload.priceTotal?.let { session.priceTotal = it }
         payload.odometerKm?.let { session.odometerKm = it }
