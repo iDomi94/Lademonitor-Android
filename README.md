@@ -111,7 +111,35 @@ app/src/main/java/com/dominiqueherbrigpersonalteam/lademonitor/
                    Konto (E-Mail, Passwort, Benachrichtigungen)
     filter/      - Globaler Zeitraum-Filter
     common/      - Formatierung, wiederverwendbare Bausteine
+tools/
+  generate_icons.py - erzeugt App-Icon und Logo aus dem Generator im Server-Repo
 ```
+
+## App-Icon & Logo
+
+App-Icon und das Zeichen im Erststart-Screen zeigen dieselbe Marke wie
+Server- und iOS-App (Variante 17 „Angeschnitten"). Die Zeichnung liegt
+bewusst nur an einer Stelle – in `design/logo/` des
+[Server-Repos](https://github.com/iDomi94/Lademonitor-Server) –, zwei Kopien
+würden früher oder später auseinanderlaufen. Neu erzeugen:
+
+```bash
+python3 tools/generate_icons.py --server ../Lademonitor-Server
+```
+
+Das schreibt das adaptive Icon (`mipmap-*dpi/ic_launcher_foreground.png` plus
+`drawable/ic_launcher_background.xml`), die Kachel für den Erststart-Screen
+(`drawable-nodpi/logo_mark.png`) und das Store-Bild
+(`app/src/main/ic_launcher-playstore.png`, 512 px ohne Alphakanal).
+Voraussetzungen: Pillow und ein Chromium/Chrome zum Rastern (Pfad notfalls
+über `LADEMONITOR_CHROME`).
+
+Der Vordergrund ist ein PNG und kein VectorDrawable: Androids
+VectorDrawable kennt kein `stroke-dasharray` – und genau daraus besteht das
+Kabel. Die Zeichnung sitzt auf 78 % der Kantenlänge und am rechten Rand der
+Sicherheitszone ausgerichtet, damit die Gerätemaske die angeschnittene
+Ladesäule links weiter anschneiden darf, ohne dem Fahrzeug die Schnauze
+abzuschneiden.
 
 ## Unterschiede zur iOS-App (bewusst)
 

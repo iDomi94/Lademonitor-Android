@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.EvStation
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Dns
@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,11 +50,16 @@ fun ModeSelectionScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                Icons.Filled.EvStation,
+            // Bewusst die gerundete Kachel (= das App-Icon) statt eines Symbols aus
+            // dem Farbschema: dieser Screen folgt dem Hell/Dunkel-Modus des Systems,
+            // und die graue Silhouette mit grünem Kabel ist für dunklen Grund
+            // gezeichnet. Die Kachel bringt ihren eigenen Grund mit und sitzt damit
+            // in beiden Modi richtig. Dekorativ - der Schriftzug darunter trägt den
+            // Namen schon, deshalb keine contentDescription.
+            Image(
+                painterResource(R.drawable.logo_mark),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(56.dp)
+                modifier = Modifier.size(96.dp)
             )
             Spacer(Modifier.size(16.dp))
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)

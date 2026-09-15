@@ -110,7 +110,34 @@ app/src/main/java/com/dominiqueherbrigpersonalteam/lademonitor/
                    account (e-mail, password, notifications)
     filter/      - Global time-range filter
     common/      - Formatting, reusable building blocks
+tools/
+  generate_icons.py - builds app icon and logo from the generator in the server repo
 ```
+
+## App icon & logo
+
+The app icon and the mark on the first-launch screen show the same brand as
+the server and iOS apps (variant 17 "Angeschnitten"). The drawing lives in
+exactly one place on purpose – `design/logo/` of the
+[server repo](https://github.com/iDomi94/Lademonitor-Server) – since two
+copies would drift apart sooner or later. To regenerate:
+
+```bash
+python3 tools/generate_icons.py --server ../Lademonitor-Server
+```
+
+This writes the adaptive icon (`mipmap-*dpi/ic_launcher_foreground.png` plus
+`drawable/ic_launcher_background.xml`), the tile for the first-launch screen
+(`drawable-nodpi/logo_mark.png`) and the store image
+(`app/src/main/ic_launcher-playstore.png`, 512 px without an alpha channel).
+Requirements: Pillow and a Chromium/Chrome for rasterizing (path via
+`LADEMONITOR_CHROME` if needed).
+
+The foreground is a PNG rather than a VectorDrawable: Android's
+VectorDrawable has no `stroke-dasharray` – and that is exactly what the cable
+is made of. The drawing sits at 78 % of the edge length, aligned to the right
+edge of the safe zone, so the device mask may keep cropping the charging
+station on the left without cutting off the car's nose.
 
 ## Differences from the iOS app (intentional)
 
