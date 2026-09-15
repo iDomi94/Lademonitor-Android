@@ -86,7 +86,9 @@
     <string name="mode_selection_local_title">Local only on this device</string>
     <string name="mode_selection_local_description">All data stays exclusively on this device. No server, no automatic detection via Home Assistant, no sync between devices. You can switch to a server at any time later and upload all local data.</string>
     <string name="mode_selection_server_title">Connect to your own server</string>
-    <string name="mode_selection_server_description">Data is stored centrally on your Lademonitor server, including automatic charging-session detection via Home Assistant and access from the web UI.</string>
+    <string name="mode_selection_server_description">Data is stored centrally on a self-hosted Lademonitor server (open source, via Docker) instead of only on the device: automatic charging-session detection via Home Assistant, access from the web UI as well, all devices show the same state.</string>
+    <string name="mode_selection_cloud_title">Lademonitor Cloud</string>
+    <string name="mode_selection_cloud_description">Like "Connect to your own server", but on the public server at lademonitor.cloud – operation, updates and backups are handled for you. No own server needed.</string>
 
     <!-- Shared generic actions -->
     <string name="action_ok">OK</string>
@@ -178,7 +180,7 @@
     <string name="settings_reset_hint_server">Deletes vehicles, providers, charging locations and charging sessions on this device. Data already synced remains on the server and is fetched back automatically afterwards – changes not yet uploaded are lost.</string>
     <string name="settings_reset_hint_local">Irreversibly deletes vehicles, providers, charging locations and charging sessions from this device. There is no other copy.</string>
     <string name="settings_switch_to_server_title">Switch to server?</string>
-    <string name="settings_switch_to_server_message">After signing in, your existing local data will be uploaded to the server automatically. You can switch back to \"Local only\" at any time.</string>
+    <string name="settings_switch_to_server_message">After signing in you are asked whether your existing local data should be uploaded into the account or deleted from the device. You can switch back to \"Local only\" at any time.</string>
     <string name="settings_switch_action">Switch</string>
     <string name="settings_reset_confirm_title">Delete all local data?</string>
 
@@ -295,4 +297,79 @@
 
     <!-- data/remote/ServerDate.kt -->
     <string name="server_date_error_unknown_format">Unknown date format: %1$s</string>
+
+    <!-- Server hosting choice -->
+    <string name="server_hosting_self_hosted">Self-hosted</string>
+    <string name="server_hosting_cloud">Lademonitor Cloud</string>
+    <string name="server_hosting_self_hosted_hint">Domain of your own Lademonitor server. "https://" is added automatically if you leave it out.</string>
+    <string name="server_hosting_cloud_hint">Runs on lademonitor.cloud – operation, updates and backups are handled for you.</string>
+    <string name="server_source_link">Source code on GitHub</string>
+
+    <!-- ui/auth/AuthScreen.kt (account features, server 0.14.0 and newer) -->
+    <string name="auth_identifier_label">Username or e-mail</string>
+    <string name="auth_email_optional_label">E-mail address (optional)</string>
+    <string name="auth_register_hint">Username at least 3 characters, password at least 8 characters. Without an e-mail address everything works as before – only "forgot password" and notifications won\'t.</string>
+    <string name="auth_login_hint">You can sign in with your username or your e-mail address.</string>
+    <string name="auth_forgot_password_action">Forgot password?</string>
+    <string name="forgot_password_title">Forgot password</string>
+    <string name="forgot_password_hint">We send a link to reset it. It is valid for one hour and can only be used once.</string>
+    <string name="forgot_password_warning">Careful: resetting signs out all signed-in devices – this app and any Home Assistant integration included.</string>
+    <string name="forgot_password_submit_action">Request link</string>
+    <string name="forgot_password_sent">If there is an account with a confirmed e-mail address for this, the message is on its way.</string>
+    <string name="forgot_password_sent_hint">Check the spam folder too. Open the link in the browser – that is where you set the new password.</string>
+    <string name="action_done">Done</string>
+
+    <!-- Handling of local data on sign-in -->
+    <string name="local_data_decision_title">What should happen to the data on this device?</string>
+    <string name="local_data_decision_generic">There is already data on this device.</string>
+    <string name="local_data_decision_summary">There is already data on this device: %1$s.</string>
+    <string name="local_data_decision_explanation">"Upload" adds it to the account %1$s. "Delete from device" removes it here and loads the state of this account instead – nothing is deleted on the server. "Cancel" signs you out again and leaves everything unchanged.</string>
+    <string name="local_data_decision_this_account">this account</string>
+    <string name="local_data_decision_upload">Upload into this account</string>
+    <string name="local_data_decision_discard">Delete from device</string>
+    <string name="local_data_summary_vehicles">%1$d vehicles</string>
+    <string name="local_data_summary_providers">%1$d providers</string>
+    <string name="local_data_summary_locations">%1$d charging locations</string>
+    <string name="local_data_summary_sessions">%1$d charging sessions</string>
+
+    <!-- ui/settings/AccountSettingsScreen.kt -->
+    <string name="settings_nav_account">E-mail, password &amp; notifications</string>
+    <string name="account_title">Account</string>
+    <string name="account_label_username">Username</string>
+    <string name="account_label_role">Role</string>
+    <string name="account_role_admin">Admin</string>
+    <string name="account_unsupported_server">Your server does not support these features yet. They need Lademonitor Server 0.14.0 or newer.</string>
+    <string name="account_section_email">E-mail address</string>
+    <string name="account_email_label">E-mail address</string>
+    <string name="account_email_verified">Confirmed</string>
+    <string name="account_email_unverified">Not confirmed yet</string>
+    <string name="account_email_resend_action">Send confirmation mail again</string>
+    <string name="account_email_resent">Confirmation mail sent.</string>
+    <string name="account_email_save_action">Save address</string>
+    <string name="account_email_hint">Needed for "forgot password" and for notifications. Leaving it empty removes the address. The password is a security check: whoever can change the address can afterwards have the password reset. A changed address has to be confirmed again – until then it cannot reset a password.</string>
+    <string name="account_current_password_label">Current password</string>
+    <string name="account_section_password">Change password</string>
+    <string name="account_new_password_label">New password</string>
+    <string name="account_new_password_confirm_label">Repeat new password</string>
+    <string name="account_password_change_action">Change password</string>
+    <string name="account_password_changed">Password changed.</string>
+    <string name="account_password_hint">At least 8 characters. On change the server signs out all devices – this app stays signed in, but Home Assistant and other devices need new access.</string>
+    <string name="account_section_notifications">Notifications</string>
+    <string name="account_notify_backup_failed">Backup failed</string>
+    <string name="account_notify_myskoda_error">MyŠkoda error or key expiry</string>
+    <string name="account_notify_monthly_report">Monthly report</string>
+    <string name="account_notify_new_registration">New registration</string>
+    <string name="account_review_digest_label">Sessions to review</string>
+    <string name="review_digest_off">Off</string>
+    <string name="review_digest_daily">Daily</string>
+    <string name="review_digest_weekly">Weekly</string>
+    <string name="account_notifications_hint">Sent by e-mail. Requires SMTP access to be set up on the server.</string>
+    <string name="account_notifications_hint_no_email">Enter an e-mail address above so notifications can arrive. In addition, SMTP access has to be set up on the server.</string>
+    <string name="account_saved">Saved.</string>
+    <string name="account_section_delete">Delete account</string>
+    <string name="account_delete_action">Delete account permanently</string>
+    <string name="account_delete_hint">Irrevocably deletes your account and all your data on the server: vehicles, charging sessions, providers, charging locations as well as your MyŠkoda and backup configuration. Home Assistant and other devices are signed out too.</string>
+    <string name="account_delete_confirm_title">Really delete the account irrevocably?</string>
+    <string name="account_delete_confirm_message">All your data on the server is deleted with it. This cannot be undone.</string>
+    <string name="account_delete_unsupported_server">Your server does not support this feature yet. You need Lademonitor Server 0.16.0 or newer.</string>
 </resources>

@@ -59,6 +59,31 @@ object SyncService {
 
     private val itemErrors = mutableListOf<String>()
 
+    /**
+     * Drives the dialog "What should happen to the data on this device?". It lives here and not in
+     * the AuthScreen, because that one is already gone at that moment: `completeAuthentication`
+     * flips `isAuthenticated` and [com.dominiqueherbrigpersonalteam.lademonitor.ui.LademonitorRoot]
+     * switches to the main app right away. So the dialog is shown by LademonitorRoot, which exists
+     * in both states.
+     */
+    private val _pendingLocalDataDecision = MutableStateFlow(false)
+    val pendingLocalDataDecision: StateFlow<Boolean> = _pendingLocalDataDecision
+
+    private val _pendingLocalDataSummary = MutableStateFlow("")
+    val pendingLocalDataSummary: StateFlow<String> = _pendingLocalDataSummary
+
+    /**
+     * What should happen to the data already on the device when somebody signs in to an account
+     * this device has never synced with.
+     */
+    enum class LocalDataDecision {
+        /** Upload into the account signed in to now (the previous behaviour). */
+        UPLOAD,
+
+        /** Delete from the device and load the state of the account instead. */
+        DISCARD
+    }
+
     private val gate = Mutex()
     private var inFlight: Deferred<Unit>? = null
 
@@ -102,10 +127,89 @@ object SyncService {
         }
     }
 
+    // MARK: - Handling of local data on sign-in
+
+    /**
+     * Whether a decision by the user is needed before the first sync.
+     *
+     * Without this question the local data silently moved into the account just signed in to - so
+     * when switching from account A to account B also A's charging locations including the GPS
+     * coordinates of the home address. That is exactly what the per-user separation protects
+     * against server-side, and the app should not undercut it by accident.
+     *
+     * It only asks when there really is something to decide: in server mode, with local data
+     * present, and when this device has never synced with EXACTLY THIS account. So a normal
+     * re-sign-in to the usual account asks nothing.
+     */
+    private suspend fun needsLocalDataDecision(): Boolean {
+        if (AppSettings.appMode.value != AppMode.SERVER) return false
+        val userId = SessionManager.currentUser.value?.id ?: return false
+        if (prefs.getString(KEY_LAST_USER, null) == userId) return false
+        return runCatching { LocalDataStore.hasAnyData() }.getOrDefault(false)
+    }
+
+    /**
+     * To be called after a successful sign-in. Whether it syncs or asks first is decided by the
+     * gate in [performSync] - so this is just the normal nudge.
+     */
+    fun startAfterLogin() {
+        scope.launch { syncNow() }
+    }
+
+    /**
+     * Applies the decision and syncs afterwards.
+     *
+     * Both branches note the account as "seen" - only that lets the gate in [performSync] through
+     * for the following sync.
+     */
+    suspend fun applyLocalDataDecision(decision: LocalDataDecision) {
+        _pendingLocalDataDecision.value = false
+        when (decision) {
+            // Exactly what used to happen automatically on the first sync: mark every row as
+            // "freshly local, must be pushed". Sets lastSyncedUserId along the way.
+            LocalDataDecision.UPLOAD -> resetSyncStateIfAccountChanged()
+            LocalDataDecision.DISCARD -> {
+                try {
+                    LocalDataStore.resetAllData()
+                    // Note the account as "already seen" BEFORE syncing: otherwise the next pass
+                    // would run the account-switch detection on the freshly downloaded server data
+                    // and mark it as locally changed.
+                    SessionManager.currentUser.value?.id?.let {
+                        prefs.edit().putString(KEY_LAST_USER, it).apply()
+                    }
+                } catch (e: Exception) {
+                    _lastSyncError.value = e.localizedMessage ?: e.toString()
+                    return
+                }
+            }
+        }
+        syncNow()
+    }
+
+    /**
+     * Cancel in the dialog: sign out again. Otherwise one would stand there signed in without the
+     * question being answered - and the next arbitrary sync (tab switch, network back) would
+     * silently answer it with "upload". The local data stays untouched.
+     */
+    suspend fun cancelLocalDataDecision() {
+        _pendingLocalDataDecision.value = false
+        SessionManager.logout()
+    }
+
     private suspend fun performSync() {
         if (AppSettings.appMode.value != AppMode.SERVER || !SessionManager.isAuthenticated.value) return
         if (!NetworkMonitor.isOnline.value) {
             _lastSyncError.value = LademonitorApp.appContext.getString(R.string.sync_error_offline)
+            return
+        }
+        // Gate against the silent path: a sync that does NOT come through startAfterLogin() either
+        // (app restart after a cancelled sign-in, network returning, tab switch) must not answer
+        // the question silently with "upload". It is asked here instead. applyLocalDataDecision()
+        // notes the account as seen in both branches, so the sync following it gets through here.
+        if (needsLocalDataDecision()) {
+            _pendingLocalDataSummary.value =
+                runCatching { LocalDataStore.localDataSummary() }.getOrDefault("")
+            _pendingLocalDataDecision.value = true
             return
         }
         _isSyncing.value = true

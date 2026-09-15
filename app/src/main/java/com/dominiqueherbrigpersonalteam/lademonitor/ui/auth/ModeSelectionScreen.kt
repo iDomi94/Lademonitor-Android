@@ -1,6 +1,8 @@
 package com.dominiqueherbrigpersonalteam.lademonitor.ui.auth
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EvStation
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -29,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.SourceCodeLink
 
 /**
  * Shown once on the very first launch (AppMode.UNDECIDED). Server mode leads to the AuthScreen;
@@ -38,7 +42,10 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
 fun ModeSelectionScreen() {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -66,10 +73,25 @@ fun ModeSelectionScreen() {
             Spacer(Modifier.size(16.dp))
 
             ModeOptionCard(
-                icon = Icons.Filled.Cloud,
+                icon = Icons.Filled.Dns,
                 title = stringResource(R.string.mode_selection_server_title),
-                description = stringResource(R.string.mode_selection_server_description)
-            ) { AppSettings.setAppMode(AppMode.SERVER) }
+                description = stringResource(R.string.mode_selection_server_description),
+                showSourceLink = true
+            ) {
+                AppSettings.setServerHosting(AppSettings.ServerHosting.SELF_HOSTED)
+                AppSettings.setAppMode(AppMode.SERVER)
+            }
+
+            Spacer(Modifier.size(16.dp))
+
+            ModeOptionCard(
+                icon = Icons.Filled.Cloud,
+                title = stringResource(R.string.mode_selection_cloud_title),
+                description = stringResource(R.string.mode_selection_cloud_description)
+            ) {
+                AppSettings.setServerHosting(AppSettings.ServerHosting.CLOUD)
+                AppSettings.setAppMode(AppMode.SERVER)
+            }
         }
     }
 }
@@ -79,6 +101,7 @@ private fun ModeOptionCard(
     icon: ImageVector,
     title: String,
     description: String,
+    showSourceLink: Boolean = false,
     onClick: () -> Unit
 ) {
     Card(
@@ -97,6 +120,7 @@ private fun ModeOptionCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
                 )
+                if (showSourceLink) SourceCodeLink()
             }
         }
     }

@@ -28,14 +28,45 @@ plus a **server mode with bidirectional synchronization**.
   and "current location".
 - **Time-range filter** (presets + custom range), global across dashboard,
   charging sessions, and map.
+- **Sign in with username or e-mail address**; an address can optionally be
+  stored during registration.
+- **Account settings:** store and confirm an e-mail address, change your own
+  password, switch the server's notifications on/off (failed backup, MyŠkoda
+  error, monthly report, digest of sessions that need a review), delete the
+  account including all server data. Needs Lademonitor Server 0.14.0 or newer
+  (account deletion: 0.16.0) – against an older server the section stays hidden.
+- **"Forgot password":** the app requests the link, the new password is set
+  through the link in the mail in the browser.
+- **Question on sign-in:** if you sign in to an account this device has never
+  synced with and data is already on the device, the app asks – upload or delete
+  from the device. Nothing is ever deleted on the server.
+
+## Deployment options
+
+- **Standalone local:** runs entirely offline on the device, no server needed.
+- **Self-hosted:** your own
+  [Lademonitor Server](https://github.com/iDomi94/Lademonitor-Server), open
+  source and run via Docker – full control over your own data.
+- **Lademonitor Cloud** (`lademonitor.cloud`): no server operation of your own,
+  updates and backups are handled for you. Selectable in the app right next to
+  the server address via the hosting picker.
+
+Server mode (self-hosted or cloud) additionally brings automatic charging-session
+detection via Home Assistant and access from the web UI, with bidirectional
+synchronization between app, web UI and further devices.
 
 ## Requirement
 
 For server mode, a running
-[Lademonitor-Server](https://github.com/iDomi94/Lademonitor-Server). On
-first launch, enter the server address (domain, `https://` is added
-automatically) as well as username/password. "Local only" mode works
-without a server.
+[Lademonitor-Server](https://github.com/iDomi94/Lademonitor-Server) – or the
+Lademonitor Cloud. On first launch, enter the server address (domain, `https://`
+is added automatically) or pick "Lademonitor Cloud", plus username or e-mail
+address and the password. "Local only" mode works without a server.
+
+**Note:** if the password is reset or changed, the server signs out all devices.
+On a change in the account settings this app stays signed in (the server ships
+the new access along, from server 0.14.1); after a reset via the mail link a new
+sign-in is needed.
 
 ## Build & run
 
@@ -75,7 +106,8 @@ app/src/main/java/com/dominiqueherbrigpersonalteam/lademonitor/
     dashboard/   - Dashboard + custom-drawn charts
     sessions/    - List, create/edit, detail
     map/         - osmdroid map + mini map in detail view
-    settings/    - Settings, vehicles/providers/locations, connection
+    settings/    - Settings, vehicles/providers/locations, connection,
+                   account (e-mail, password, notifications)
     filter/      - Global time-range filter
     common/      - Formatting, reusable building blocks
 ```
@@ -89,6 +121,8 @@ app/src/main/java/com/dominiqueherbrigpersonalteam/lademonitor/
   queries OSM Nominatim directly (the same source the server proxies).
 - **Token storage:** Android `EncryptedSharedPreferences` instead of the
   iOS Keychain.
+- **Tablet layout:** the iPad master-detail view of the iOS app is not ported;
+  on Android it stays list → detail.
 
 ## License
 

@@ -86,7 +86,9 @@
     <string name="mode_selection_local_title">Nur lokal auf diesem Gerät</string>
     <string name="mode_selection_local_description">Alle Daten bleiben ausschließlich auf diesem Gerät. Kein Server, keine automatische Erkennung über Home Assistant, keine Synchronisation zwischen Geräten. Du kannst später jederzeit zu einem Server wechseln und alle lokalen Daten hochladen.</string>
     <string name="mode_selection_server_title">Mit eigenem Server verbinden</string>
-    <string name="mode_selection_server_description">Daten liegen zentral auf deinem Lademonitor-Server, inkl. automatischer Ladevorgangs-Erkennung über Home Assistant und Zugriff vom Web-UI aus.</string>
+    <string name="mode_selection_server_description">Daten liegen zentral auf einem selbst gehosteten Lademonitor-Server (Open Source, per Docker) statt nur auf dem Gerät: automatische Ladevorgangs-Erkennung über Home Assistant, Zugriff auch vom Web-UI aus, alle Geräte zeigen denselben Stand.</string>
+    <string name="mode_selection_cloud_title">Lademonitor-Cloud</string>
+    <string name="mode_selection_cloud_description">Wie „Mit eigenem Server verbinden“, aber auf dem öffentlichen Server unter lademonitor.cloud – der Betreiber übernimmt Betrieb, Updates und Backups für dich. Kein eigener Server nötig.</string>
 
     <!-- Shared generic actions -->
     <string name="action_ok">OK</string>
@@ -178,7 +180,7 @@
     <string name="settings_reset_hint_server">Löscht Fahrzeuge, Anbieter, Ladeorte und Ladevorgänge auf diesem Gerät. Bereits synchronisierte Daten bleiben auf dem Server und werden danach automatisch zurückgeholt – noch nicht hochgeladene Änderungen gehen verloren.</string>
     <string name="settings_reset_hint_local">Löscht Fahrzeuge, Anbieter, Ladeorte und Ladevorgänge unwiderruflich von diesem Gerät. Es gibt keine weitere Kopie.</string>
     <string name="settings_switch_to_server_title">Zu Server wechseln?</string>
-    <string name="settings_switch_to_server_message">Nach der Anmeldung werden deine bisherigen lokalen Daten automatisch zum Server hochgeladen. Du kannst jederzeit zurück zu \"Nur lokal\" wechseln.</string>
+    <string name="settings_switch_to_server_message">Nach der Anmeldung wirst du gefragt, ob deine bisherigen lokalen Daten in das Konto hochgeladen oder vom Gerät gelöscht werden sollen. Du kannst jederzeit zurück zu \"Nur lokal\" wechseln.</string>
     <string name="settings_switch_action">Wechseln</string>
     <string name="settings_reset_confirm_title">Alle lokalen Daten löschen?</string>
 
@@ -295,4 +297,79 @@
 
     <!-- data/remote/ServerDate.kt -->
     <string name="server_date_error_unknown_format">Unbekanntes Datumsformat: %1$s</string>
+
+    <!-- Server-Hosting-Auswahl -->
+    <string name="server_hosting_self_hosted">Selbst gehostet</string>
+    <string name="server_hosting_cloud">Lademonitor-Cloud</string>
+    <string name="server_hosting_self_hosted_hint">Domain deines eigenen Lademonitor-Servers. „https://“ wird automatisch ergänzt, falls du es weglässt.</string>
+    <string name="server_hosting_cloud_hint">Läuft auf lademonitor.cloud – Betrieb, Updates und Backups übernimmt der Betreiber für dich.</string>
+    <string name="server_source_link">Quellcode auf GitHub</string>
+
+    <!-- ui/auth/AuthScreen.kt (Konto-Funktionen ab Server 0.14.0) -->
+    <string name="auth_identifier_label">Nutzername oder E-Mail</string>
+    <string name="auth_email_optional_label">E-Mail-Adresse (optional)</string>
+    <string name="auth_register_hint">Nutzername mindestens 3 Zeichen, Passwort mindestens 8 Zeichen. Ohne E-Mail-Adresse funktioniert alles wie bisher – nur „Passwort vergessen“ und Benachrichtigungen dann nicht.</string>
+    <string name="auth_login_hint">Du kannst dich mit deinem Nutzernamen oder deiner E-Mail-Adresse anmelden.</string>
+    <string name="auth_forgot_password_action">Passwort vergessen?</string>
+    <string name="forgot_password_title">Passwort vergessen</string>
+    <string name="forgot_password_hint">Wir schicken einen Link zum Zurücksetzen. Er gilt eine Stunde und lässt sich nur einmal verwenden.</string>
+    <string name="forgot_password_warning">Achtung: Beim Zurücksetzen werden alle angemeldeten Geräte abgemeldet – auch diese App und eine eventuelle Home-Assistant-Anbindung.</string>
+    <string name="forgot_password_submit_action">Link anfordern</string>
+    <string name="forgot_password_sent">Wenn es dazu ein Konto mit bestätigter E-Mail-Adresse gibt, ist die Nachricht unterwegs.</string>
+    <string name="forgot_password_sent_hint">Schau auch im Spam-Ordner nach. Den Link öffnest du im Browser – dort setzt du das neue Passwort.</string>
+    <string name="action_done">Fertig</string>
+
+    <!-- Umgang mit lokalen Daten beim Anmelden -->
+    <string name="local_data_decision_title">Was soll mit den Daten auf diesem Gerät passieren?</string>
+    <string name="local_data_decision_generic">Auf diesem Gerät liegen bereits Daten.</string>
+    <string name="local_data_decision_summary">Auf diesem Gerät liegen bereits: %1$s.</string>
+    <string name="local_data_decision_explanation">„Hochladen“ fügt sie dem Konto %1$s hinzu. „Vom Gerät löschen“ entfernt sie hier und lädt stattdessen den Stand dieses Kontos – auf dem Server wird dabei nichts gelöscht. „Abbrechen“ meldet dich wieder ab und lässt alles unverändert.</string>
+    <string name="local_data_decision_this_account">diesem Konto</string>
+    <string name="local_data_decision_upload">In dieses Konto hochladen</string>
+    <string name="local_data_decision_discard">Vom Gerät löschen</string>
+    <string name="local_data_summary_vehicles">%1$d Fahrzeuge</string>
+    <string name="local_data_summary_providers">%1$d Anbieter</string>
+    <string name="local_data_summary_locations">%1$d Ladeorte</string>
+    <string name="local_data_summary_sessions">%1$d Ladevorgänge</string>
+
+    <!-- ui/settings/AccountSettingsScreen.kt -->
+    <string name="settings_nav_account">E-Mail, Passwort &amp; Benachrichtigungen</string>
+    <string name="account_title">Konto</string>
+    <string name="account_label_username">Nutzername</string>
+    <string name="account_label_role">Rolle</string>
+    <string name="account_role_admin">Admin</string>
+    <string name="account_unsupported_server">Dein Server unterstützt diese Funktionen noch nicht. Sie brauchen Lademonitor-Server 0.14.0 oder neuer.</string>
+    <string name="account_section_email">E-Mail-Adresse</string>
+    <string name="account_email_label">E-Mail-Adresse</string>
+    <string name="account_email_verified">Bestätigt</string>
+    <string name="account_email_unverified">Noch nicht bestätigt</string>
+    <string name="account_email_resend_action">Bestätigungsmail erneut senden</string>
+    <string name="account_email_resent">Bestätigungsmail verschickt.</string>
+    <string name="account_email_save_action">Adresse speichern</string>
+    <string name="account_email_hint">Wird für „Passwort vergessen“ und für Benachrichtigungen gebraucht. Leer lassen entfernt die Adresse. Das Passwort ist eine Sicherheitsabfrage: wer die Adresse ändern kann, kann anschließend das Passwort zurücksetzen lassen. Eine geänderte Adresse muss erneut bestätigt werden – bis dahin kann sie kein Passwort zurücksetzen.</string>
+    <string name="account_current_password_label">Aktuelles Passwort</string>
+    <string name="account_section_password">Passwort ändern</string>
+    <string name="account_new_password_label">Neues Passwort</string>
+    <string name="account_new_password_confirm_label">Neues Passwort wiederholen</string>
+    <string name="account_password_change_action">Passwort ändern</string>
+    <string name="account_password_changed">Passwort geändert.</string>
+    <string name="account_password_hint">Mindestens 8 Zeichen. Beim Ändern meldet der Server alle Geräte ab – diese App bleibt angemeldet, Home Assistant und andere Geräte brauchen aber einen neuen Zugang.</string>
+    <string name="account_section_notifications">Benachrichtigungen</string>
+    <string name="account_notify_backup_failed">Backup fehlgeschlagen</string>
+    <string name="account_notify_myskoda_error">MyŠkoda-Fehler oder Key-Ablauf</string>
+    <string name="account_notify_monthly_report">Monatsbericht</string>
+    <string name="account_notify_new_registration">Neue Registrierung</string>
+    <string name="account_review_digest_label">Zu prüfende Ladevorgänge</string>
+    <string name="review_digest_off">Aus</string>
+    <string name="review_digest_daily">Täglich</string>
+    <string name="review_digest_weekly">Wöchentlich</string>
+    <string name="account_notifications_hint">Wird per E-Mail verschickt. Setzt voraus, dass auf dem Server ein SMTP-Zugang eingerichtet ist.</string>
+    <string name="account_notifications_hint_no_email">Trage oben eine E-Mail-Adresse ein, damit Benachrichtigungen ankommen können. Zusätzlich muss auf dem Server ein SMTP-Zugang eingerichtet sein.</string>
+    <string name="account_saved">Gespeichert.</string>
+    <string name="account_section_delete">Konto löschen</string>
+    <string name="account_delete_action">Konto endgültig löschen</string>
+    <string name="account_delete_hint">Löscht dein Konto und alle deine Daten auf dem Server unwiderruflich: Fahrzeuge, Ladevorgänge, Anbieter, Ladeorte sowie deine MyŠkoda- und Backup-Konfiguration. Home Assistant und andere Geräte werden dabei ebenfalls abgemeldet.</string>
+    <string name="account_delete_confirm_title">Konto wirklich unwiderruflich löschen?</string>
+    <string name="account_delete_confirm_message">Alle deine Daten auf dem Server werden dabei gelöscht. Das lässt sich nicht rückgängig machen.</string>
+    <string name="account_delete_unsupported_server">Dein Server unterstützt diese Funktion noch nicht. Du brauchst Lademonitor-Server 0.16.0 oder neuer.</string>
 </resources>

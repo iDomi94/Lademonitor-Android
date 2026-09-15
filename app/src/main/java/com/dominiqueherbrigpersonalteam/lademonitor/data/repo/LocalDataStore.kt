@@ -39,6 +39,32 @@ object LocalDataStore {
 
     // MARK: - Reset
 
+    /**
+     * Whether there is any local data at all - including the rows only marked for deletion, since
+     * those would have an effect on an account switch too (see the account-switch reset in
+     * [SyncService]). Needed to ask about the handling of local data on sign-in only when there
+     * really is something to decide.
+     */
+    suspend fun hasAnyData(): Boolean =
+        sessions.countAll() > 0 || vehicles.countAll() > 0 ||
+            providers.countAll() > 0 || locations.countAll() > 0
+
+    /** Short summary for the sign-in question ("3 vehicles, 128 charging sessions"). */
+    suspend fun localDataSummary(): String {
+        val context = LademonitorApp.appContext
+        val parts = buildList {
+            vehicles.countAll().takeIf { it > 0 }
+                ?.let { add(context.getString(R.string.local_data_summary_vehicles, it)) }
+            providers.countAll().takeIf { it > 0 }
+                ?.let { add(context.getString(R.string.local_data_summary_providers, it)) }
+            locations.countAll().takeIf { it > 0 }
+                ?.let { add(context.getString(R.string.local_data_summary_locations, it)) }
+            sessions.countAll().takeIf { it > 0 }
+                ?.let { add(context.getString(R.string.local_data_summary_sessions, it)) }
+        }
+        return parts.joinToString(", ")
+    }
+
     /** Irreversibly deletes ALL local data. */
     suspend fun resetAllData() {
         sessions.clear()

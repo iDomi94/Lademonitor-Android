@@ -26,13 +26,48 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   OSM-Nominatim, im Server-Modus über den Server-Proxy) und „Aktueller Standort“.
 - **Zeitraum-Filter** (Presets + eigener Zeitraum), global für Dashboard,
   Ladevorgänge und Karte.
+- **Anmelden mit Nutzername oder E-Mail-Adresse**; bei der Registrierung kann
+  optional eine Adresse hinterlegt werden.
+- **Konto-Einstellungen:** E-Mail-Adresse hinterlegen und bestätigen, eigenes
+  Passwort ändern, Benachrichtigungen des Servers ein-/ausschalten
+  (fehlgeschlagenes Backup, MyŠkoda-Fehler, Monatsbericht, Sammelmeldung über zu
+  prüfende Ladevorgänge), Konto samt aller Server-Daten löschen. Braucht
+  Lademonitor-Server 0.14.0 oder neuer (Konto löschen: 0.16.0) – gegen einen
+  älteren Server bleibt der Bereich ausgeblendet.
+- **„Passwort vergessen“:** die App fordert den Link an, gesetzt wird das neue
+  Passwort über den Link in der Mail im Browser.
+- **Nachfrage beim Anmelden:** meldest du dich an einem Konto an, mit dem dieses
+  Gerät noch nie synchronisiert hat, und liegen schon Daten auf dem Gerät, fragt
+  die App nach – hochladen oder vom Gerät löschen. Auf dem Server wird dabei nie
+  etwas gelöscht.
+
+## Einsatzmöglichkeiten
+
+- **Standalone lokal:** läuft komplett offline auf dem Gerät, kein Server nötig.
+- **Selbst gehostet:** eigener
+  [Lademonitor-Server](https://github.com/iDomi94/Lademonitor-Server), Open
+  Source und per Docker betrieben – volle Kontrolle über die eigenen Daten.
+- **Lademonitor-Cloud** (`lademonitor.cloud`): kein eigener Serverbetrieb nötig,
+  Updates und Backups übernimmt der Betreiber. In der App direkt über die
+  Hosting-Auswahl neben der Server-Adresse wählbar.
+
+Server-Modus (selbst gehostet oder Cloud) bringt zusätzlich automatische
+Ladevorgangs-Erkennung über Home Assistant sowie Zugriff vom Web-UI aus, mit
+bidirektionaler Synchronisierung zwischen App, Web-UI und weiteren Geräten.
 
 ## Voraussetzung
 
 Für den Server-Modus ein laufender
-[Lademonitor-Server](https://github.com/iDomi94/Lademonitor-Server). Beim ersten
-Start die Server-Adresse (Domain, `https://` wird automatisch ergänzt) sowie
-Nutzername/Passwort eingeben. Der „Nur lokal“-Modus funktioniert ohne Server.
+[Lademonitor-Server](https://github.com/iDomi94/Lademonitor-Server) – oder die
+Lademonitor-Cloud. Beim ersten Start die Server-Adresse (Domain, `https://` wird
+automatisch ergänzt) bzw. „Lademonitor-Cloud“ wählen und Nutzername oder
+E-Mail-Adresse samt Passwort eingeben. Der „Nur lokal“-Modus funktioniert ohne
+Server.
+
+**Hinweis:** Wird das Passwort zurückgesetzt oder geändert, meldet der Server
+alle Geräte ab. Bei einer Änderung in den Konto-Einstellungen bleibt diese App
+angemeldet (der Server liefert den neuen Zugang direkt mit, ab Server 0.14.1);
+nach einem Zurücksetzen über den Mail-Link ist eine neue Anmeldung nötig.
 
 ## Bauen & Ausführen
 
@@ -72,7 +107,8 @@ app/src/main/java/com/dominiqueherbrigpersonalteam/lademonitor/
     dashboard/   - Dashboard + selbstgezeichnete Diagramme
     sessions/    - Liste, Anlegen/Bearbeiten, Detail
     map/         - osmdroid-Karte + Mini-Karte im Detail
-    settings/    - Einstellungen, Fahrzeuge/Anbieter/Ladeorte, Verbindung
+    settings/    - Einstellungen, Fahrzeuge/Anbieter/Ladeorte, Verbindung,
+                   Konto (E-Mail, Passwort, Benachrichtigungen)
     filter/      - Globaler Zeitraum-Filter
     common/      - Formatierung, wiederverwendbare Bausteine
 ```
@@ -85,6 +121,8 @@ app/src/main/java/com/dominiqueherbrigpersonalteam/lademonitor/
 - **Lokale Adresssuche:** statt Apple `MKLocalSearch` wird im lokalen Modus
   direkt OSM-Nominatim angefragt (dieselbe Quelle, die der Server proxied).
 - **Token-Speicher:** Android `EncryptedSharedPreferences` statt iOS-Keychain.
+- **Tablet-Layout:** die iPad-Master-Detail-Ansicht der iOS-App ist nicht
+  portiert; auf Android bleibt es bei Liste → Detail.
 
 ## Lizenz
 

@@ -86,6 +86,9 @@ fun SettingsScreen(navController: NavController) {
                 SectionCard {
                     Header(stringResource(R.string.settings_section_account))
                     user?.let { LabeledRow(stringResource(R.string.settings_label_logged_in_as), it.username) }
+                    HorizontalDivider()
+                    NavRow(stringResource(R.string.settings_nav_account)) { navController.navigate("settings/account") }
+                    HorizontalDivider()
                     if (isLoggingOut) {
                         Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                             Text(stringResource(R.string.settings_logging_out), color = MaterialTheme.colorScheme.error)

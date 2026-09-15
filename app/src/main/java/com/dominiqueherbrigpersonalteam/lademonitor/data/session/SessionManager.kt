@@ -45,6 +45,45 @@ object SessionManager {
         _currentUser.value = runCatching { ApiClient.fetchMe() }.getOrNull()
     }
 
+    /** Re-fetch the user - e.g. after the address was confirmed in another client. */
+    suspend fun reloadCurrentUser() {
+        if (!_isAuthenticated.value) return
+        _currentUser.value = runCatching { ApiClient.fetchMe() }.getOrNull()
+    }
+
+    /**
+     * Called by the account settings when an endpoint returns the updated user (address,
+     * notifications).
+     */
+    fun applyUpdatedUser(user: AuthUser) {
+        _currentUser.value = user
+    }
+
+    /**
+     * Change the own password.
+     *
+     * The server drops ALL sessions of the user - so a possibly hijacked session does not keep
+     * running - and immediately issues a new one, whose token it ships along since version 0.14.1.
+     * That one is adopted right here: the app stays signed in without a second sign-in.
+     *
+     * Other devices (Home Assistant, further installations) are signed out afterwards and need new
+     * access - the account screen points that out.
+     */
+    suspend fun changePassword(currentPassword: String, newPassword: String) {
+        val response = ApiClient.changePassword(currentPassword, newPassword)
+        completeAuthentication(response)
+    }
+
+    /**
+     * Delete the own account irrevocably, including all own data on the server. A wrong password
+     * (403) keeps throwing without changing anything locally - only after a confirmed success is
+     * the local session cleared, as on logout.
+     */
+    suspend fun deleteAccount(currentPassword: String) {
+        ApiClient.deleteAccount(currentPassword)
+        clearLocalSession()
+    }
+
     private fun clearLocalSession() {
         TokenStore.deleteToken()
         _currentUser.value = null
