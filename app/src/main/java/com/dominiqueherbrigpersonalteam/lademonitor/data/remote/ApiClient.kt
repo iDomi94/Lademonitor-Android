@@ -2,9 +2,15 @@ package com.dominiqueherbrigpersonalteam.lademonitor.data.remote
 
 import com.dominiqueherbrigpersonalteam.lademonitor.LademonitorApp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.AccountDeletePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.AuthCredentials
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.AuthResponse
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.AuthUser
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EmailUpdatePayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.NotificationSettingsPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PasswordChangePayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PasswordResetRequestPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.RegisterCredentials
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
@@ -138,25 +144,90 @@ object ApiClient {
     private inline fun <reified T> encode(value: T): String =
         Json.moshi.adapter(T::class.java).toJson(value)
 
+    /**
+     * Like [encode], but keeps `null` fields in the JSON. Needed where the server distinguishes
+     * "field absent" from "field explicitly null" - removing the e-mail address is exactly that.
+     */
+    private inline fun <reified T> encodeKeepingNulls(value: T): String =
+        Json.moshi.adapter(T::class.java).serializeNulls().toJson(value)
+
     // MARK: - Auth
 
-    suspend fun register(username: String, password: String): AuthResponse =
+    suspend fun register(username: String, password: String, email: String? = null): AuthResponse =
         send(
             "/api/auth/register", "POST",
-            encode(AuthCredentials(username, password)),
+            encode(RegisterCredentials(username, password, email)),
             authenticated = false, type = AuthResponse::class.java
         )
 
-    suspend fun login(username: String, password: String): AuthResponse =
+    /**
+     * [identifier] is the username OR the e-mail address. The JSON field is still called
+     * `username` server-side (see `schemas.LoginRequest`) - the name was deliberately kept so
+     * existing clients keep working.
+     */
+    suspend fun login(identifier: String, password: String): AuthResponse =
         send(
             "/api/auth/login", "POST",
-            encode(AuthCredentials(username, password)),
+            encode(AuthCredentials(identifier, password)),
             authenticated = false, type = AuthResponse::class.java
         )
 
     suspend fun logout() = sendNoContent("/api/auth/logout", "POST")
 
     suspend fun fetchMe(): AuthUser = send("/api/auth/me", type = AuthUser::class.java)
+
+    // MARK: - Account (server 0.14.0 and newer)
+
+    /**
+     * Changes the own password and returns the new session.
+     *
+     * The server drops ALL sessions of the user - the own one included - and immediately issues a
+     * new one. Since server 0.14.1 it ships that token in the response (like login and
+     * registration); before that a bearer client had to sign in a second time.
+     */
+    suspend fun changePassword(currentPassword: String, newPassword: String): AuthResponse =
+        send(
+            "/api/auth/password", "PUT",
+            encode(PasswordChangePayload(currentPassword, newPassword)),
+            type = AuthResponse::class.java
+        )
+
+    /**
+     * Sets or removes (`email == null`) the own address. A changed address counts as unconfirmed
+     * afterwards; the server automatically sends a confirmation link if mail delivery is set up.
+     */
+    suspend fun updateEmail(email: String?, currentPassword: String): AuthUser =
+        send(
+            "/api/auth/email", "PUT",
+            encodeKeepingNulls(EmailUpdatePayload(email, currentPassword)),
+            type = AuthUser::class.java
+        )
+
+    suspend fun resendEmailVerification() =
+        sendNoContent("/api/auth/email/verify/resend", "POST")
+
+    /**
+     * Deletes the own account irrevocably, including all own data on the server (vehicles,
+     * charging sessions, providers, charging locations, ...).
+     */
+    suspend fun deleteAccount(currentPassword: String) =
+        sendNoContent("/api/auth/me", "DELETE", encode(AccountDeletePayload(currentPassword)))
+
+    suspend fun updateNotifications(payload: NotificationSettingsPayload): AuthUser =
+        send("/api/auth/notifications", "PUT", encode(payload), type = AuthUser::class.java)
+
+    /**
+     * Requests a reset link. The server answers with 204 ON PURPOSE - also for an unknown account,
+     * a missing or an unconfirmed address. Any distinction would be a directory of all usernames
+     * and addresses of this server. So the app must not derive anything from it and shows the same
+     * message in every case.
+     */
+    suspend fun requestPasswordReset(identifier: String) =
+        sendNoContent(
+            "/api/auth/password-reset/request", "POST",
+            encode(PasswordResetRequestPayload(identifier)),
+            authenticated = false
+        )
 
     suspend fun checkHealth(): Boolean {
         val map: Map<String, Any> = send(
@@ -213,7 +284,13 @@ object ApiClient {
             ?.newBuilder()?.addQueryParameter("query", query)?.build()
             ?: throw ApiException.InvalidResponse
         return withContext(Dispatchers.IO) {
-            val request = Request.Builder().url(url).header("Content-Type", "application/json").get().build()
+            // The token is attached explicitly, like everywhere else: the endpoint sits behind
+            // the sign-in requirement. Without the header the call would usually still work via
+            // the session cookie - and that implicit side path fails as soon as the cookie store
+            // is empty, without the 401 handling in [send] kicking in.
+            val builder = Request.Builder().url(url).header("Content-Type", "application/json")
+            TokenStore.readToken()?.let { builder.header("Authorization", "Bearer $it") }
+            val request = builder.get().build()
             val response = try {
                 http.newCall(request).execute()
             } catch (e: Exception) {

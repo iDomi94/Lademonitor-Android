@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -16,7 +15,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -28,20 +26,22 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.ServerAddressSection
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConnectionSettingsScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
+    // Read as state so the test button enables as soon as an address is entered.
     val serverUrl by AppSettings.serverUrlString.collectAsStateWithLifecycle()
+    val isConfigured = remember(serverUrl) { AppSettings.isConfigured }
     var isTesting by remember { mutableStateOf(false) }
     var success by remember { mutableStateOf<Boolean?>(null) }
     var failMessage by remember { mutableStateOf<String?>(null) }
@@ -58,20 +58,7 @@ fun ConnectionSettingsScreen(navController: NavController) {
         )
     }) { padding ->
         Column(Modifier.padding(padding).padding(16.dp).fillMaxWidth()) {
-            Text(stringResource(R.string.auth_server_address_label), style = MaterialTheme.typography.labelLarge)
-            OutlinedTextField(
-                value = serverUrl,
-                onValueChange = { AppSettings.setServerUrlString(it) },
-                placeholder = { Text(stringResource(R.string.auth_server_address_placeholder)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Text(
-                stringResource(R.string.auth_server_address_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            ServerAddressSection()
 
             Button(
                 onClick = {
@@ -87,7 +74,7 @@ fun ConnectionSettingsScreen(navController: NavController) {
                         isTesting = false
                     }
                 },
-                enabled = AppSettings.isConfigured && !isTesting,
+                enabled = isConfigured && !isTesting,
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
             ) {
                 if (isTesting) CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp)

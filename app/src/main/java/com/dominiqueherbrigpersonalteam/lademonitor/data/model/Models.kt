@@ -183,12 +183,53 @@ data class ChargingSessionPayload(
 
 // MARK: - Auth
 
+/**
+ * How often the server collects sessions that still need a review into one mail.
+ * Raw values lower-case as the server sends them (`models.ReviewDigestFrequency`).
+ */
+enum class ReviewDigestFrequency(val raw: String, @param:StringRes val labelRes: Int) {
+    @Json(name = "off")
+    OFF("off", R.string.review_digest_off),
+
+    @Json(name = "daily")
+    DAILY("daily", R.string.review_digest_daily),
+
+    @Json(name = "weekly")
+    WEEKLY("weekly", R.string.review_digest_weekly);
+
+    companion object {
+        fun from(raw: String?): ReviewDigestFrequency = entries.firstOrNull { it.raw == raw } ?: OFF
+    }
+}
+
 @JsonClass(generateAdapter = true)
 data class AuthUser(
     val id: String,
     val username: String,
-    @Json(name = "is_admin") val isAdmin: Boolean = false
-)
+    @Json(name = "is_admin") val isAdmin: Boolean = false,
+
+    // Server 0.14.0 and newer. ALL new fields are nullable so an updated app keeps working
+    // against an older server - were they non-null, decoding the login response would already
+    // fail and make signing in impossible.
+    val email: String? = null,
+    @Json(name = "email_verified_at") @ServerDate val emailVerifiedAt: Long? = null,
+    val language: String? = null,
+    @Json(name = "notify_backup_failed") val notifyBackupFailed: Boolean? = null,
+    @Json(name = "notify_myskoda_error") val notifyMyskodaError: Boolean? = null,
+    @Json(name = "notify_monthly_report") val notifyMonthlyReport: Boolean? = null,
+    @Json(name = "notify_new_registration") val notifyNewRegistration: Boolean? = null,
+    @Json(name = "review_digest") val reviewDigest: ReviewDigestFrequency? = null
+) {
+    /** Whether the stored address is confirmed. Only a confirmed one can reset a password. */
+    val isEmailVerified: Boolean get() = emailVerifiedAt != null
+
+    /**
+     * Whether the server knows the account features from 0.14.0 at all. An older server does not
+     * send `review_digest` - the corresponding settings sections are then hidden instead of
+     * offering buttons that answer with a 404.
+     */
+    val supportsAccountFeatures: Boolean get() = reviewDigest != null
+}
 
 @JsonClass(generateAdapter = true)
 data class AuthResponse(
@@ -196,10 +237,67 @@ data class AuthResponse(
     val user: AuthUser
 )
 
+/**
+ * Request body for the login. The field is still called `username` server-side but also accepts
+ * the e-mail address.
+ */
 @JsonClass(generateAdapter = true)
 data class AuthCredentials(
     val username: String,
     val password: String
+)
+
+/**
+ * Request body for the registration - like [AuthCredentials] plus an optional address. A separate
+ * type on purpose: with `null` the field should not appear in the JSON at all.
+ */
+@JsonClass(generateAdapter = true)
+data class RegisterCredentials(
+    val username: String,
+    val password: String,
+    val email: String? = null
+)
+
+/** Body for `PUT /api/auth/password`. */
+@JsonClass(generateAdapter = true)
+data class PasswordChangePayload(
+    @Json(name = "current_password") val currentPassword: String,
+    @Json(name = "new_password") val newPassword: String
+)
+
+/**
+ * Body for `PUT /api/auth/email`. `email == null` removes the address. The server demands the
+ * current password: whoever can change the address can afterwards have the password reset.
+ */
+@JsonClass(generateAdapter = true)
+data class EmailUpdatePayload(
+    val email: String?,
+    @Json(name = "current_password") val currentPassword: String
+)
+
+/**
+ * Body for `DELETE /api/auth/me`. As with /email and /password the server demands the current
+ * password - a stolen bearer token alone must not be able to destroy the account.
+ */
+@JsonClass(generateAdapter = true)
+data class AccountDeletePayload(
+    @Json(name = "current_password") val currentPassword: String
+)
+
+/** Body for `PUT /api/auth/notifications` - the server expects all fields. */
+@JsonClass(generateAdapter = true)
+data class NotificationSettingsPayload(
+    @Json(name = "notify_backup_failed") val notifyBackupFailed: Boolean,
+    @Json(name = "notify_myskoda_error") val notifyMyskodaError: Boolean,
+    @Json(name = "notify_monthly_report") val notifyMonthlyReport: Boolean,
+    @Json(name = "notify_new_registration") val notifyNewRegistration: Boolean,
+    @Json(name = "review_digest") val reviewDigest: ReviewDigestFrequency
+)
+
+/** Body for `POST /api/auth/password-reset/request`. Username OR address. */
+@JsonClass(generateAdapter = true)
+data class PasswordResetRequestPayload(
+    val identifier: String
 )
 
 // MARK: - Geocoding

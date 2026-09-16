@@ -28,6 +28,10 @@ interface VehicleDao {
     @Delete
     suspend fun delete(vehicle: LocalVehicle)
 
+    /** Includes rows only marked for deletion - those matter on an account switch too. */
+    @Query("SELECT COUNT(*) FROM vehicles")
+    suspend fun countAll(): Int
+
     @Query("DELETE FROM vehicles")
     suspend fun clear()
 }
@@ -55,6 +59,10 @@ interface ProviderDao {
     @Delete
     suspend fun delete(provider: LocalProvider)
 
+    /** Includes rows only marked for deletion - those matter on an account switch too. */
+    @Query("SELECT COUNT(*) FROM providers")
+    suspend fun countAll(): Int
+
     @Query("DELETE FROM providers")
     suspend fun clear()
 }
@@ -81,6 +89,10 @@ interface LocationDao {
 
     @Delete
     suspend fun delete(location: LocalChargingLocation)
+
+    /** Includes rows only marked for deletion - those matter on an account switch too. */
+    @Query("SELECT COUNT(*) FROM locations")
+    suspend fun countAll(): Int
 
     @Query("DELETE FROM locations")
     suspend fun clear()
@@ -111,6 +123,10 @@ interface SessionDao {
 
     @Delete
     suspend fun delete(session: LocalChargingSession)
+
+    /** Includes rows only marked for deletion - those matter on an account switch too. */
+    @Query("SELECT COUNT(*) FROM sessions")
+    suspend fun countAll(): Int
 
     @Query("DELETE FROM sessions")
     suspend fun clear()

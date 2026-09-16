@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -36,6 +37,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.ServerAddressSection
 import kotlinx.coroutines.launch
 
 /** Login/registration incl. server address. Port of the iOS `AuthView`. */
@@ -43,24 +45,33 @@ import kotlinx.coroutines.launch
 @Composable
 fun AuthScreen() {
     val scope = rememberCoroutineScope()
+    // Read as state so the submit button enables as soon as an address is entered.
     val serverUrl by AppSettings.serverUrlString.collectAsStateWithLifecycle()
+    val isConfigured = remember(serverUrl) { AppSettings.isConfigured }
 
     var isRegistering by remember { mutableStateOf(false) }
-    var username by remember { mutableStateOf("") }
+    // On sign-in this is the username OR the e-mail address; on registration it is the username.
+    var identifier by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordConfirm by remember { mutableStateOf("") }
     var isSubmitting by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showingForgotPassword by remember { mutableStateOf(false) }
 
     val passwordsMismatchMessage = stringResource(R.string.auth_error_passwords_mismatch)
     val registerLabel = stringResource(R.string.auth_action_register)
     val loginLabel = stringResource(R.string.auth_action_login)
 
-    val trimmedUsername = username.trim()
-    val canSubmit = AppSettings.isConfigured &&
-        trimmedUsername.length >= 3 &&
-        password.length >= 8 &&
-        (!isRegistering || password == passwordConfirm)
+    val trimmedIdentifier = identifier.trim()
+    val trimmedEmail = email.trim()
+    val canSubmit = isConfigured && password.length >= 8 && when {
+        // On registration the input is the username — minimum length 3, as server-side.
+        isRegistering -> trimmedIdentifier.length >= 3 && password == passwordConfirm
+        // On sign-in it may also be an e-mail address; the username rule does not apply here,
+        // the server decides.
+        else -> trimmedIdentifier.isNotEmpty()
+    }
 
     fun submit() {
         errorMessage = null
@@ -71,11 +82,19 @@ fun AuthScreen() {
         scope.launch {
             isSubmitting = true
             try {
-                val response = if (isRegistering) ApiClient.register(trimmedUsername, password)
-                else ApiClient.login(trimmedUsername, password)
+                val response = if (isRegistering) {
+                    ApiClient.register(
+                        trimmedIdentifier, password, trimmedEmail.takeIf { it.isNotEmpty() }
+                    )
+                } else {
+                    ApiClient.login(trimmedIdentifier, password)
+                }
                 SessionManager.completeAuthentication(response)
-                // Migrating local data (if any) is not special — it's just the first sync pass.
-                scope.launch { SyncService.syncNow() }
+                // If data is already on the device and this account is new here, startAfterLogin()
+                // asks first instead of pushing it into the account just signed in to (the dialog
+                // hangs on LademonitorRoot, see SyncService.pendingLocalDataDecision). Otherwise
+                // taking over local data is not a special case, just the first normal sync pass.
+                SyncService.startAfterLogin()
             } catch (e: ApiException.Server) {
                 errorMessage = e.serverMessage
             } catch (e: Exception) {
@@ -94,20 +113,7 @@ fun AuthScreen() {
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
         ) {
-            Text(stringResource(R.string.auth_server_address_label), style = MaterialTheme.typography.labelLarge)
-            OutlinedTextField(
-                value = serverUrl,
-                onValueChange = { AppSettings.setServerUrlString(it) },
-                placeholder = { Text(stringResource(R.string.auth_server_address_placeholder)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Text(
-                stringResource(R.string.auth_server_address_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            ServerAddressSection()
 
             Spacer(Modifier.height(16.dp))
             Text(
@@ -115,12 +121,30 @@ fun AuthScreen() {
                 style = MaterialTheme.typography.labelLarge
             )
             OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text(stringResource(R.string.auth_username_label)) },
+                value = identifier,
+                onValueChange = { identifier = it },
+                label = {
+                    Text(
+                        if (isRegistering) stringResource(R.string.auth_username_label)
+                        else stringResource(R.string.auth_identifier_label)
+                    )
+                },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = if (isRegistering) KeyboardType.Text else KeyboardType.Email
+                ),
                 modifier = Modifier.fillMaxWidth()
             )
+            if (isRegistering) {
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text(stringResource(R.string.auth_email_optional_label)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                )
+            }
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -140,12 +164,14 @@ fun AuthScreen() {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 )
-                Text(
-                    stringResource(R.string.auth_validation_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
+            Text(
+                if (isRegistering) stringResource(R.string.auth_register_hint)
+                else stringResource(R.string.auth_login_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
 
             errorMessage?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 12.dp))
@@ -177,6 +203,14 @@ fun AuthScreen() {
                 )
             }
 
+            if (!isRegistering) {
+                TextButton(
+                    onClick = { showingForgotPassword = true },
+                    enabled = isConfigured,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.auth_forgot_password_action)) }
+            }
+
             Spacer(Modifier.height(16.dp))
             TextButton(
                 onClick = { AppSettings.setAppMode(AppMode.LOCAL_ONLY) },
@@ -184,4 +218,109 @@ fun AuthScreen() {
             ) { Text(stringResource(R.string.auth_use_local_only)) }
         }
     }
+
+    if (showingForgotPassword) {
+        ForgotPasswordDialog(
+            initialIdentifier = trimmedIdentifier,
+            onDismiss = { showingForgotPassword = false }
+        )
+    }
+}
+
+/**
+ * Requests a link to reset the password.
+ *
+ * Actually setting the password deliberately does NOT happen in the app but through the link in
+ * the mail in the browser: the token belongs in exactly one hand, and the web page for it already
+ * exists. The app only triggers the sending.
+ */
+@Composable
+private fun ForgotPasswordDialog(initialIdentifier: String, onDismiss: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    // Takes over what the sign-in form already holds — whoever just tried to sign in without
+    // success should not have to type it again.
+    var identifier by remember { mutableStateOf(initialIdentifier) }
+    var isSubmitting by remember { mutableStateOf(false) }
+    var didSubmit by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.forgot_password_title)) },
+        text = {
+            Column {
+                if (didSubmit) {
+                    Text(stringResource(R.string.forgot_password_sent))
+                    Text(
+                        stringResource(R.string.forgot_password_sent_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = identifier,
+                        onValueChange = { identifier = it },
+                        label = { Text(stringResource(R.string.auth_identifier_label)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        stringResource(R.string.forgot_password_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                    Text(
+                        stringResource(R.string.forgot_password_warning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                    errorMessage?.let {
+                        Text(
+                            it,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (!didSubmit) {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            errorMessage = null
+                            isSubmitting = true
+                            try {
+                                ApiClient.requestPasswordReset(identifier.trim())
+                                // The server always answers the same, whether the account exists
+                                // or not — so the app must not distinguish anything here either.
+                                didSubmit = true
+                            } catch (e: Exception) {
+                                // Only real connection/server errors land here; an unknown account
+                                // looks like a success to the client.
+                                errorMessage = e.localizedMessage
+                            } finally {
+                                isSubmitting = false
+                            }
+                        }
+                    },
+                    enabled = !isSubmitting && identifier.trim().isNotEmpty()
+                ) { Text(stringResource(R.string.forgot_password_submit_action)) }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    if (didSubmit) stringResource(R.string.action_done)
+                    else stringResource(R.string.action_cancel)
+                )
+            }
+        }
+    )
 }
