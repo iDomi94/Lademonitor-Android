@@ -40,6 +40,15 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   Gerät noch nie synchronisiert hat, und liegen schon Daten auf dem Gerät, fragt
   die App nach – hochladen oder vom Gerät löschen. Auf dem Server wird dabei nie
   etwas gelöscht.
+- **Serverseitige Löschungen kommen an**: auf dem Server gelöschte Ladevorgänge,
+  Fahrzeuge, Anbieter und Ladeorte verschwinden beim nächsten Abgleich auch aus
+  der App, statt als „Geisterzeilen" stehenzubleiben. Braucht Lademonitor-Server
+  0.22.0 oder neuer; gegen einen älteren Server verhält sich die App wie bisher.
+  Aus dem bloßen Fehlen eines Eintrags in der Server-Antwort leitet die App
+  weiterhin bewusst NICHTS ab – eine unvollständige Antwort würde sonst still
+  lokale Daten vernichten.
+- Mit Server 0.22.0 oder neuer kommen **alle** Ladevorgänge an; vorher deckelte
+  der Server die Liste stillschweigend auf die 200 neuesten.
 
 ## Einsatzmöglichkeiten
 

@@ -14,6 +14,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.RegisterCredentia
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.DeletionsResponse
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.GeocodeResult
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
@@ -33,6 +34,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.lang.reflect.Type
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 /**
@@ -330,6 +332,19 @@ object ApiClient {
         send("/api/sessions/$id", "PATCH", encode(payload), type = ChargingSession::class.java)
 
     suspend fun deleteSession(id: String) = sendNoContent("/api/sessions/$id", "DELETE")
+
+    // MARK: - Sync
+
+    /**
+     * Serverseitige Loeschungen seit [since] (der `server_time`-Wert des vorherigen Aufrufs,
+     * roh durchgereicht — siehe [DeletionsResponse]). Ohne [since] kommen alle; das ist der
+     * erste Abgleich eines Geraets.
+     */
+    suspend fun fetchDeletions(since: String? = null): DeletionsResponse {
+        val path = "/api/sync/deletions" +
+            if (since.isNullOrEmpty()) "" else "?since=" + URLEncoder.encode(since, "UTF-8")
+        return send(path, type = DeletionsResponse::class.java)
+    }
 
     // MARK: - Stats (server-side; the app normally computes stats locally)
 

@@ -16,6 +16,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.net.NetworkMonitor
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
+import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiException
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
@@ -43,6 +44,9 @@ object SyncService {
 
     private const val PREFS = "lademonitor_sync"
     private const val KEY_LAST_USER = "lastSyncedUserId"
+
+    /** Cursor fuer GET /api/sync/deletions, siehe applyServerDeletions(). */
+    private const val KEY_DELETION_CURSOR = "lastDeletionCursor"
     private const val MIN_AUTO_SYNC_INTERVAL_MS = 10_000L
 
     private lateinit var prefs: SharedPreferences
@@ -224,6 +228,9 @@ object SyncService {
             pullProviders()
             pullLocations()
             pullSessions()
+            // Zum Schluss, nach den Pulls: die legen fehlende Zeilen an, und eine gerade erst
+            // angelegte Zeile darf ein Grabstein aus demselben Durchlauf gleich wieder entfernen.
+            applyServerDeletions()
             _lastSyncDate.value = System.currentTimeMillis()
             _lastSyncError.value = if (itemErrors.isEmpty()) null else itemErrors.joinToString(" · ")
         } catch (e: Exception) {
@@ -252,6 +259,9 @@ object SyncService {
             for (s in sessions.getAll()) resetRow(s.pendingDelete, { sessions.delete(s) }, {
                 s.serverId = null; s.isDirty = true; sessions.upsert(s)
             })
+            // Grabsteine gelten pro Konto — ein Cursor aus Konto A sagt ueber Konto B nichts
+            // aus. Zurueckgesetzt holt der naechste Abruf dessen vollstaendige Liste.
+            prefs.edit().remove(KEY_DELETION_CURSOR).apply()
         }
         prefs.edit().putString(KEY_LAST_USER, currentUserId).apply()
     }
@@ -533,6 +543,47 @@ object SyncService {
 
     // NOTE: like the iOS version, rows that vanish from a pull are intentionally NOT auto-deleted
     // locally — a gap in a pull response (server error, empty response, failed id resolution) would
-    // otherwise silently and irreversibly drop local sessions. Server-side deletions therefore linger
-    // as local "ghost rows" until deleted in the app too. Deliberate trade-off.
+    // otherwise silently and irreversibly drop local sessions. Absence is not proof.
+    //
+    // Server-side deletions arrive through applyServerDeletions() instead: an explicit "this id is
+    // gone" from the server, which an incomplete response cannot invent. The "ghost rows" this app
+    // had to live with until then are therefore history.
+
+    // MARK: - Server-side deletions
+
+    /**
+     * Loescht lokal, was auf dem Server geloescht wurde.
+     *
+     * Der Grabstein gewinnt — auch gegen eine lokal noch ungespeicherte Aenderung (`isDirty`).
+     * Das ist Absicht: die Zeile existiert auf dem Server nicht mehr, ein Push darauf liefe ins
+     * Leere (404), und sie stehenzulassen brachte genau die Geisterzeilen zurueck, wegen derer
+     * es diesen Mechanismus gibt. Der Fall verlangt ohnehin zwei Geraete gleichzeitig: eines
+     * loescht, das andere bearbeitet denselben Datensatz, bevor es synchronisiert.
+     *
+     * Der Cursor wird erst NACH dem erfolgreichen Anwenden gespeichert. Bricht der Durchlauf
+     * vorher ab, kommen dieselben Grabsteine beim naechsten Mal erneut — eine bereits geloeschte
+     * Zeile noch einmal zu loeschen ist folgenlos, eine verpasste Loeschung waere dauerhaft.
+     */
+    private suspend fun applyServerDeletions() {
+        val response = try {
+            ApiClient.fetchDeletions(prefs.getString(KEY_DELETION_CURSOR, null))
+        } catch (e: ApiException.Server) {
+            // Server aelter als 0.22.0 — den Endpunkt gibt es dort noch nicht. Dann bleibt es
+            // beim bisherigen Verhalten (serverseitige Loeschungen bleiben als Geisterzeilen
+            // stehen); der Rest des Syncs soll deswegen aber nicht als fehlgeschlagen gelten.
+            if (e.statusCode == 404) return else throw e
+        }
+        for (record in response.deletions) {
+            when (record.entityType) {
+                "vehicle" -> vehicles.findByServerId(record.entityId)?.let { vehicles.delete(it) }
+                "provider" -> providers.findByServerId(record.entityId)?.let { providers.delete(it) }
+                "location" -> locations.findByServerId(record.entityId)?.let { locations.delete(it) }
+                "session" -> sessions.findByServerId(record.entityId)?.let { sessions.delete(it) }
+                // Unbekannter Typ aus einem neueren Server: ueberspringen statt zu raten —
+                // eine aeltere App soll an einem neueren Server nicht scheitern.
+                else -> Unit
+            }
+        }
+        prefs.edit().putString(KEY_DELETION_CURSOR, response.serverTime).apply()
+    }
 }

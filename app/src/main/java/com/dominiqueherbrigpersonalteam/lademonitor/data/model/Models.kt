@@ -364,3 +364,29 @@ data class StatsSummary(
     @Json(name = "by_provider") val byProvider: List<ProviderStat> = emptyList(),
     val monthly: List<MonthlyStat> = emptyList()
 )
+
+// ---------- Sync: serverseitig geloeschte Datensaetze ----------
+
+/**
+ * Eine Loeschung, die auf dem Server stattgefunden hat (Web-UI, zweites Geraet, ein anderer
+ * Client). Gegenstueck zu `models.DeletedRecord` im Backend — siehe
+ * `SyncService.applyServerDeletions()` fuer das Warum.
+ */
+@JsonClass(generateAdapter = true)
+data class DeletedRecord(
+    @Json(name = "entity_type") val entityType: String,
+    @Json(name = "entity_id") val entityId: String
+)
+
+@JsonClass(generateAdapter = true)
+data class DeletionsResponse(
+    /**
+     * Cursor fuer den naechsten Abruf. Bewusst ein ROHER STRING und kein Zeitstempel: der
+     * Server schickt naive UTC-Werte, die der [ServerDate]-Adapter dieser App als lokale Zeit
+     * liest — hin- und zurueckgewandelt waere der Cursor um den Zeitzonen-Offset verschoben
+     * und wuerde Loeschungen ueberspringen. Unveraendert zurueckgegeben kann das nicht
+     * passieren.
+     */
+    @Json(name = "server_time") val serverTime: String,
+    val deletions: List<DeletedRecord> = emptyList()
+)
