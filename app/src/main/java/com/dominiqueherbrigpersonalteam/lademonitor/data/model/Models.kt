@@ -51,7 +51,16 @@ enum class SessionSource(val raw: String, @param:StringRes val labelRes: Int) {
 enum class TemperatureSource(val raw: String, @param:StringRes val labelRes: Int) {
     VEHICLE("vehicle", R.string.temp_source_vehicle),
     MANUAL("manual", R.string.temp_source_manual),
-    WEATHER("weather", R.string.temp_source_weather);
+    WEATHER("weather", R.string.temp_source_weather),
+
+    /**
+     * Vom Wetterdienst als Mittel der Tagstunden (6-20 Uhr) ueber den Zeitraum seit dem
+     * vorherigen Ladevorgang statt zu einem Zeitpunkt - ab Server 0.24.1 der Normalfall fuer
+     * JEDEN geholten Wert ([WEATHER] gibt es nur noch bei Bestandsdaten). Eigener Wert, weil
+     * ein Fahrzeugsensor zwangslaeufig punktuell misst und nicht mitteln kann; ohne die
+     * Unterscheidung laegen zwei Messgroessen in derselben Spalte.
+     */
+    WEATHER_DAILY("weather_daily", R.string.temp_source_weather_daily);
 
     companion object {
         fun from(raw: String?): TemperatureSource? = entries.firstOrNull { it.raw == raw }
