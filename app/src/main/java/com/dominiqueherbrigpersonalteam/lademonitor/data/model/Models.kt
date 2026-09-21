@@ -1,6 +1,7 @@
 package com.dominiqueherbrigpersonalteam.lademonitor.data.model
 
 import androidx.annotation.StringRes
+import com.dominiqueherbrigpersonalteam.lademonitor.LademonitorApp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ServerDate
 import com.squareup.moshi.Json
@@ -396,4 +397,86 @@ data class DeletionsResponse(
      */
     @Json(name = "server_time") val serverTime: String,
     val deletions: List<DeletedRecord> = emptyList()
+)
+
+// ---------- Verbrauch nach Aussentemperatur ----------
+
+/**
+ * Antwort von `GET /api/stats/temperature`.
+ *
+ * Wird bewusst NICHT lokal nachgerechnet (anders als [StatsSummary], die im Local-Only-Modus
+ * aus `LocalStatsCalculator` kommt): die Auswertung in `temperature.py` haengt an der
+ * Verbrauchskette, den km-Gewichten und den Schwellen fuer die Ausgleichsgerade — ein dritter
+ * Nachbau davon (nach `LocalConsumptionCalculator`) wuerde frueher oder spaeter andere Zahlen
+ * zeigen als das Web-Dashboard. Die Ansicht gibt es deshalb nur im Server-Modus.
+ */
+@JsonClass(generateAdapter = true)
+data class TemperatureStats(
+    val points: List<TempPoint> = emptyList(),
+    val buckets: List<TempBucket> = emptyList(),
+    val seasons: List<SeasonStat> = emptyList(),
+    /** `null`, wenn zu wenige Fahrten oder ein zu schmaler Temperaturbereich vorliegen. */
+    val trend: TempTrend? = null,
+    /** Vorgaenge mit berechenbarem Verbrauch, aber ohne Temperatur. */
+    @Json(name = "sessions_without_temp") val sessionsWithoutTemp: Int = 0,
+    @Json(name = "bucket_width_c") val bucketWidthC: Int = 5
+)
+
+@JsonClass(generateAdapter = true)
+data class TempPoint(
+    @Json(name = "session_id") val sessionId: String,
+    @ServerDate @Json(name = "start_time") val startTime: Long,
+    @Json(name = "temp_c") val tempC: Double,
+    @Json(name = "consumption_kwh_per_100km") val consumptionKwhPer100km: Double,
+    val km: Double,
+    @Json(name = "consumption_method") val consumptionMethod: String,
+    val season: String
+)
+
+@JsonClass(generateAdapter = true)
+data class TempBucket(
+    @Json(name = "from_c") val fromC: Double,
+    @Json(name = "to_c") val toC: Double,
+    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double,
+    @Json(name = "session_count") val sessionCount: Int,
+    val km: Double
+) {
+    /** Mitte der Klasse — der x-Wert, an dem der Klassenmittelwert im Streudiagramm sitzt. */
+    val centerC: Double get() = (fromC + toC) / 2
+}
+
+@JsonClass(generateAdapter = true)
+data class SeasonStat(
+    /** winter | spring | summer | autumn */
+    val season: String,
+    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double,
+    @Json(name = "session_count") val sessionCount: Int,
+    val km: Double
+) {
+    /**
+     * Uebersetzter Name. Die Rohwerte sind die englischen Schluessel aus
+     * `temperature.py::SEASONS` und bleiben unangetastet (sie sind Daten, keine Anzeige).
+     */
+    val displayName: String
+        get() {
+            val context = LademonitorApp.appContext
+            return when (season) {
+                "winter" -> context.getString(R.string.season_winter)
+                "spring" -> context.getString(R.string.season_spring)
+                "summer" -> context.getString(R.string.season_summer)
+                "autumn" -> context.getString(R.string.season_autumn)
+                else -> season
+            }
+        }
+}
+
+@JsonClass(generateAdapter = true)
+data class TempTrend(
+    val slope: Double,
+    val intercept: Double,
+    /** Wieviel der Streuung die Temperatur ueberhaupt erklaert (0..1). */
+    val r2: Double,
+    @Json(name = "consumption_at_0c") val consumptionAt0c: Double,
+    @Json(name = "consumption_at_20c") val consumptionAt20c: Double,
+    @Json(name = "extra_pct_at_0c") val extraPctAt0c: Double
 )

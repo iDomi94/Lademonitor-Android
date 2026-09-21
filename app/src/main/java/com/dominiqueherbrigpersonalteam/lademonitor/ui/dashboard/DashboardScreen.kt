@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -37,7 +38,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dominiqueherbrigpersonalteam.lademonitor.LademonitorApp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
+import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
+import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.ErrorState
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.Fmt
@@ -48,6 +52,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.filter.SessionFilter
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.theme.Blue
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.theme.Green
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +62,8 @@ fun DashboardScreen() {
     val dateRange by SessionFilter.dateRange.collectAsStateWithLifecycle()
 
     var stats by remember { mutableStateOf<StatsSummary?>(null) }
+    // Nur im Server-Modus gefuellt — siehe TemperatureSection.
+    var temperature by remember { mutableStateOf<TemperatureStats?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var showFilter by remember { mutableStateOf(false) }
@@ -72,6 +80,22 @@ fun DashboardScreen() {
             errorMessage = null
         } catch (e: Exception) {
             if (stats == null) errorMessage = e.localizedMessage
+        }
+        // Temperaturauswertung ausschliesslich im Server-Modus. Scheitert der Abruf (aelterer
+        // Server ohne den Endpunkt, Netzfehler), bleibt der Abschnitt einfach weg: er ist eine
+        // Ergaenzung, kein Grund, das ganze Dashboard als fehlgeschlagen zu melden.
+        temperature = if (AppSettings.appMode.value == AppMode.SERVER) {
+            try {
+                val zone = ZoneId.systemDefault()
+                ApiClient.fetchTemperatureStats(
+                    startDate = dateRange?.first?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() },
+                    endDate = dateRange?.last?.let { Instant.ofEpochMilli(it).atZone(zone).toLocalDate() }
+                )
+            } catch (e: Exception) {
+                null
+            }
+        } else {
+            null
         }
         isLoading = false
     }
@@ -94,7 +118,7 @@ fun DashboardScreen() {
             when {
                 errorMessage != null && current == null ->
                     ErrorState(errorMessage!!, onRetry = { scope.launch { load() } })
-                current != null -> DashboardContent(current)
+                current != null -> DashboardContent(current, temperature)
                 isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -106,7 +130,7 @@ fun DashboardScreen() {
 }
 
 @Composable
-private fun DashboardContent(stats: StatsSummary) {
+private fun DashboardContent(stats: StatsSummary, temperature: TemperatureStats?) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -179,6 +203,108 @@ private fun DashboardContent(stats: StatsSummary) {
                 SectionCard {
                     HorizontalBarChart(stats.monthly.map { it.displayMonth to it.totalKwh }, Green, " kWh")
                 }
+            }
+        }
+
+        if (temperature != null) TemperatureSection(temperature)
+    }
+}
+
+/**
+ * Verbrauch nach Aussentemperatur — Gegenstueck zum gleichnamigen Abschnitt des
+ * Web-Dashboards und der iOS-App. Nur im Server-Modus sichtbar: die Auswertung kommt fertig
+ * aus `/api/stats/temperature`, damit sie nicht ein drittes Mal nachgebaut werden muss
+ * (siehe [TemperatureStats]).
+ */
+@Composable
+private fun TemperatureSection(stats: TemperatureStats) {
+    Column {
+        SectionHeader(stringResource(R.string.dashboard_section_temperature))
+        SectionCard {
+            if (stats.points.isEmpty()) {
+                Text(
+                    stringResource(R.string.dashboard_temperature_empty),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                val trend = stats.trend
+                if (trend != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            Fmt.n("%+.1f %%", trend.extraPctAt0c),
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TempTrendColor
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                stringResource(R.string.dashboard_temperature_hero_label),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                stringResource(
+                                    R.string.dashboard_temperature_hero_detail,
+                                    Fmt.n("%.1f", trend.consumptionAt0c),
+                                    Fmt.n("%.1f", trend.consumptionAt20c),
+                                    Fmt.n("%.2f", trend.r2)
+                                ),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(16.dp))
+                }
+
+                // Die Gerade wird nur ueber den Bereich gezeichnet, in dem es auch Messpunkte
+                // gibt — bis 0 Grad verlaengert ohne Winterdaten waere sie eine Behauptung.
+                val temps = stats.points.map { it.tempC }
+                val trendLine = if (trend != null && temps.isNotEmpty() && temps.min() < temps.max()) {
+                    listOf(temps.min(), temps.max()).map { it to (trend.intercept + trend.slope * it) }
+                } else {
+                    emptyList()
+                }
+                TemperatureScatterChart(
+                    points = stats.points.map { it.tempC to it.consumptionKwhPer100km },
+                    buckets = stats.buckets.map { it.centerC to it.avgConsumptionKwhPer100km },
+                    trendLine = trendLine
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    ChartLegendDot(TempPointColor, stringResource(R.string.dashboard_temperature_legend_drives))
+                    ChartLegendDot(
+                        TempBucketColor,
+                        stringResource(R.string.dashboard_temperature_legend_buckets, stats.bucketWidthC)
+                    )
+                    if (trend != null) {
+                        ChartLegendDot(TempTrendColor, stringResource(R.string.dashboard_temperature_legend_trend))
+                    }
+                }
+                if (stats.sessionsWithoutTemp > 0) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        stringResource(R.string.dashboard_temperature_missing, stats.sessionsWithoutTemp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        if (stats.seasons.isNotEmpty()) {
+            Spacer(Modifier.height(20.dp))
+            SectionHeader(stringResource(R.string.dashboard_section_seasons))
+            SectionCard {
+                // Nullbasiert wie im Web: der Unterschied zwischen 15,4 und 17,9 ist klein,
+                // eine abgeschnittene Achse wuerde ihn kuenstlich vergroessern.
+                HorizontalBarChart(
+                    stats.seasons.map { it.displayName to it.avgConsumptionKwhPer100km },
+                    TempBucketColor,
+                    " kWh",
+                    decimals = 1
+                )
             }
         }
     }

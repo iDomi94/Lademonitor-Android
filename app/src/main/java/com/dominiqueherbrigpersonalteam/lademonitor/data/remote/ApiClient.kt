@@ -20,6 +20,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
@@ -35,6 +36,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.lang.reflect.Type
 import java.net.URLEncoder
+import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 
 /**
@@ -351,5 +353,28 @@ object ApiClient {
     suspend fun fetchStatsSummary(vehicleId: String? = null): StatsSummary {
         val path = "/api/stats/summary" + if (vehicleId != null) "?vehicle_id=$vehicleId" else ""
         return send(path, type = StatsSummary::class.java)
+    }
+
+    /**
+     * Verbrauch gegen Aussentemperatur (Streudiagramm, Klassenmittel, Ausgleichsgerade,
+     * Jahreszeiten). Nur im Server-Modus verfuegbar — die Rechnung liegt bewusst allein auf
+     * dem Server, siehe [TemperatureStats].
+     *
+     * Der Zeitraumfilter geht hier als `start_date`/`end_date` mit (reines Datum, keine
+     * Uhrzeit) — anders als bei der Zusammenfassung, die aus dem lokalen Spiegel kommt und
+     * dort gefiltert wird.
+     */
+    suspend fun fetchTemperatureStats(
+        vehicleId: String? = null,
+        startDate: LocalDate? = null,
+        endDate: LocalDate? = null
+    ): TemperatureStats {
+        val params = buildList {
+            if (vehicleId != null) add("vehicle_id=$vehicleId")
+            if (startDate != null) add("start_date=$startDate")
+            if (endDate != null) add("end_date=$endDate")
+        }
+        val path = "/api/stats/temperature" + if (params.isEmpty()) "" else "?" + params.joinToString("&")
+        return send(path, type = TemperatureStats::class.java)
     }
 }

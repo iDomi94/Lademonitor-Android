@@ -374,4 +374,18 @@
     <string name="account_delete_confirm_title">Really delete the account irrevocably?</string>
     <string name="account_delete_confirm_message">All your data on the server is deleted with it. This cannot be undone.</string>
     <string name="account_delete_unsupported_server">Your server does not support this feature yet. You need Lademonitor Server 0.16.0 or newer.</string>
+    <!-- Consumption by outside temperature (server mode only) -->
+    <string name="dashboard_section_temperature">Consumption by outside temperature</string>
+    <string name="dashboard_section_seasons">Consumption by season</string>
+    <string name="dashboard_temperature_empty">No charging sessions with an outside temperature yet. The value is recorded when plugging in – the analysis fills up over the coming weeks.</string>
+    <string name="dashboard_temperature_hero_label">Extra consumption at 0 °C instead of 20 °C</string>
+    <string name="dashboard_temperature_hero_detail">%1$s instead of %2$s kWh/100km · R² %3$s</string>
+    <string name="dashboard_temperature_legend_drives">Drives</string>
+    <string name="dashboard_temperature_legend_buckets">Average per %1$d °C</string>
+    <string name="dashboard_temperature_legend_trend">Trend</string>
+    <string name="dashboard_temperature_missing">%1$d charging sessions without a temperature are not included.</string>
+    <string name="season_winter">Winter</string>
+    <string name="season_spring">Spring</string>
+    <string name="season_summer">Summer</string>
+    <string name="season_autumn">Autumn</string>
 </resources>
