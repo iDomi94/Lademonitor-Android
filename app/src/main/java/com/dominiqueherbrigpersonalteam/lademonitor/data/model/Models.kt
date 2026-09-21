@@ -54,9 +54,10 @@ enum class TemperatureSource(val raw: String, @param:StringRes val labelRes: Int
     WEATHER("weather", R.string.temp_source_weather),
 
     /**
-     * Wie [WEATHER], aber als Mittel ueber 6-20 Uhr statt zu einem Zeitpunkt (Server ab
-     * 0.24.1). Betrifft Zeilen ohne Uhrzeit - Spritmonitor-Importe stehen alle auf 00:00, und
-     * dort waere der Wert zur angegebenen Zeit systematisch das Tagesminimum.
+     * Vom Wetterdienst als Mittel ueber 6-20 Uhr statt zu einem Zeitpunkt - ab Server 0.24.1
+     * der Normalfall fuer JEDEN geholten Wert ([WEATHER] gibt es nur noch bei Bestandsdaten).
+     * Eigener Wert, weil ein Fahrzeugsensor zwangslaeufig punktuell misst und nicht mitteln
+     * kann; ohne die Unterscheidung laegen zwei Messgroessen in derselben Spalte.
      */
     WEATHER_DAILY("weather_daily", R.string.temp_source_weather_daily);
 
