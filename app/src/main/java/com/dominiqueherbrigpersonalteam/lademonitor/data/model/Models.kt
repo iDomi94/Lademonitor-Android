@@ -51,7 +51,14 @@ enum class SessionSource(val raw: String, @param:StringRes val labelRes: Int) {
 enum class TemperatureSource(val raw: String, @param:StringRes val labelRes: Int) {
     VEHICLE("vehicle", R.string.temp_source_vehicle),
     MANUAL("manual", R.string.temp_source_manual),
-    WEATHER("weather", R.string.temp_source_weather);
+    WEATHER("weather", R.string.temp_source_weather),
+
+    /**
+     * Wie [WEATHER], aber als Mittel ueber 6-20 Uhr statt zu einem Zeitpunkt (Server ab
+     * 0.24.1). Betrifft Zeilen ohne Uhrzeit - Spritmonitor-Importe stehen alle auf 00:00, und
+     * dort waere der Wert zur angegebenen Zeit systematisch das Tagesminimum.
+     */
+    WEATHER_DAILY("weather_daily", R.string.temp_source_weather_daily);
 
     companion object {
         fun from(raw: String?): TemperatureSource? = entries.firstOrNull { it.raw == raw }
