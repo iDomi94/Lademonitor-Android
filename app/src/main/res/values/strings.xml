@@ -265,6 +265,7 @@
     <string name="session_detail_estimated_suffix"> (geschätzt)</string>
     <string name="session_detail_label_kwh">kWh</string>
     <string name="session_detail_label_odometer">Kilometerstand</string>
+    <string name="session_detail_label_outside_temp">Außentemperatur</string>
     <string name="session_detail_label_consumption">Verbrauch</string>
     <string name="session_detail_section_price">Preis</string>
     <string name="session_detail_label_total">Gesamt</string>
@@ -291,6 +292,7 @@
     <string name="add_session_section_misc">Sonstiges</string>
     <string name="add_session_field_location_optional">Ladeort (optional)</string>
     <string name="add_session_field_odometer_optional">Kilometerstand (optional)</string>
+    <string name="add_session_field_outside_temp_optional">Außentemperatur (°C, optional)</string>
     <string name="add_session_section_position">Position</string>
     <string name="add_session_use_location_action">Von Ladeort übernehmen</string>
     <string name="add_session_coordinates_format">Koordinaten: %1$s, %2$s</string>
@@ -372,4 +374,18 @@
     <string name="account_delete_confirm_title">Konto wirklich unwiderruflich löschen?</string>
     <string name="account_delete_confirm_message">Alle deine Daten auf dem Server werden dabei gelöscht. Das lässt sich nicht rückgängig machen.</string>
     <string name="account_delete_unsupported_server">Dein Server unterstützt diese Funktion noch nicht. Du brauchst Lademonitor-Server 0.16.0 oder neuer.</string>
+    <!-- Verbrauch nach Aussentemperatur (nur Server-Modus) -->
+    <string name="dashboard_section_temperature">Verbrauch nach Außentemperatur</string>
+    <string name="dashboard_section_seasons">Verbrauch nach Jahreszeit</string>
+    <string name="dashboard_temperature_empty">Noch keine Ladevorgänge mit Außentemperatur. Der Wert wird beim Einstecken erfasst – die Auswertung füllt sich über die nächsten Wochen.</string>
+    <string name="dashboard_temperature_hero_label">Mehrverbrauch bei 0 °C statt 20 °C</string>
+    <string name="dashboard_temperature_hero_detail">%1$s statt %2$s kWh/100km · R² %3$s</string>
+    <string name="dashboard_temperature_legend_drives">Fahrten</string>
+    <string name="dashboard_temperature_legend_buckets">Mittel je %1$d °C</string>
+    <string name="dashboard_temperature_legend_trend">Trend</string>
+    <string name="dashboard_temperature_missing">%1$d Ladevorgänge ohne Temperaturangabe sind nicht enthalten.</string>
+    <string name="season_winter">Winter</string>
+    <string name="season_spring">Frühling</string>
+    <string name="season_summer">Sommer</string>
+    <string name="season_autumn">Herbst</string>
 </resources>

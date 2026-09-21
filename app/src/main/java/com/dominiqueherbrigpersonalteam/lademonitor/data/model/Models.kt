@@ -1,6 +1,7 @@
 package com.dominiqueherbrigpersonalteam.lademonitor.data.model
 
 import androidx.annotation.StringRes
+import com.dominiqueherbrigpersonalteam.lademonitor.LademonitorApp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ServerDate
 import com.squareup.moshi.Json
@@ -115,6 +116,12 @@ data class ChargingSession(
     @Json(name = "energy_kwh") val energyKwh: Double? = null,
     @Json(name = "energy_is_estimated") val energyIsEstimated: Boolean = false,
     @Json(name = "odometer_km") val odometerKm: Int? = null,
+    /**
+     * Aussentemperatur in Grad Celsius BEIM LADEBEGINN (Server ab 0.23.0). Der Zeitpunkt ist
+     * entscheidend: der Verbrauch, den der Server diesem Vorgang zurechnet, stammt von der Fahrt
+     * davor - und die endet im Moment des Einsteckens.
+     */
+    @Json(name = "outside_temp_c") val outsideTempC: Double? = null,
     @Json(name = "price_total") val priceTotal: Double? = null,
     @Json(name = "price_per_kwh") val pricePerKwh: Double? = null,
     val latitude: Double? = null,
@@ -174,6 +181,7 @@ data class ChargingSessionPayload(
     @Json(name = "price_per_kwh") val pricePerKwh: Double? = null,
     @Json(name = "price_total") val priceTotal: Double? = null,
     @Json(name = "odometer_km") val odometerKm: Int? = null,
+    @Json(name = "outside_temp_c") val outsideTempC: Double? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
     @Json(name = "geocoded_place") val geocodedPlace: String? = null,
@@ -363,4 +371,112 @@ data class StatsSummary(
     @Json(name = "total_km_driven") val totalKmDriven: Int? = null,
     @Json(name = "by_provider") val byProvider: List<ProviderStat> = emptyList(),
     val monthly: List<MonthlyStat> = emptyList()
+)
+
+// ---------- Sync: serverseitig geloeschte Datensaetze ----------
+
+/**
+ * Eine Loeschung, die auf dem Server stattgefunden hat (Web-UI, zweites Geraet, ein anderer
+ * Client). Gegenstueck zu `models.DeletedRecord` im Backend — siehe
+ * `SyncService.applyServerDeletions()` fuer das Warum.
+ */
+@JsonClass(generateAdapter = true)
+data class DeletedRecord(
+    @Json(name = "entity_type") val entityType: String,
+    @Json(name = "entity_id") val entityId: String
+)
+
+@JsonClass(generateAdapter = true)
+data class DeletionsResponse(
+    /**
+     * Cursor fuer den naechsten Abruf. Bewusst ein ROHER STRING und kein Zeitstempel: der
+     * Server schickt naive UTC-Werte, die der [ServerDate]-Adapter dieser App als lokale Zeit
+     * liest — hin- und zurueckgewandelt waere der Cursor um den Zeitzonen-Offset verschoben
+     * und wuerde Loeschungen ueberspringen. Unveraendert zurueckgegeben kann das nicht
+     * passieren.
+     */
+    @Json(name = "server_time") val serverTime: String,
+    val deletions: List<DeletedRecord> = emptyList()
+)
+
+// ---------- Verbrauch nach Aussentemperatur ----------
+
+/**
+ * Antwort von `GET /api/stats/temperature`.
+ *
+ * Wird bewusst NICHT lokal nachgerechnet (anders als [StatsSummary], die im Local-Only-Modus
+ * aus `LocalStatsCalculator` kommt): die Auswertung in `temperature.py` haengt an der
+ * Verbrauchskette, den km-Gewichten und den Schwellen fuer die Ausgleichsgerade — ein dritter
+ * Nachbau davon (nach `LocalConsumptionCalculator`) wuerde frueher oder spaeter andere Zahlen
+ * zeigen als das Web-Dashboard. Die Ansicht gibt es deshalb nur im Server-Modus.
+ */
+@JsonClass(generateAdapter = true)
+data class TemperatureStats(
+    val points: List<TempPoint> = emptyList(),
+    val buckets: List<TempBucket> = emptyList(),
+    val seasons: List<SeasonStat> = emptyList(),
+    /** `null`, wenn zu wenige Fahrten oder ein zu schmaler Temperaturbereich vorliegen. */
+    val trend: TempTrend? = null,
+    /** Vorgaenge mit berechenbarem Verbrauch, aber ohne Temperatur. */
+    @Json(name = "sessions_without_temp") val sessionsWithoutTemp: Int = 0,
+    @Json(name = "bucket_width_c") val bucketWidthC: Int = 5
+)
+
+@JsonClass(generateAdapter = true)
+data class TempPoint(
+    @Json(name = "session_id") val sessionId: String,
+    @ServerDate @Json(name = "start_time") val startTime: Long,
+    @Json(name = "temp_c") val tempC: Double,
+    @Json(name = "consumption_kwh_per_100km") val consumptionKwhPer100km: Double,
+    val km: Double,
+    @Json(name = "consumption_method") val consumptionMethod: String,
+    val season: String
+)
+
+@JsonClass(generateAdapter = true)
+data class TempBucket(
+    @Json(name = "from_c") val fromC: Double,
+    @Json(name = "to_c") val toC: Double,
+    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double,
+    @Json(name = "session_count") val sessionCount: Int,
+    val km: Double
+) {
+    /** Mitte der Klasse — der x-Wert, an dem der Klassenmittelwert im Streudiagramm sitzt. */
+    val centerC: Double get() = (fromC + toC) / 2
+}
+
+@JsonClass(generateAdapter = true)
+data class SeasonStat(
+    /** winter | spring | summer | autumn */
+    val season: String,
+    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double,
+    @Json(name = "session_count") val sessionCount: Int,
+    val km: Double
+) {
+    /**
+     * Uebersetzter Name. Die Rohwerte sind die englischen Schluessel aus
+     * `temperature.py::SEASONS` und bleiben unangetastet (sie sind Daten, keine Anzeige).
+     */
+    val displayName: String
+        get() {
+            val context = LademonitorApp.appContext
+            return when (season) {
+                "winter" -> context.getString(R.string.season_winter)
+                "spring" -> context.getString(R.string.season_spring)
+                "summer" -> context.getString(R.string.season_summer)
+                "autumn" -> context.getString(R.string.season_autumn)
+                else -> season
+            }
+        }
+}
+
+@JsonClass(generateAdapter = true)
+data class TempTrend(
+    val slope: Double,
+    val intercept: Double,
+    /** Wieviel der Streuung die Temperatur ueberhaupt erklaert (0..1). */
+    val r2: Double,
+    @Json(name = "consumption_at_0c") val consumptionAt0c: Double,
+    @Json(name = "consumption_at_20c") val consumptionAt20c: Double,
+    @Json(name = "extra_pct_at_0c") val extraPctAt0c: Double
 )

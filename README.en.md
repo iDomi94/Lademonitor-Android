@@ -40,6 +40,20 @@ plus a **server mode with bidirectional synchronization**.
 - **Question on sign-in:** if you sign in to an account this device has never
   synced with and data is already on the device, the app asks – upload or delete
   from the device. Nothing is ever deleted on the server.
+- **Outside temperature** per charging session – the basis of the "consumption
+  by outside temperature" analysis in the server dashboard (from
+  Lademonitor-Server 0.23.0). It means the value **at the start of charging**,
+  because a session's consumption comes from the drive before it. Works in
+  local-only mode too.
+- **Server-side deletions arrive**: charging sessions, vehicles, providers and
+  charging locations deleted on the server also disappear from the app on the
+  next sync, instead of lingering as "ghost rows". Requires
+  Lademonitor-Server 0.22.0 or newer; against an older server the app behaves
+  as before. The app still deliberately infers NOTHING from an entry merely
+  missing in the server's response - an incomplete response would otherwise
+  silently destroy local data.
+- With server 0.22.0 or newer **all** charging sessions arrive; before that the
+  server silently capped the list at the 200 most recent ones.
 
 ## Deployment options
 

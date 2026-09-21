@@ -231,6 +231,7 @@ object LocalDataStore {
             socEnd = payload.socEnd,
             energyKwh = payload.energyKwh,
             odometerKm = payload.odometerKm,
+            outsideTempC = payload.outsideTempC,
             priceTotal = payload.priceTotal,
             pricePerKwh = payload.pricePerKwh,
             latitude = payload.latitude,
@@ -266,6 +267,7 @@ object LocalDataStore {
         payload.pricePerKwh?.let { session.pricePerKwh = it }
         payload.priceTotal?.let { session.priceTotal = it }
         payload.odometerKm?.let { session.odometerKm = it }
+        payload.outsideTempC?.let { session.outsideTempC = it }
         payload.latitude?.let { session.latitude = it }
         payload.longitude?.let { session.longitude = it }
         payload.geocodedPlace?.let { session.geocodedPlace = it }
