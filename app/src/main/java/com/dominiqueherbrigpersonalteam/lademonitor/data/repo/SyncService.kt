@@ -510,6 +510,7 @@ object SyncService {
                         chargingType = ss.chargingType, socStart = ss.socStart, socEnd = ss.socEnd,
                         energyKwh = ss.energyKwh, energyIsEstimated = ss.energyIsEstimated,
                         odometerKm = ss.odometerKm, outsideTempC = ss.outsideTempC,
+                        outsideTempSource = ss.outsideTempSource,
                         priceTotal = ss.priceTotal, pricePerKwh = ss.pricePerKwh,
                         latitude = ss.latitude, longitude = ss.longitude, geocodedPlace = ss.geocodedPlace,
                         notes = ss.notes, source = ss.source, needsReview = ss.needsReview,
@@ -533,6 +534,7 @@ object SyncService {
         session.energyIsEstimated = dto.energyIsEstimated
         session.odometerKm = dto.odometerKm
         session.outsideTempC = dto.outsideTempC
+        session.outsideTempSource = dto.outsideTempSource
         session.priceTotal = dto.priceTotal
         session.pricePerKwh = dto.pricePerKwh
         session.latitude = dto.latitude

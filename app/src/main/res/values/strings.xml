@@ -388,4 +388,8 @@
     <string name="season_spring">Frühling</string>
     <string name="season_summer">Sommer</string>
     <string name="season_autumn">Herbst</string>
+    <!-- Herkunft der Aussentemperatur (Server ab 0.24.0) -->
+    <string name="temp_source_vehicle">vom Fahrzeug</string>
+    <string name="temp_source_manual">von Hand</string>
+    <string name="temp_source_weather">vom Wetterdienst</string>
 </resources>

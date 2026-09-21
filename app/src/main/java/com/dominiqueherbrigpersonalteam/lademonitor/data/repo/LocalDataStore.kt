@@ -13,6 +13,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingType
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureSource
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
@@ -232,6 +233,8 @@ object LocalDataStore {
             energyKwh = payload.energyKwh,
             odometerKm = payload.odometerKm,
             outsideTempC = payload.outsideTempC,
+            // Im Local-Only-Modus gibt es nur eine Quelle: den Menschen, der sie eintippt.
+            outsideTempSource = payload.outsideTempC?.let { TemperatureSource.MANUAL.raw },
             priceTotal = payload.priceTotal,
             pricePerKwh = payload.pricePerKwh,
             latitude = payload.latitude,
@@ -267,7 +270,17 @@ object LocalDataStore {
         payload.pricePerKwh?.let { session.pricePerKwh = it }
         payload.priceTotal?.let { session.priceTotal = it }
         payload.odometerKm?.let { session.odometerKm = it }
-        payload.outsideTempC?.let { session.outsideTempC = it }
+        payload.outsideTempC?.let {
+            // Wie beim energyIsEstimated-Flag und wie in update_session() im Backend: das
+            // Formular schickt die Temperatur bei JEDEM Speichern mit, deshalb zaehlt nur eine
+            // tatsaechliche Wertaenderung als Handeintrag. Sonst wuerde ein vom Wetterdienst
+            // geholter Wert nach einmal Oeffnen-und-Speichern als "von Hand" dastehen.
+            val previous = session.outsideTempC
+            if (previous == null || kotlin.math.abs(it - previous) > 1e-6) {
+                session.outsideTempSource = TemperatureSource.MANUAL.raw
+            }
+            session.outsideTempC = it
+        }
         payload.latitude?.let { session.latitude = it }
         payload.longitude?.let { session.longitude = it }
         payload.geocodedPlace?.let { session.geocodedPlace = it }

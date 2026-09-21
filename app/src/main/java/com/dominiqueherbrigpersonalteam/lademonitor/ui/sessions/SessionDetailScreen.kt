@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureSource
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
@@ -140,7 +141,15 @@ fun SessionDetailScreen(
                 }
                 session.odometerKm?.let { LabeledRow(stringResource(R.string.session_detail_label_odometer), Fmt.km(it)) }
                 session.outsideTempC?.let {
-                    LabeledRow(stringResource(R.string.session_detail_label_outside_temp), Fmt.temperature(it))
+                    // Herkunft direkt hinter dem Wert, wie das "(geschätzt)" bei den kWh
+                    // darueber: ein Wert vom Wetterdienst ist eine Rekonstruktion am Ladeort,
+                    // kein Messwert aus dem Auto.
+                    val origin = TemperatureSource.from(session.outsideTempSource)
+                    LabeledRow(
+                        stringResource(R.string.session_detail_label_outside_temp),
+                        Fmt.temperature(it) +
+                            (origin?.let { src -> " · " + stringResource(src.labelRes) } ?: "")
+                    )
                 }
                 session.consumptionKwhPer100km?.let { LabeledRow(stringResource(R.string.session_detail_label_consumption), Fmt.n("%.1f kWh/100km", it)) }
             }
