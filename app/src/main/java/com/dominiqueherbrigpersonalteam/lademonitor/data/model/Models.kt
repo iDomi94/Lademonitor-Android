@@ -40,6 +40,24 @@ enum class SessionSource(val raw: String, @param:StringRes val labelRes: Int) {
  * computed the kWh/100km for a session. Drives the marker + explanation text in the list,
  * mirroring `ConsumptionMethod` in the iOS app.
  */
+/**
+ * Woher die Aussentemperatur eines Ladevorgangs stammt (Server ab 0.24.0).
+ *
+ * Nicht nur Buchhaltung: ein Wert vom Wetterdienst ist eine Rekonstruktion am Ladeort, kein
+ * Messwert aus dem Auto - der Fahrzeugsensor liest je nach Restwaerme und Sonne gern ein bis
+ * zwei Grad hoeher. Bestandsvorgaenge tragen keine Angabe (`null`), und die wird bewusst nicht
+ * geraten.
+ */
+enum class TemperatureSource(val raw: String, @param:StringRes val labelRes: Int) {
+    VEHICLE("vehicle", R.string.temp_source_vehicle),
+    MANUAL("manual", R.string.temp_source_manual),
+    WEATHER("weather", R.string.temp_source_weather);
+
+    companion object {
+        fun from(raw: String?): TemperatureSource? = entries.firstOrNull { it.raw == raw }
+    }
+}
+
 enum class ConsumptionMethod(
     val raw: String,
     val marker: String,
@@ -122,6 +140,13 @@ data class ChargingSession(
      * davor - und die endet im Moment des Einsteckens.
      */
     @Json(name = "outside_temp_c") val outsideTempC: Double? = null,
+    /**
+     * Herkunft der Temperatur daneben - siehe [TemperatureSource]. Bewusst NUR lesend: das Feld
+     * fehlt in [ChargingSessionPayload]. Der Server leitet "manual" aus einer echten
+     * Wertaenderung ab; schickte die App den alten Wert einfach zurueck, bliebe eine von Hand
+     * korrigierte Temperatur faelschlich als "vom Wetterdienst" stehen.
+     */
+    @Json(name = "outside_temp_source") val outsideTempSource: String? = null,
     @Json(name = "price_total") val priceTotal: Double? = null,
     @Json(name = "price_per_kwh") val pricePerKwh: Double? = null,
     val latitude: Double? = null,

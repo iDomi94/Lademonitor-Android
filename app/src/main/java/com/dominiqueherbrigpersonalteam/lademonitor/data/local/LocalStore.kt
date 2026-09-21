@@ -18,7 +18,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LocalChargingLocation::class,
         LocalChargingSession::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class LademonitorDatabase : RoomDatabase() {
@@ -48,6 +48,19 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
     }
 }
 
+/**
+ * 2 -> 3: `sessions.outsideTempSource` (Herkunft der Temperatur, Server ab 0.24.0).
+ *
+ * Dieselben Ueberlegungen wie bei 1 -> 2: keine destruktive Migration, und Bestandszeilen
+ * bekommen NULL. Sie stammen alle aus dem Fahrzeug oder von Hand, nur eben nicht mehr
+ * unterscheidbar - eine geratene Angabe waere schlimmer als gar keine.
+ */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE sessions ADD COLUMN outsideTempSource TEXT")
+    }
+}
+
 object LocalStore {
     lateinit var db: LademonitorDatabase
         private set
@@ -62,6 +75,6 @@ object LocalStore {
             context.applicationContext,
             LademonitorDatabase::class.java,
             "lademonitor.db"
-        ).addMigrations(MIGRATION_1_2).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
 }
