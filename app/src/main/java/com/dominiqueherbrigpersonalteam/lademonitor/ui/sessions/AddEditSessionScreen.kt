@@ -101,6 +101,7 @@ fun AddEditSessionScreen(
     var pricePerKwh by remember { mutableStateOf(session?.pricePerKwh?.let { Fmt.n("%.4f", it) } ?: "") }
     var priceTotal by remember { mutableStateOf(session?.priceTotal?.let { Fmt.n("%.2f", it) } ?: "") }
     var odometerKm by remember { mutableStateOf(session?.odometerKm?.toString() ?: "") }
+    var outsideTempC by remember { mutableStateOf(session?.outsideTempC?.toString() ?: "") }
     var geocodedPlace by remember { mutableStateOf(session?.geocodedPlace ?: "") }
     var latitude by remember { mutableStateOf(session?.latitude?.let { Fmt.n("%.6f", it) } ?: "") }
     var longitude by remember { mutableStateOf(session?.longitude?.let { Fmt.n("%.6f", it) } ?: "") }
@@ -176,6 +177,7 @@ fun AddEditSessionScreen(
                 pricePerKwh = pricePerKwh.replace(",", ".").toDoubleOrNull(),
                 priceTotal = priceTotal.replace(",", ".").toDoubleOrNull(),
                 odometerKm = odometerKm.toIntOrNull(),
+                outsideTempC = outsideTempC.replace(",", ".").toDoubleOrNull(),
                 latitude = latitude.replace(",", ".").toDoubleOrNull(),
                 longitude = longitude.replace(",", ".").toDoubleOrNull(),
                 geocodedPlace = geocodedPlace.trim().ifEmpty { null },
@@ -291,6 +293,17 @@ fun AddEditSessionScreen(
                 OutlinedTextField(
                     value = odometerKm, onValueChange = { odometerKm = it.filter { c -> c.isDigit() } },
                     label = { Text(stringResource(R.string.add_session_field_odometer_optional)) }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                )
+                // Aussentemperatur BEIM LADEBEGINN - Grundlage der Verbrauchsauswertung nach
+                // Temperatur im Dashboard. Wer Home Assistant nutzt, bekommt den Wert
+                // automatisch; hier steht er zum Nachtragen. Minuszeichen und Komma muessen
+                // durch, deshalb kein reiner Ziffernfilter wie beim Kilometerstand.
+                OutlinedTextField(
+                    value = outsideTempC,
+                    onValueChange = { input -> outsideTempC = input.filter { it.isDigit() || it in "-,." } },
+                    label = { Text(stringResource(R.string.add_session_field_outside_temp_optional)) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 )

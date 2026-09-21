@@ -139,6 +139,9 @@ fun SessionDetailScreen(
                     )
                 }
                 session.odometerKm?.let { LabeledRow(stringResource(R.string.session_detail_label_odometer), Fmt.km(it)) }
+                session.outsideTempC?.let {
+                    LabeledRow(stringResource(R.string.session_detail_label_outside_temp), Fmt.temperature(it))
+                }
                 session.consumptionKwhPer100km?.let { LabeledRow(stringResource(R.string.session_detail_label_consumption), Fmt.n("%.1f kWh/100km", it)) }
             }
 

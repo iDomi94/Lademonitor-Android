@@ -265,6 +265,7 @@
     <string name="session_detail_estimated_suffix"> (estimated)</string>
     <string name="session_detail_label_kwh">kWh</string>
     <string name="session_detail_label_odometer">Odometer reading</string>
+    <string name="session_detail_label_outside_temp">Outside temperature</string>
     <string name="session_detail_label_consumption">Consumption</string>
     <string name="session_detail_section_price">Price</string>
     <string name="session_detail_label_total">Total</string>
@@ -291,6 +292,7 @@
     <string name="add_session_section_misc">Other</string>
     <string name="add_session_field_location_optional">Charging location (optional)</string>
     <string name="add_session_field_odometer_optional">Odometer reading (optional)</string>
+    <string name="add_session_field_outside_temp_optional">Outside temperature (°C, optional)</string>
     <string name="add_session_section_position">Position</string>
     <string name="add_session_use_location_action">Use from charging location</string>
     <string name="add_session_coordinates_format">Coordinates: %1$s, %2$s</string>

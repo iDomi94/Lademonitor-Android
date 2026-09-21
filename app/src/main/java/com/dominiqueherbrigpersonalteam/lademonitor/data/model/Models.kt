@@ -115,6 +115,12 @@ data class ChargingSession(
     @Json(name = "energy_kwh") val energyKwh: Double? = null,
     @Json(name = "energy_is_estimated") val energyIsEstimated: Boolean = false,
     @Json(name = "odometer_km") val odometerKm: Int? = null,
+    /**
+     * Aussentemperatur in Grad Celsius BEIM LADEBEGINN (Server ab 0.23.0). Der Zeitpunkt ist
+     * entscheidend: der Verbrauch, den der Server diesem Vorgang zurechnet, stammt von der Fahrt
+     * davor - und die endet im Moment des Einsteckens.
+     */
+    @Json(name = "outside_temp_c") val outsideTempC: Double? = null,
     @Json(name = "price_total") val priceTotal: Double? = null,
     @Json(name = "price_per_kwh") val pricePerKwh: Double? = null,
     val latitude: Double? = null,
@@ -174,6 +180,7 @@ data class ChargingSessionPayload(
     @Json(name = "price_per_kwh") val pricePerKwh: Double? = null,
     @Json(name = "price_total") val priceTotal: Double? = null,
     @Json(name = "odometer_km") val odometerKm: Int? = null,
+    @Json(name = "outside_temp_c") val outsideTempC: Double? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
     @Json(name = "geocoded_place") val geocodedPlace: String? = null,

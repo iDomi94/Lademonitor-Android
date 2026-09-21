@@ -40,6 +40,11 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   Gerät noch nie synchronisiert hat, und liegen schon Daten auf dem Gerät, fragt
   die App nach – hochladen oder vom Gerät löschen. Auf dem Server wird dabei nie
   etwas gelöscht.
+- **Außentemperatur** je Ladevorgang erfassen und ansehen – Grundlage der
+  Auswertung „Verbrauch nach Außentemperatur" im Server-Dashboard (ab
+  Lademonitor-Server 0.23.0). Gemeint ist der Wert **beim Ladebeginn**, weil
+  der Verbrauch eines Ladevorgangs von der Fahrt davor stammt. Funktioniert
+  auch im „Nur lokal"-Modus.
 - **Serverseitige Löschungen kommen an**: auf dem Server gelöschte Ladevorgänge,
   Fahrzeuge, Anbieter und Ladeorte verschwinden beim nächsten Abgleich auch aus
   der App, statt als „Geisterzeilen" stehenzubleiben. Braucht Lademonitor-Server

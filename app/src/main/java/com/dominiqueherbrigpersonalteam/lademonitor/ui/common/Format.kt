@@ -34,6 +34,9 @@ object Fmt {
 
     fun km(value: Int): String = "%,d km".format(locale, value)
 
+    /** Aussentemperatur, eine Nachkommastelle - "-3,5 °C" bzw. "-3.5 °C". */
+    fun temperature(value: Double): String = "%.1f °C".format(locale, value)
+
     fun n(format: String, value: Double): String = String.format(locale, format, value)
 
     fun n(format: String, value: Int): String = String.format(locale, format, value)

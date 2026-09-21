@@ -106,6 +106,8 @@ data class LocalChargingSession(
     var energyKwh: Double? = null,
     var energyIsEstimated: Boolean = false,
     var odometerKm: Int? = null,
+    /** Aussentemperatur beim Ladebeginn - siehe Models.ChargingSession.outsideTempC. */
+    var outsideTempC: Double? = null,
     var priceTotal: Double? = null,
     var pricePerKwh: Double? = null,
     var latitude: Double? = null,
@@ -134,6 +136,7 @@ data class LocalChargingSession(
         energyKwh = energyKwh,
         energyIsEstimated = energyIsEstimated,
         odometerKm = odometerKm,
+        outsideTempC = outsideTempC,
         priceTotal = priceTotal,
         pricePerKwh = pricePerKwh,
         latitude = latitude,

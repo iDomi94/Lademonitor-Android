@@ -265,6 +265,7 @@
     <string name="session_detail_estimated_suffix"> (geschätzt)</string>
     <string name="session_detail_label_kwh">kWh</string>
     <string name="session_detail_label_odometer">Kilometerstand</string>
+    <string name="session_detail_label_outside_temp">Außentemperatur</string>
     <string name="session_detail_label_consumption">Verbrauch</string>
     <string name="session_detail_section_price">Preis</string>
     <string name="session_detail_label_total">Gesamt</string>
@@ -291,6 +292,7 @@
     <string name="add_session_section_misc">Sonstiges</string>
     <string name="add_session_field_location_optional">Ladeort (optional)</string>
     <string name="add_session_field_odometer_optional">Kilometerstand (optional)</string>
+    <string name="add_session_field_outside_temp_optional">Außentemperatur (°C, optional)</string>
     <string name="add_session_section_position">Position</string>
     <string name="add_session_use_location_action">Von Ladeort übernehmen</string>
     <string name="add_session_coordinates_format">Koordinaten: %1$s, %2$s</string>
