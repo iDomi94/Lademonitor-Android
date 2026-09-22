@@ -131,3 +131,33 @@ interface SessionDao {
     @Query("DELETE FROM sessions")
     suspend fun clear()
 }
+
+@Dao
+interface ProviderFeeDao {
+    @Query("SELECT * FROM provider_fees WHERE pendingDelete = 0 ORDER BY startDate DESC")
+    suspend fun getAllUndeleted(): List<LocalProviderFee>
+
+    @Query("SELECT * FROM provider_fees WHERE serverId = :id OR localId = :id LIMIT 1")
+    suspend fun find(id: String): LocalProviderFee?
+
+    @Query("SELECT * FROM provider_fees WHERE serverId = :serverId LIMIT 1")
+    suspend fun findByServerId(serverId: String): LocalProviderFee?
+
+    @Query("SELECT * FROM provider_fees")
+    suspend fun getAll(): List<LocalProviderFee>
+
+    @Query("SELECT * FROM provider_fees WHERE isDirty = 1")
+    suspend fun getDirty(): List<LocalProviderFee>
+
+    @Upsert
+    suspend fun upsert(fee: LocalProviderFee)
+
+    @Delete
+    suspend fun delete(fee: LocalProviderFee)
+
+    @Query("SELECT COUNT(*) FROM provider_fees")
+    suspend fun countAll(): Int
+
+    @Query("DELETE FROM provider_fees")
+    suspend fun clear()
+}

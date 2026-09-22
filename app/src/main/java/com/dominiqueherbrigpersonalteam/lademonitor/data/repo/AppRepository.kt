@@ -6,6 +6,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPa
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.GeocodeResult
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
@@ -131,6 +133,35 @@ object AppRepository {
         val sessions = LocalDataStore.fetchSessions(vehicleId, null, dateRange)
         val vehicles = LocalDataStore.fetchVehicles()
         val providers = LocalDataStore.fetchProviders()
-        return LocalStatsCalculator.compute(sessions, vehicles, providers)
+        // Perioden ohne Ladevorgang gehoeren zu keinem Fahrzeug (ein Abo gilt fuers Konto) und
+        // zaehlen beim Zeitraum nach ihrem Beginn - wie stats.py.
+        var unallocated: List<LocalFeeAllocator.Period> = emptyList()
+        if (vehicleId == null) {
+            unallocated = LocalDataStore.feeAllocation().unallocated
+            if (dateRange != null) {
+                val from = LocalFeeAllocator.day(dateRange.first)
+                val to = LocalFeeAllocator.day(dateRange.last)
+                unallocated = unallocated.filter { !it.start.isBefore(from) && !it.start.isAfter(to) }
+            }
+        }
+        return LocalStatsCalculator.compute(sessions, vehicles, providers, unallocated)
+    }
+
+    // MARK: - Grundgebuehren
+
+    suspend fun fetchFees(providerId: String? = null): List<ProviderFee> {
+        syncBeforeRead()
+        return LocalDataStore.fetchFees(providerId)
+    }
+
+    suspend fun createFee(payload: ProviderFeePayload): ProviderFee =
+        LocalDataStore.createFee(payload).also { syncAfterWrite() }
+
+    suspend fun updateFee(id: String, payload: ProviderFeePayload): ProviderFee =
+        LocalDataStore.updateFee(id, payload).also { syncAfterWrite() }
+
+    suspend fun deleteFee(id: String) {
+        LocalDataStore.deleteFee(id)
+        syncAfterWrite()
     }
 }

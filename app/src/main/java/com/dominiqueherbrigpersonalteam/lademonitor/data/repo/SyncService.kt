@@ -7,11 +7,13 @@ import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalProvider
+import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalProviderFee
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalStore
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.net.NetworkMonitor
@@ -95,6 +97,13 @@ object SyncService {
     private val providers get() = LocalStore.providers
     private val locations get() = LocalStore.locations
     private val sessions get() = LocalStore.sessions
+    private val fees get() = LocalStore.fees
+
+    /**
+     * Ob der Server Grundgebuehren kennt (ab 0.27.0). Wird in jedem Durchlauf neu ermittelt
+     * ([pushFees]), damit ein Server-Update ohne App-Neustart greift.
+     */
+    private var serverSupportsFees = false
 
     private class UnresolvedReferenceException(what: String) :
         Exception(LademonitorApp.appContext.getString(R.string.sync_error_unresolved_reference, what))
@@ -222,10 +231,12 @@ object SyncService {
             resetSyncStateIfAccountChanged()
             pushVehicles()
             pushProviders()
+            pushFees()
             pushLocations()
             pushSessions()
             pullVehicles()
             pullProviders()
+            pullFees()
             pullLocations()
             pullSessions()
             // Zum Schluss, nach den Pulls: die legen fehlende Zeilen an, und eine gerade erst
@@ -247,6 +258,13 @@ object SyncService {
         val currentUserId = SessionManager.currentUser.value?.id ?: return
         val last = prefs.getString(KEY_LAST_USER, null)
         if (last != null && last != currentUserId) {
+            // Gebuehren kennen ihren Anbieter nach dem ersten Sync nur noch ueber dessen serverId.
+            // Die verfaellt gleich - ohne Umschreiben auf die localId liesse sich die Gebuehr fuer
+            // das neue Konto nie mehr zuordnen und bliebe fuer immer ungepusht.
+            val localRef = providers.getAll().mapNotNull { p -> p.serverId?.let { it to p.localId } }.toMap()
+            for (f in fees.getAll()) {
+                localRef[f.providerId]?.let { f.providerId = it; fees.upsert(f) }
+            }
             for (v in vehicles.getAll()) resetRow(v.pendingDelete, { vehicles.delete(v) }, {
                 v.serverId = null; v.isDirty = true; vehicles.upsert(v)
             })
@@ -258,6 +276,9 @@ object SyncService {
             })
             for (s in sessions.getAll()) resetRow(s.pendingDelete, { sessions.delete(s) }, {
                 s.serverId = null; s.isDirty = true; sessions.upsert(s)
+            })
+            for (f in fees.getAll()) resetRow(f.pendingDelete, { fees.delete(f) }, {
+                f.serverId = null; f.isDirty = true; fees.upsert(f)
             })
             // Grabsteine gelten pro Konto — ein Cursor aus Konto A sagt ueber Konto B nichts
             // aus. Zurueckgesetzt holt der naechste Abruf dessen vollstaendige Liste.
@@ -327,6 +348,52 @@ object SyncService {
                 itemErrors.add(
                     LademonitorApp.appContext.getString(
                         R.string.sync_error_item_provider, provider.name, e.localizedMessage.orEmpty()
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * Grundgebuehren nach den Anbietern, damit eine neue Gebuehr die serverId ihres gerade erst
+     * hochgeladenen Anbieters schon kennt. Gegen einen Server aelter als 0.27.0 (404 auf die
+     * Liste) bleibt alles lokal und dirty - nach dem Server-Update geht es beim naechsten Sync
+     * von selbst hoch, und der uebrige Sync gilt deswegen nicht als gescheitert.
+     */
+    private suspend fun pushFees() {
+        serverSupportsFees = try {
+            ApiClient.fetchProviderFees()
+            true
+        } catch (e: ApiException.Server) {
+            if (e.statusCode == 404) false else throw e
+        }
+        if (!serverSupportsFees) return
+        for (fee in fees.getDirty()) {
+            try {
+                if (fee.pendingDelete) {
+                    fee.serverId?.let { runCatching { ApiClient.deleteProviderFee(it) } }
+                    fees.delete(fee)
+                    continue
+                }
+                val providerId = resolvedProviderServerId(fee.providerId)
+                    ?: throw UnresolvedReferenceException(LademonitorApp.appContext.getString(R.string.entity_provider))
+                val payload = ProviderFeePayload(
+                    providerId = providerId, amount = fee.amount, interval = fee.interval,
+                    startDate = fee.startDate, endDate = fee.endDate, label = fee.label, notes = fee.notes
+                )
+                if (fee.serverId != null) {
+                    ApiClient.updateProviderFee(fee.serverId!!, payload)
+                } else {
+                    fee.serverId = ApiClient.createProviderFee(payload).id
+                }
+                fee.providerId = providerId
+                fee.isDirty = false
+                fees.upsert(fee)
+            } catch (e: Exception) {
+                itemErrors.add(
+                    LademonitorApp.appContext.getString(
+                        R.string.sync_error_item_fee, fee.label ?: String.format("%.2f €", fee.amount),
+                        e.localizedMessage.orEmpty()
                     )
                 )
             }
@@ -471,6 +538,33 @@ object SyncService {
         }
     }
 
+    private suspend fun pullFees() {
+        if (!serverSupportsFees) return
+        for (sf in ApiClient.fetchProviderFees()) {
+            val existing = fees.findByServerId(sf.id)
+            if (existing != null) {
+                if (!existing.isDirty) {
+                    existing.providerId = sf.providerId
+                    existing.amount = sf.amount
+                    existing.interval = sf.interval
+                    existing.startDate = sf.startDate
+                    existing.endDate = sf.endDate
+                    existing.label = sf.label
+                    existing.notes = sf.notes
+                    fees.upsert(existing)
+                }
+            } else {
+                fees.upsert(
+                    LocalProviderFee(
+                        serverId = sf.id, providerId = sf.providerId, amount = sf.amount,
+                        interval = sf.interval, startDate = sf.startDate, endDate = sf.endDate,
+                        label = sf.label, notes = sf.notes, isDirty = false
+                    )
+                )
+            }
+        }
+    }
+
     private suspend fun pullLocations() {
         for (sl in ApiClient.fetchLocations()) {
             val existing = locations.findByServerId(sl.id)
@@ -584,6 +678,7 @@ object SyncService {
                 "provider" -> providers.findByServerId(record.entityId)?.let { providers.delete(it) }
                 "location" -> locations.findByServerId(record.entityId)?.let { locations.delete(it) }
                 "session" -> sessions.findByServerId(record.entityId)?.let { sessions.delete(it) }
+                "provider_fee" -> fees.findByServerId(record.entityId)?.let { fees.delete(it) }
                 // Unbekannter Typ aus einem neueren Server: ueberspringen statt zu raten —
                 // eine aeltere App soll an einem neueren Server nicht scheitern.
                 else -> Unit

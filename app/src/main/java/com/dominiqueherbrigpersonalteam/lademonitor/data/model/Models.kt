@@ -166,8 +166,18 @@ data class ChargingSession(
     val notes: String? = null,
     val source: String = "manual",
     @Json(name = "needs_review") val needsReview: Boolean = false,
-    @Json(name = "external_session_id") val externalSessionId: String? = null
+    @Json(name = "external_session_id") val externalSessionId: String? = null,
+    /**
+     * Anteil an den Grundgebuehren/Abos des Anbieters in EUR (Server ab 0.27.0), nach kWh auf die
+     * Vorgaenge der Periode umgelegt. Steckt NICHT in [priceTotal] - das bleibt der Saeulenpreis.
+     * Nur lesend und lokal immer frisch berechnet ([com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalFeeAllocator]).
+     */
+    @Json(name = "fee_share") val feeShare: Double? = null
 ) {
+    /** Saeulenpreis plus Grundgebuehranteil; `null` nur, wenn beides fehlt. */
+    val effectiveTotal: Double?
+        get() = if (priceTotal == null && feeShare == null) null else (priceTotal ?: 0.0) + (feeShare ?: 0.0)
+
     val chargingTypeValue: ChargingType? get() = ChargingType.from(chargingType)
     val sourceValue: SessionSource get() = SessionSource.from(source)
     val consumptionMethodValue: ConsumptionMethod? get() = ConsumptionMethod.from(consumptionMethod)
@@ -357,7 +367,9 @@ data class GeocodeResult(
 data class ProviderStat(
     @Json(name = "provider_name") val providerName: String,
     @Json(name = "total_kwh") val totalKwh: Double,
-    @Json(name = "total_cost") val totalCost: Double
+    /** Inklusive Grundgebuehren (ab Server 0.27.0). */
+    @Json(name = "total_cost") val totalCost: Double,
+    @Json(name = "total_fees") val totalFees: Double? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -366,7 +378,9 @@ data class MonthlyStat(
     @Json(name = "total_cost") val totalCost: Double,
     @Json(name = "total_kwh") val totalKwh: Double,
     @Json(name = "session_count") val sessionCount: Int,
-    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double? = null
+    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double? = null,
+    /** Davon Grundgebuehren/Abos (in [totalCost] enthalten). */
+    @Json(name = "total_fees") val totalFees: Double? = null
 ) {
     /**
      * "YYYY-MM" -> "August 2026" (or "August 2026" -> "August 2026" in English), matching the
@@ -404,7 +418,14 @@ data class StatsSummary(
     @Json(name = "dc_kwh") val dcKwh: Double? = null,
     @Json(name = "total_km_driven") val totalKmDriven: Int? = null,
     @Json(name = "by_provider") val byProvider: List<ProviderStat> = emptyList(),
-    val monthly: List<MonthlyStat> = emptyList()
+    val monthly: List<MonthlyStat> = emptyList(),
+    /**
+     * Grundgebuehren/Abos im Zeitraum, in [totalCost], [avgPricePerKwh] und [pricePer100km]
+     * bereits enthalten (Server ab 0.27.0).
+     */
+    @Json(name = "total_fees") val totalFees: Double? = null,
+    /** Davon Perioden, in denen es keinen Ladevorgang des Anbieters gab. */
+    @Json(name = "unallocated_fees") val unallocatedFees: Double? = null
 )
 
 // ---------- Sync: serverseitig geloeschte Datensaetze ----------
@@ -729,4 +750,54 @@ data class TireComparison(
     @Json(name = "overlap_span_c") val overlapSpanC: Double? = null,
     @Json(name = "overlap_ok") val overlapOk: Boolean = false,
     @Json(name = "winter_vs_summer_pct") val winterVsSummerPct: Double? = null
+)
+
+// ---------- Grundgebuehren / Abos der Anbieter (Server ab 0.27.0) ----------
+
+enum class FeeInterval(val wire: String, @param:StringRes val labelRes: Int, @param:StringRes val perRes: Int) {
+    MONTHLY("monthly", R.string.fee_interval_monthly, R.string.fee_per_month),
+    YEARLY("yearly", R.string.fee_interval_yearly, R.string.fee_per_year),
+    ONCE("once", R.string.fee_interval_once, R.string.fee_per_once);
+
+    companion object {
+        fun from(wire: String?): FeeInterval = entries.firstOrNull { it.wire == wire } ?: MONTHLY
+    }
+}
+
+/**
+ * Grundgebuehr bzw. Abo eines Anbieters, z.B. Ionity Powerpass 15 EUR im Monat.
+ *
+ * Haengt am Anbieter, nicht am Ladevorgang: umgelegt wird erst beim Anzeigen, nach kWh auf alle
+ * Ladevorgaenge des Anbieters in der Periode (siehe LocalFeeAllocator). [startDate]/[endDate]
+ * sind reine Kalendertage (lokale Mitternacht) - der Server verwirft jede Uhrzeit.
+ */
+@JsonClass(generateAdapter = true)
+data class ProviderFee(
+    val id: String,
+    @Json(name = "provider_id") val providerId: String,
+    val amount: Double,
+    val interval: String = FeeInterval.MONTHLY.wire,
+    @ServerDate @Json(name = "start_date") val startDate: Long,
+    /** Letzter Tag, an dem die Gebuehr gilt (inklusive). Bei "once" Pflicht, sonst Kuendigung. */
+    @ServerDate @Json(name = "end_date") val endDate: Long? = null,
+    val label: String? = null,
+    val notes: String? = null
+) {
+    val intervalValue: FeeInterval get() = FeeInterval.from(interval)
+}
+
+/**
+ * Payload fuer POST/PATCH /api/provider-fees - wird mit `encodeKeepingNulls` geschickt: sonst
+ * liesse sich ein einmal gesetztes Enddatum (Kuendigung) per PATCH nie wieder entfernen, der
+ * Server uebernimmt nur Felder, die im JSON stehen.
+ */
+@JsonClass(generateAdapter = true)
+data class ProviderFeePayload(
+    @Json(name = "provider_id") val providerId: String,
+    val amount: Double,
+    val interval: String,
+    @ServerDate @Json(name = "start_date") val startDate: Long,
+    @ServerDate @Json(name = "end_date") val endDate: Long? = null,
+    val label: String? = null,
+    val notes: String? = null
 )

@@ -320,6 +320,9 @@ private fun SessionRow(
             session.energyKwh?.let { Text(Fmt.n("%.1f kWh", it), style = MaterialTheme.typography.bodyMedium) }
             session.priceTotal?.let { Text(Fmt.n("%.2f €", it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             session.pricePerKwh?.let { Text(Fmt.n("%.3f €/kWh", it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            session.feeShare?.let {
+                Text(stringResource(R.string.sessions_fee_share, Fmt.n("%.2f €", it)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             if (session.needsReview) {
                 IconButton(onClick = onConfirm, modifier = Modifier.size(28.dp)) {
                     Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.action_confirm), tint = Green)

@@ -17,6 +17,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.NotificationSetti
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PasswordChangePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PasswordResetRequestPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.RegisterCredentials
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
@@ -303,6 +305,23 @@ object ApiClient {
         send("/api/providers/$id", "PATCH", encode(payload), type = Provider::class.java)
 
     suspend fun deleteProvider(id: String) = sendNoContent("/api/providers/$id", "DELETE")
+
+    // MARK: - Grundgebuehren (Server ab 0.27.0)
+    //
+    // Ein aelterer Server antwortet hier mit 404 - der SyncService faengt das ab und laesst die
+    // Gebuehren dann lokal liegen, statt den Sync scheitern zu lassen.
+
+    suspend fun fetchProviderFees(): List<ProviderFee> =
+        send("/api/provider-fees", type = listType(ProviderFee::class.java))
+
+    /** `encodeKeepingNulls`: ein geleertes Enddatum (Kuendigung aufgehoben) muss als null ankommen. */
+    suspend fun createProviderFee(payload: ProviderFeePayload): ProviderFee =
+        send("/api/provider-fees", "POST", encodeKeepingNulls(payload), type = ProviderFee::class.java)
+
+    suspend fun updateProviderFee(id: String, payload: ProviderFeePayload): ProviderFee =
+        send("/api/provider-fees/$id", "PATCH", encodeKeepingNulls(payload), type = ProviderFee::class.java)
+
+    suspend fun deleteProviderFee(id: String) = sendNoContent("/api/provider-fees/$id", "DELETE")
 
     // MARK: - Locations
 

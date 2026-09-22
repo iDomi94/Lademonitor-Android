@@ -41,6 +41,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.map.MapScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.sessions.SessionsListScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.AccountSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ConnectionSettingsScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.FeesSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.LocationsSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ProvidersSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.SettingsScreen
@@ -169,6 +170,7 @@ private fun MainScaffold() {
             composable(Tab.SETTINGS.route) { SettingsScreen(navController) }
             composable("settings/vehicles") { VehiclesSettingsScreen(navController) }
             composable("settings/providers") { ProvidersSettingsScreen(navController) }
+            composable("settings/fees") { FeesSettingsScreen(navController) }
             composable("settings/tires") { TiresSettingsScreen(navController) }
             composable("settings/locations") { LocationsSettingsScreen(navController) }
             composable("settings/connection") { ConnectionSettingsScreen(navController) }

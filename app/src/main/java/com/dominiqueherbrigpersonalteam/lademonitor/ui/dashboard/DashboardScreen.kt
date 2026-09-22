@@ -148,11 +148,18 @@ private fun DashboardContent(stats: StatsSummary, temperature: TemperatureStats?
             add(stringResource(R.string.dashboard_stat_price_per_100km) to (stats.pricePer100km?.let { Fmt.n("%.2f €", it) } ?: "–"))
             add(stringResource(R.string.dashboard_stat_km_driven) to (stats.totalKmDriven?.let { Fmt.km(it) } ?: "–"))
         }
+        // Kleine Zusatzzeile unter einzelnen Kennzahlen, z.B. der Grundgebuehren-Anteil.
+        val totalCostLabel = stringResource(R.string.dashboard_stat_total_cost)
+        val details = buildMap {
+            stats.totalFees?.takeIf { it > 0 }?.let {
+                put(totalCostLabel, stringResource(R.string.dashboard_total_cost_fees, Fmt.n("%.2f €", it)))
+            }
+        }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             cards.chunked(2).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     row.forEach { (label, value) ->
-                        StatCard(label, value, Modifier.weight(1f))
+                        StatCard(label, value, Modifier.weight(1f), detail = details[label])
                     }
                     if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
@@ -383,7 +390,7 @@ private fun SectionHeader(text: String) {
 }
 
 @Composable
-private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
+private fun StatCard(label: String, value: String, modifier: Modifier = Modifier, detail: String? = null) {
     SectionCard(modifier = modifier) {
         Text(
             label.uppercase(),
@@ -391,5 +398,8 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        detail?.let {
+            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

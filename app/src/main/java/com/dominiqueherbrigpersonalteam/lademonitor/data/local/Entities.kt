@@ -5,6 +5,7 @@ import androidx.room.PrimaryKey
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import java.util.UUID
 
@@ -155,5 +156,37 @@ data class LocalChargingSession(
         source = source,
         needsReview = needsReview,
         externalSessionId = externalSessionId
+    )
+}
+
+/**
+ * Grundgebuehr/Abo eines Anbieters (Room 3 -> 4). [providerId] zeigt wie bei den Ladevorgaengen
+ * auf `serverId ?: localId` des Anbieters.
+ */
+@Entity(tableName = "provider_fees")
+data class LocalProviderFee(
+    @PrimaryKey val localId: String = UUID.randomUUID().toString(),
+    var serverId: String? = null,
+    var providerId: String = "",
+    var amount: Double = 0.0,
+    var interval: String = "monthly",
+    var startDate: Long = System.currentTimeMillis(),
+    var endDate: Long? = null,
+    var label: String? = null,
+    var notes: String? = null,
+    var createdAt: Long = System.currentTimeMillis(),
+    var updatedAt: Long = System.currentTimeMillis(),
+    var isDirty: Boolean = true,
+    var pendingDelete: Boolean = false
+) {
+    fun asDTO() = ProviderFee(
+        id = serverId ?: localId,
+        providerId = providerId,
+        amount = amount,
+        interval = interval,
+        startDate = startDate,
+        endDate = endDate,
+        label = label,
+        notes = notes
     )
 }
