@@ -396,4 +396,36 @@
     <string name="temp_source_manual">entered by hand</string>
     <string name="temp_source_weather">from the weather service</string>
     <string name="temp_source_weather_daily">from the weather service (interval mean)</string>
+
+    <!-- Tires (server 0.26.0 and later) -->
+    <string name="settings_nav_tires">Tires</string>
+    <string name="tires_section_sets">Tire sets</string>
+    <string name="tires_section_changes">Tire changes</string>
+    <string name="tires_empty">No tire change recorded yet. Add the first one – from that date the set applies until the next entry.</string>
+    <string name="tires_delete_confirm_title">Delete tire change?</string>
+    <string name="tires_delete_confirm_message">The charging sessions are kept – they simply won\'t be attributed to a tire set any more.</string>
+    <string name="tires_comparison_title">Comparison</string>
+    <string name="tires_hero_label">Winter tires versus summer tires</string>
+    <string name="tires_reference_temp">Adjusted for temperature to %1$s °C</string>
+    <string name="tires_comparison_hint">What is compared is not the raw seasonal average – that would only measure that winter tires are driven in winter – but the deviation from the consumption curve over outside temperature.</string>
+    <string name="tires_overlap_missing">The sets were driven in separate temperature ranges, so the adjusted comparison is an extrapolation.</string>
+    <string name="tires_overlap_warning">The sets only overlap by %1$s K of temperature – the figure is mostly an extrapolation.</string>
+    <string name="tires_excluded">Left out: %1$d drives without a tire set, %2$d drives spanning a change.</string>
+    <string name="tires_badge_current">fitted</string>
+    <string name="tires_stats_set">%1$d km · %2$d drives</string>
+    <string name="tires_stats_age">%1$s fitted · %2$s old · %3$d×</string>
+    <string name="tires_stats_mounting">%1$d km · %2$d drives · %3$s</string>
+    <string name="tires_until">until %1$s</string>
+    <string name="tires_until_today">until today</string>
+    <string name="tires_unit_days">%1$d days</string>
+    <string name="tires_unit_years">%1$s years</string>
+    <string name="tires_kind_summer">Summer</string>
+    <string name="tires_kind_winter">Winter</string>
+    <string name="tires_kind_all_season">All-season</string>
+    <string name="tires_field_installed_on">Fitted on</string>
+    <string name="tires_field_size">Size (e.g. 235/45 R21)</string>
+    <string name="tires_field_notes">Note (optional)</string>
+    <string name="tires_form_hint">From this date the set applies until the next change follows. That is why there is no end date.</string>
+    <string name="tires_add_title">New tire change</string>
+    <string name="tires_edit_title">Edit tire change</string>
 </resources>

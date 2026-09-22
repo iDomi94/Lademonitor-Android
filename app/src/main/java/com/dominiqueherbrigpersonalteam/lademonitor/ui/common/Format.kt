@@ -22,6 +22,12 @@ object Fmt {
             DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT).withLocale(locale)
         )
 
+    /** Nur das Datum - fuer Dinge ohne sinnvolle Uhrzeit, z.B. einen Reifenwechsel. */
+    fun dateMedium(epochMillis: Long): String =
+        Instant.ofEpochMilli(epochMillis).atZone(zone).format(
+            DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)
+        )
+
     fun dateTimeFull(epochMillis: Long): String =
         Instant.ofEpochMilli(epochMillis).atZone(zone).format(
             DateTimeFormatter.ofLocalizedDateTime(FormatStyle.FULL, FormatStyle.SHORT).withLocale(locale)

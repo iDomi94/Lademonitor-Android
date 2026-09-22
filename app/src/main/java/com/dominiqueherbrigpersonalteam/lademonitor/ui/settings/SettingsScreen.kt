@@ -131,6 +131,13 @@ fun SettingsScreen(navController: NavController) {
                 NavRow(stringResource(R.string.settings_nav_vehicles)) { navController.navigate("settings/vehicles") }
                 HorizontalDivider()
                 NavRow(stringResource(R.string.settings_nav_providers)) { navController.navigate("settings/providers") }
+                // Reifen gibt es bewusst nur im Server-Modus: die Zuordnung der
+                // Fahrten und der temperaturbereinigte Vergleich liegen komplett
+                // auf dem Server (siehe Models.kt, Abschnitt "Reifen").
+                if (appMode == AppMode.SERVER) {
+                    HorizontalDivider()
+                    NavRow(stringResource(R.string.settings_nav_tires)) { navController.navigate("settings/tires") }
+                }
             }
 
             SectionCard {

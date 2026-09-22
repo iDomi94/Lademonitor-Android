@@ -44,6 +44,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ConnectionSettin
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.LocationsSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ProvidersSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.SettingsScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.TiresSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehiclesSettingsScreen
 import kotlinx.coroutines.launch
 
@@ -168,6 +169,7 @@ private fun MainScaffold() {
             composable(Tab.SETTINGS.route) { SettingsScreen(navController) }
             composable("settings/vehicles") { VehiclesSettingsScreen(navController) }
             composable("settings/providers") { ProvidersSettingsScreen(navController) }
+            composable("settings/tires") { TiresSettingsScreen(navController) }
             composable("settings/locations") { LocationsSettingsScreen(navController) }
             composable("settings/connection") { ConnectionSettingsScreen(navController) }
             composable("settings/account") { AccountSettingsScreen(navController) }
