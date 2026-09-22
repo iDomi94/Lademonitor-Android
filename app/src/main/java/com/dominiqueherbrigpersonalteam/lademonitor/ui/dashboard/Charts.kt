@@ -360,11 +360,15 @@ fun TemperatureScatterChart(
                 points.forEach { (x, y) ->
                     drawCircle(TempPointColor.copy(alpha = 0.6f), radius = 4f, center = Offset(px(x), py(y)))
                 }
-                if (trendLine.size >= 2) {
+                // Abschnittsweise zeichnen, nicht vom ersten zum letzten Punkt:
+                // seit Server 0.25.0 kann die Kurve ein Knickmodell sein und
+                // traegt dann einen dritten Stuetzpunkt in der Mitte. Eine
+                // einzelne Linie wuerde genau durch den Knick hindurchgehen.
+                trendLine.zipWithNext().forEach { (a, b) ->
                     drawLine(
                         TempTrendColor,
-                        Offset(px(trendLine.first().first), py(trendLine.first().second)),
-                        Offset(px(trendLine.last().first), py(trendLine.last().second)),
+                        Offset(px(a.first), py(a.second)),
+                        Offset(px(b.first), py(b.second)),
                         strokeWidth = 4f,
                         pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f))
                     )

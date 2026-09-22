@@ -243,28 +243,57 @@ private fun TemperatureSection(stats: TemperatureStats) {
                                 stringResource(R.string.dashboard_temperature_hero_label),
                                 style = MaterialTheme.typography.bodyMedium
                             )
+                            // r2 und der 0-Grad-Wert gehoeren zu dem Modell, das
+                            // der Server benutzt hat - deshalb wird es hier auch
+                            // benannt, sonst passte die gezeichnete Linie beim
+                            // Knickmodell nicht mehr zu den Zahlen daneben.
+                            val modelText = if (trend.model == "breakpoint" && trend.breakpointC != null) {
+                                stringResource(
+                                    R.string.dashboard_temperature_model_breakpoint,
+                                    Fmt.n("%.0f", trend.breakpointC)
+                                )
+                            } else {
+                                stringResource(R.string.dashboard_temperature_model_linear)
+                            }
                             Text(
                                 stringResource(
                                     R.string.dashboard_temperature_hero_detail,
                                     Fmt.n("%.1f", trend.consumptionAt0c),
                                     Fmt.n("%.1f", trend.consumptionAt20c),
+                                    modelText,
                                     Fmt.n("%.2f", trend.r2)
                                 ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            // Wer erst im Fruehjahr angefangen hat zu messen,
+                            // sieht hier eine Hochrechnung auf einen Winter, den
+                            // es in den Daten gar nicht gibt.
+                            if (trend.at0cIsExtrapolated) {
+                                Text(
+                                    stringResource(R.string.dashboard_temperature_hero_extrapolated),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                     Spacer(Modifier.height(16.dp))
                 }
 
-                // Die Gerade wird nur ueber den Bereich gezeichnet, in dem es auch Messpunkte
+                // Die Kurve wird nur ueber den Bereich gezeichnet, in dem es auch Messpunkte
                 // gibt — bis 0 Grad verlaengert ohne Winterdaten waere sie eine Behauptung.
+                //
+                // Der Server liefert ab 0.25.0 `curve`: zwei Eckpunkte bei der Geraden, drei
+                // beim Knickmodell. Ein aelterer Server kennt das Feld nicht — dann wird die
+                // Gerade wie bisher aus slope/intercept gebaut.
                 val temps = stats.points.map { it.tempC }
-                val trendLine = if (trend != null && temps.isNotEmpty() && temps.min() < temps.max()) {
-                    listOf(temps.min(), temps.max()).map { it to (trend.intercept + trend.slope * it) }
-                } else {
-                    emptyList()
+                val curve = trend?.curve
+                val trendLine = when {
+                    curve != null && curve.size > 1 -> curve.map { it.tempC to it.consumption }
+                    trend != null && temps.isNotEmpty() && temps.min() < temps.max() ->
+                        listOf(temps.min(), temps.max()).map { it to (trend.intercept + trend.slope * it) }
+                    else -> emptyList()
                 }
                 TemperatureScatterChart(
                     points = stats.points.map { it.tempC to it.consumptionKwhPer100km },

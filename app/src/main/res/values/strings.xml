@@ -379,7 +379,10 @@
     <string name="dashboard_section_seasons">Verbrauch nach Jahreszeit</string>
     <string name="dashboard_temperature_empty">Noch keine Ladevorgänge mit Außentemperatur. Der Wert wird beim Einstecken erfasst – die Auswertung füllt sich über die nächsten Wochen.</string>
     <string name="dashboard_temperature_hero_label">Mehrverbrauch bei 0 °C statt 20 °C</string>
-    <string name="dashboard_temperature_hero_detail">%1$s statt %2$s kWh/100km · R² %3$s</string>
+    <string name="dashboard_temperature_hero_detail">%1$s statt %2$s kWh/100km laut %3$s · R² %4$s</string>
+    <string name="dashboard_temperature_hero_extrapolated">hochgerechnet – so kalt war es in deinen Daten noch nie</string>
+    <string name="dashboard_temperature_model_linear">einer Ausgleichsgeraden</string>
+    <string name="dashboard_temperature_model_breakpoint">zwei Geraden mit dem geringsten Verbrauch bei %1$s °C</string>
     <string name="dashboard_temperature_legend_drives">Fahrten</string>
     <string name="dashboard_temperature_legend_buckets">Mittel je %1$d °C</string>
     <string name="dashboard_temperature_legend_trend">Trend</string>

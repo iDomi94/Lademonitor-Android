@@ -379,7 +379,10 @@
     <string name="dashboard_section_seasons">Consumption by season</string>
     <string name="dashboard_temperature_empty">No charging sessions with an outside temperature yet. The value is recorded when plugging in – the analysis fills up over the coming weeks.</string>
     <string name="dashboard_temperature_hero_label">Extra consumption at 0 °C instead of 20 °C</string>
-    <string name="dashboard_temperature_hero_detail">%1$s instead of %2$s kWh/100km · R² %3$s</string>
+    <string name="dashboard_temperature_hero_detail">%1$s instead of %2$s kWh/100km per %3$s · R² %4$s</string>
+    <string name="dashboard_temperature_hero_extrapolated">extrapolated – your data has never seen it this cold</string>
+    <string name="dashboard_temperature_model_linear">a single fitted line</string>
+    <string name="dashboard_temperature_model_breakpoint">two lines with the lowest consumption at %1$s °C</string>
     <string name="dashboard_temperature_legend_drives">Drives</string>
     <string name="dashboard_temperature_legend_buckets">Average per %1$d °C</string>
     <string name="dashboard_temperature_legend_trend">Trend</string>
