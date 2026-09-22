@@ -549,3 +549,170 @@ data class TempTrend(
      */
     @Json(name = "at_0c_is_extrapolated") val at0cIsExtrapolated: Boolean = false
 )
+
+// ---------- Reifen (Server ab 0.26.0) ----------
+//
+// Bewusst NUR im Server-Modus: die Zuordnung der Fahrten zu den Saetzen und
+// der temperaturbereinigte Vergleich liegen komplett in `tires.py`. Sie lokal
+// nachzubauen hiesse, die Verbrauchskurve aus `temperature.py` ein zweites Mal
+// zu implementieren - mit der Aussicht, dass App und Web frueher oder spaeter
+// andere Zahlen zeigen. Dieselbe Entscheidung wie bei der Temperaturauswertung
+// auf dem Dashboard. Reifen sind deshalb auch nicht Teil des Room-Spiegels.
+
+enum class TireKind(val wire: String) {
+    SUMMER("summer"),
+    WINTER("winter"),
+    ALL_SEASON("all_season");
+
+    companion object {
+        fun from(wire: String?): TireKind = entries.firstOrNull { it.wire == wire } ?: SUMMER
+    }
+}
+
+/**
+ * Eine MONTAGE, kein physischer Satz: derselbe Reifen im Herbst wieder
+ * aufgezogen ist ein zweiter Eintrag. Ein Enddatum gibt es deshalb nicht -
+ * der naechste Wechsel beendet den vorherigen Satz.
+ */
+@JsonClass(generateAdapter = true)
+data class TireSet(
+    val id: String,
+    @Json(name = "vehicle_id") val vehicleId: String,
+    val kind: String,
+    @ServerDate @Json(name = "installed_on") val installedOn: Long,
+    /**
+     * Kilometerstand beim Wechsel. Optional, aber die genauere Quelle fuer die
+     * Laufleistung: die Differenz zweier Wechsel enthaelt auch die Fahrt, die
+     * ueber den Wechsel hinweg lief und keinem Satz zugeordnet werden kann.
+     */
+    @Json(name = "odometer_km") val odometerKm: Double? = null,
+    val size: String? = null,
+    val brand: String? = null,
+    val model: String? = null,
+    val notes: String? = null
+) {
+    val tireKind: TireKind get() = TireKind.from(kind)
+
+    /** Marke, Modell und Groesse in einer Zeile - leere Felder fallen weg. */
+    val label: String
+        get() = listOfNotNull(brand, model, size).filter { it.isNotBlank() }.joinToString(" ")
+}
+
+/**
+ * Leere Textfelder werden als `null` GESCHICKT, nicht weggelassen: der Server
+ * wendet `exclude_unset` an, ein fehlendes Feld liesse den alten Wert stehen -
+ * eine geleerte Marke waere also nicht zu loeschen. Das Fahrzeug faellt beim
+ * Bearbeiten weg (dort kennt das Schema es nicht, es bleibt unveraenderlich).
+ */
+@JsonClass(generateAdapter = true)
+data class TireSetPayload(
+    @Json(name = "vehicle_id") val vehicleId: String? = null,
+    val kind: String,
+    @ServerDate @Json(name = "installed_on") val installedOn: Long,
+    @Json(name = "odometer_km") val odometerKm: Double? = null,
+    val size: String? = null,
+    val brand: String? = null,
+    val model: String? = null,
+    val notes: String? = null
+)
+
+/**
+ * Kennzahlen einer einzelnen Montage. [removedOn] leitet der Server ab (der
+ * naechste Wechsel an diesem Fahrzeug) - null heisst "liegt noch drauf".
+ */
+@JsonClass(generateAdapter = true)
+data class TireMounting(
+    @Json(name = "tire_set_id") val tireSetId: String,
+    @Json(name = "vehicle_id") val vehicleId: String,
+    val kind: String,
+    val label: String,
+    @ServerDate @Json(name = "installed_on") val installedOn: Long,
+    @ServerDate @Json(name = "removed_on") val removedOn: Long? = null,
+    @Json(name = "is_current") val isCurrent: Boolean = false,
+    val days: Int = 0,
+    val drives: Int = 0,
+    val km: Double = 0.0,
+    /**
+     * "odometer" (Differenz der Kilometerstaende, exakt) oder "drives" (Summe
+     * der zugeordneten Fahrten - die Fahrt ueber den Wechsel fehlt dort).
+     */
+    @Json(name = "km_source") val kmSource: String? = null,
+    @Json(name = "energy_kwh") val energyKwh: Double = 0.0,
+    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double? = null
+) {
+    val tireKind: TireKind get() = TireKind.from(kind)
+    val kmIsExact: Boolean get() = kmSource == "odometer"
+}
+
+/** Ein Satz ueber alle seine Montagen hinweg - erst so ergibt "wieviel km sind da drauf" eine Zahl. */
+@JsonClass(generateAdapter = true)
+data class TireSetSummary(
+    val key: String,
+    val label: String,
+    val kind: String,
+    val mountings: Int = 0,
+    @ServerDate @Json(name = "first_installed_on") val firstInstalledOn: Long,
+    /**
+     * Alter seit der ersten Montage. Steht neben [daysMounted], weil Gummi
+     * auch im Keller altert, die Laufleistung aber nicht.
+     */
+    @Json(name = "age_days") val ageDays: Int = 0,
+    @Json(name = "days_mounted") val daysMounted: Int = 0,
+    val drives: Int = 0,
+    val km: Double = 0.0,
+    /** "odometer" nur, wenn JEDE Montage dieses Satzes gemessene Kilometer hat. */
+    @Json(name = "km_source") val kmSource: String? = null,
+    @Json(name = "energy_kwh") val energyKwh: Double = 0.0,
+    @Json(name = "is_current") val isCurrent: Boolean = false,
+    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double? = null
+) {
+    val tireKind: TireKind get() = TireKind.from(kind)
+    val kmIsExact: Boolean get() = kmSource == "odometer"
+}
+
+@JsonClass(generateAdapter = true)
+data class TireOverview(
+    val mountings: List<TireMounting> = emptyList(),
+    val sets: List<TireSetSummary> = emptyList(),
+    @Json(name = "drives_without_set") val drivesWithoutSet: Int = 0,
+    @Json(name = "drives_spanning_change") val drivesSpanningChange: Int = 0
+)
+
+@JsonClass(generateAdapter = true)
+data class TireGroup(
+    val key: String,
+    val label: String,
+    val kind: String,
+    val drives: Int = 0,
+    val km: Double = 0.0,
+    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double = 0.0,
+    @Json(name = "avg_temp_c") val avgTempC: Double = 0.0,
+    @Json(name = "min_temp_c") val minTempC: Double = 0.0,
+    @Json(name = "max_temp_c") val maxTempC: Double = 0.0,
+    /**
+     * Erst dieser Wert ist zwischen den Gruppen vergleichbar: der rohe
+     * Durchschnitt misst vor allem, bei welchen Temperaturen gefahren wurde.
+     */
+    @Json(name = "adjusted_consumption_kwh_per_100km") val adjustedConsumptionKwhPer100km: Double? = null,
+    @Json(name = "delta_pct_vs_model") val deltaPctVsModel: Double? = null
+) {
+    val tireKind: TireKind get() = TireKind.from(kind)
+}
+
+@JsonClass(generateAdapter = true)
+data class TireComparison(
+    @Json(name = "by_kind") val byKind: List<TireGroup> = emptyList(),
+    @Json(name = "by_set") val bySet: List<TireGroup> = emptyList(),
+    @Json(name = "reference_temp_c") val referenceTempC: Double? = null,
+    val r2: Double? = null,
+    @Json(name = "drives_without_set") val drivesWithoutSet: Int = 0,
+    @Json(name = "drives_spanning_change") val drivesSpanningChange: Int = 0,
+    /**
+     * Gemeinsamer Temperaturbereich der Arten. Ohne ihn rechnet das Modell
+     * jeden Satz in Temperaturen hoch, in denen er nie gefahren ist - die
+     * Ansicht sagt das dann auch, statt die Zahl unkommentiert zu zeigen.
+     */
+    @Json(name = "overlap_span_c") val overlapSpanC: Double? = null,
+    @Json(name = "overlap_ok") val overlapOk: Boolean = false,
+    @Json(name = "winter_vs_summer_pct") val winterVsSummerPct: Double? = null
+)

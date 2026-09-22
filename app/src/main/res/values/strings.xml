@@ -396,4 +396,45 @@
     <string name="temp_source_manual">von Hand</string>
     <string name="temp_source_weather">vom Wetterdienst</string>
     <string name="temp_source_weather_daily">vom Wetterdienst (Zeitraummittel)</string>
+
+    <!-- Reifen (Server ab 0.26.0). Nur im Server-Modus sichtbar: Zuordnung und
+         temperaturbereinigter Vergleich liegen komplett auf dem Server. -->
+    <string name="settings_nav_tires">Reifen</string>
+    <string name="tires_section_sets">Reifensätze</string>
+    <string name="tires_section_changes">Reifenwechsel</string>
+    <string name="tires_delete_confirm_title">Reifenwechsel löschen?</string>
+    <string name="tires_delete_confirm_message">Die Ladevorgänge bleiben erhalten – sie werden danach nur keinem Reifensatz mehr zugeordnet.</string>
+    <string name="tires_comparison_title">Vergleich</string>
+    <string name="tires_hero_label">Mehrverbrauch Winter- gegenüber Sommerreifen</string>
+    <string name="tires_reference_temp">Temperaturbereinigt auf %1$s °C</string>
+    <string name="tires_comparison_hint">Verglichen wird nicht der rohe Saison-Durchschnitt – der würde nur messen, dass Winterreifen im Winter gefahren werden –, sondern die Abweichung von der Verbrauchskurve über der Außentemperatur.</string>
+    <string name="tires_overlap_missing">Die Sätze wurden in getrennten Temperaturbereichen gefahren – der bereinigte Vergleich ist damit eine Hochrechnung.</string>
+    <string name="tires_overlap_warning">Die Sätze überlappen sich nur um %1$s K Temperatur – die Zahl ist überwiegend eine Hochrechnung.</string>
+    <string name="tires_excluded">Nicht berücksichtigt: %1$d Fahrten ohne zugeordneten Reifensatz, %2$d Fahrten über einen Wechsel hinweg.</string>
+    <string name="tires_badge_current">aufgezogen</string>
+    <string name="tires_stats_set">%1$d km · %2$d Fahrten</string>
+    <string name="tires_stats_age">%1$s montiert · %2$s alt · %3$d×</string>
+    <string name="tires_stats_mounting">%1$d km · %2$d Fahrten · %3$s</string>
+    <string name="tires_until">bis %1$s</string>
+    <string name="tires_until_today">bis heute</string>
+    <string name="tires_unit_days">%1$d Tage</string>
+    <string name="tires_unit_years">%1$s Jahre</string>
+    <string name="tires_kind_summer">Sommer</string>
+    <string name="tires_kind_winter">Winter</string>
+    <string name="tires_kind_all_season">Ganzjahr</string>
+    <string name="tires_field_installed_on">Montiert am</string>
+    <string name="tires_field_size">Größe (z. B. 235/45 R21)</string>
+    <string name="tires_field_notes">Notiz (optional)</string>
+    <string name="tires_form_hint">Ab diesem Datum gilt der Satz, bis der nächste Wechsel folgt. Ein Enddatum gibt es deshalb nicht. Der Kilometerstand macht die Laufleistung exakt – ohne ihn wird sie aus den zugeordneten Fahrten gezählt, und die eine Fahrt über den Wechsel hinweg fehlt darin.</string>
+    <string name="tires_add_title">Neuer Reifenwechsel</string>
+    <string name="tires_edit_title">Reifenwechsel bearbeiten</string>
+
+    <string name="tires_field_odometer">Kilometerstand beim Wechsel (optional)</string>
+    <string name="tires_km_estimated_hint">* Nur aus den zugeordneten Fahrten gezählt – die Fahrt über den Wechsel hinweg fehlt. Trage den Kilometerstand beim Wechsel ein, dann wird der Wert exakt.</string>
+    <string name="tires_stats_set_estimated">%1$d km * · %2$d Fahrten</string>
+    <string name="tires_stats_mounting_estimated">%1$d km * · %2$d Fahrten · %3$s</string>
+
+    <string name="tires_getting_started_heading">So fängst du an</string>
+    <string name="tires_getting_started">Trag den Satz ein, der gerade aufgezogen ist – mit dem Datum, an dem er montiert wurde, auch wenn das ein Jahr zurückliegt, und dem Kilometerstand von damals, falls du ihn noch findest.</string>
+    <string name="tires_getting_started_guess">Fahrten VOR diesem Datum bleiben ohne Reifensatz – was damals drauf war, weiß die App nicht. Beim Raten lieber ein etwas späteres Datum als ein zu frühes: zu früh schreibt diesem Satz fremde Fahrten zu, zu spät lässt nur ein paar Fahrten weg.</string>
 </resources>

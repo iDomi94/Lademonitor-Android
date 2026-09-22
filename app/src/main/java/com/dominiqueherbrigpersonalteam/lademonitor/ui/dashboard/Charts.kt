@@ -324,11 +324,18 @@ fun TemperatureScatterChart(
     val ys = points.map { it.second } + buckets.map { it.second } + trendLine.map { it.second }
     val minX = xs.min()
     val maxX = xs.max()
-    // Die y-Achse startet bei 0: ein abgeschnittener Nullpunkt vergroessert den Unterschied
-    // zwischen den Klassen kuenstlich (gleiche Ueberlegung wie bei den Jahreszeiten-Balken).
-    val maxY = ys.max()
+    // Die y-Achse folgt den Daten statt bei 0 zu beginnen - dieselbe Rechnung wie in der
+    // Web-Oberflaeche (index.html): 10 % Luft nach unten, 5 % nach oben, nie unter 0.
+    //
+    // Bewusst anders als die Jahreszeiten-Balken, und das ist kein Widerspruch: bei einem
+    // Balken kodiert die LAENGE den Wert, ein abgeschnittener Nullpunkt vergroessert den
+    // Unterschied dort kuenstlich. Hier kodiert die POSITION, es gibt keine Laenge zu
+    // verzerren - und eine Nullachse presst alle Fahrten ins obere Drittel: liegt kein
+    // Vorgang unter 10 kWh/100 km, bleibt das untere Drittel der Flaeche schlicht leer.
+    val minY = (ys.min() * 0.9).coerceAtLeast(0.0)
+    val maxY = ys.max() * 1.05
     val spanX = (maxX - minX).takeIf { it > 0.0001 } ?: 1.0
-    val spanY = maxY.takeIf { it > 0.0001 } ?: 1.0
+    val spanY = (maxY - minY).takeIf { it > 0.0001 } ?: 1.0
     val gridColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -339,11 +346,12 @@ fun TemperatureScatterChart(
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 AxisLabel(Fmt.n("%.0f", maxY))
-                AxisLabel("0")
+                AxisLabel(Fmt.n("%.0f", (minY + maxY) / 2))
+                AxisLabel(Fmt.n("%.0f", minY))
             }
             Canvas(Modifier.weight(1f).fillMaxHeight().padding(start = 6.dp)) {
                 fun px(x: Double) = (((x - minX) / spanX) * size.width).toFloat()
-                fun py(y: Double) = (size.height - (y / spanY) * size.height).toFloat()
+                fun py(y: Double) = (size.height - ((y - minY) / spanY) * size.height).toFloat()
 
                 // Grundlinie
                 drawLine(

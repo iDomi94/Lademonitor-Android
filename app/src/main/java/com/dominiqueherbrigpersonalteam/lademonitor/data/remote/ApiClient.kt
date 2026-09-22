@@ -6,21 +6,25 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.AccountDeletePayl
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.AuthCredentials
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.AuthResponse
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.AuthUser
-import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EmailUpdatePayload
-import com.dominiqueherbrigpersonalteam.lademonitor.data.model.NotificationSettingsPayload
-import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PasswordChangePayload
-import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PasswordResetRequestPayload
-import com.dominiqueherbrigpersonalteam.lademonitor.data.model.RegisterCredentials
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.DeletionsResponse
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EmailUpdatePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.GeocodeResult
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.NotificationSettingsPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PasswordChangePayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PasswordResetRequestPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.RegisterCredentials
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireComparison
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireOverview
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSet
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSetPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
@@ -253,6 +257,39 @@ object ApiClient {
         send("/api/vehicles/$id", "PATCH", encode(payload), type = Vehicle::class.java)
 
     suspend fun deleteVehicle(id: String) = sendNoContent("/api/vehicles/$id", "DELETE")
+
+    // MARK: - Reifen
+
+    /**
+     * Reifensaetze, neueste Montage zuerst. Nur im Server-Modus - Reifen sind
+     * bewusst nicht Teil des lokalen Spiegels (siehe Models.kt).
+     */
+    suspend fun fetchTireSets(vehicleId: String? = null): List<TireSet> =
+        send("/api/tires" + query(vehicleId), type = listType(TireSet::class.java))
+
+    /**
+     * `encodeKeepingNulls`, nicht `encode`: der Server wendet `exclude_unset`
+     * an, ein fehlendes Feld liesse den alten Wert stehen - eine geleerte
+     * Marke waere also nicht zu loeschen.
+     */
+    suspend fun createTireSet(payload: TireSetPayload): TireSet =
+        send("/api/tires", "POST", encodeKeepingNulls(payload), type = TireSet::class.java)
+
+    suspend fun updateTireSet(id: String, payload: TireSetPayload): TireSet =
+        send("/api/tires/$id", "PATCH", encodeKeepingNulls(payload), type = TireSet::class.java)
+
+    suspend fun deleteTireSet(id: String) = sendNoContent("/api/tires/$id", "DELETE")
+
+    /** Laufleistung, Dauer und Alter je Montage und je Satz. */
+    suspend fun fetchTireOverview(vehicleId: String? = null): TireOverview =
+        send("/api/tires/overview" + query(vehicleId), type = TireOverview::class.java)
+
+    /** Temperaturbereinigter Verbrauchsvergleich der Saetze. */
+    suspend fun fetchTireComparison(vehicleId: String? = null): TireComparison =
+        send("/api/tires/comparison" + query(vehicleId), type = TireComparison::class.java)
+
+    private fun query(vehicleId: String?): String =
+        if (vehicleId == null) "" else "?vehicle_id=$vehicleId"
 
     // MARK: - Providers
 
