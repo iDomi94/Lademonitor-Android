@@ -550,7 +550,7 @@ data class TempTrend(
     @Json(name = "at_0c_is_extrapolated") val at0cIsExtrapolated: Boolean = false
 )
 
-// ---------- Reifen (Server ab 0.26.0) ----------
+// ---------- Reifen (Server ab 0.26.1 fuer die zweite Groesse) ----------
 //
 // Bewusst NUR im Server-Modus: die Zuordnung der Fahrten zu den Saetzen und
 // der temperaturbereinigte Vergleich liegen komplett in `tires.py`. Sie lokal
