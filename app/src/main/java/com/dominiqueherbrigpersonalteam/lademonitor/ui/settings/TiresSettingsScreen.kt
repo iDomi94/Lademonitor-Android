@@ -172,9 +172,23 @@ fun TiresSettingsScreen(navController: NavController) {
             item {
                 SectionCard {
                     SectionHeader(stringResource(R.string.tires_section_changes))
+                    // Der Einstiegstext steht hier und nicht in einer Hilfe:
+                    // gebraucht wird er genau dann, wenn die Liste leer ist.
                     if (mountings.isEmpty()) {
                         Text(
-                            stringResource(R.string.tires_empty),
+                            stringResource(R.string.tires_getting_started_heading),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            stringResource(R.string.tires_getting_started),
+                            Modifier.padding(top = 4.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            stringResource(R.string.tires_getting_started_guess),
+                            Modifier.padding(top = 8.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

@@ -401,7 +401,6 @@
     <string name="settings_nav_tires">Tires</string>
     <string name="tires_section_sets">Tire sets</string>
     <string name="tires_section_changes">Tire changes</string>
-    <string name="tires_empty">No tire change recorded yet. Add the first one – from that date the set applies until the next entry.</string>
     <string name="tires_delete_confirm_title">Delete tire change?</string>
     <string name="tires_delete_confirm_message">The charging sessions are kept – they simply won\'t be attributed to a tire set any more.</string>
     <string name="tires_comparison_title">Comparison</string>
@@ -433,4 +432,8 @@
     <string name="tires_km_estimated_hint">* Counted from the attributed drives only – the drive across the change is missing. Enter the odometer reading at the change and the figure becomes exact.</string>
     <string name="tires_stats_set_estimated">%1$d km * · %2$d drives</string>
     <string name="tires_stats_mounting_estimated">%1$d km * · %2$d drives · %3$s</string>
+
+    <string name="tires_getting_started_heading">How to start</string>
+    <string name="tires_getting_started">Record the set that is fitted right now – with the date it was mounted, even if that was a year ago, and the odometer reading from back then if you can still find it.</string>
+    <string name="tires_getting_started_guess">Drives BEFORE that date stay without a tire set – the app has no idea what was fitted then. When guessing, pick a slightly later date rather than one that is too early: too early attributes other sets\' drives to this one, too late merely leaves a few drives out.</string>
 </resources>
