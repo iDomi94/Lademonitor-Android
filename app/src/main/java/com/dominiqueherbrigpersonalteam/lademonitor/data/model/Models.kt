@@ -504,13 +504,48 @@ data class SeasonStat(
         }
 }
 
+/** Ein Eckpunkt der Ausgleichskurve - die Punkte ergeben einen Streckenzug. */
+@JsonClass(generateAdapter = true)
+data class TempCurveVertex(
+    @Json(name = "temp_c") val tempC: Double,
+    val consumption: Double
+)
+
 @JsonClass(generateAdapter = true)
 data class TempTrend(
+    /**
+     * Beschreiben IMMER die einfache Ausgleichsgerade, auch beim Knickmodell -
+     * deshalb bleiben sie der Rueckfallweg fuer [curve] (aelterer Server).
+     */
     val slope: Double,
     val intercept: Double,
-    /** Wieviel der Streuung die Temperatur ueberhaupt erklaert (0..1). */
+    /**
+     * Wieviel der Streuung die Temperatur ueberhaupt erklaert (0..1). Gehoert
+     * zu dem Modell, das der Server tatsaechlich benutzt hat.
+     */
     val r2: Double,
     @Json(name = "consumption_at_0c") val consumptionAt0c: Double,
     @Json(name = "consumption_at_20c") val consumptionAt20c: Double,
-    @Json(name = "extra_pct_at_0c") val extraPctAt0c: Double
+    @Json(name = "extra_pct_at_0c") val extraPctAt0c: Double,
+    /**
+     * "linear" oder "breakpoint" (Server ab 0.25.0). Der Verbrauch ueber der
+     * Temperatur ist eine Wanne: unterhalb der Komfortgrenze heizt das
+     * Fahrzeug, oberhalb kuehlt es. Hat der Server dafuer genug Daten, legt er
+     * je eine Gerade nach kalt und nach warm. Default fuer aeltere Server.
+     */
+    val model: String? = null,
+    /**
+     * Streckenzug des benutzten Modells: zwei Eckpunkte bei der Geraden, drei
+     * beim Knickmodell. Nur ueber den gemessenen Bereich.
+     */
+    val curve: List<TempCurveVertex>? = null,
+    /** Temperatur des geringsten Verbrauchs (nur beim Knickmodell). */
+    @Json(name = "breakpoint_c") val breakpointC: Double? = null,
+    @Json(name = "slope_cold") val slopeCold: Double? = null,
+    @Json(name = "slope_warm") val slopeWarm: Double? = null,
+    /**
+     * True, wenn 0 °C unter der kaeltesten gemessenen Fahrt liegt - dann ist
+     * die Kennzahl eine Hochrechnung, keine Messung.
+     */
+    @Json(name = "at_0c_is_extrapolated") val at0cIsExtrapolated: Boolean = false
 )
