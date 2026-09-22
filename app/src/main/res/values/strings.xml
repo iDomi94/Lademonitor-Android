@@ -426,7 +426,12 @@
     <string name="tires_field_installed_on">Montiert am</string>
     <string name="tires_field_size">Größe (z. B. 235/45 R21)</string>
     <string name="tires_field_notes">Notiz (optional)</string>
-    <string name="tires_form_hint">Ab diesem Datum gilt der Satz, bis der nächste Wechsel folgt. Ein Enddatum gibt es deshalb nicht.</string>
+    <string name="tires_form_hint">Ab diesem Datum gilt der Satz, bis der nächste Wechsel folgt. Ein Enddatum gibt es deshalb nicht. Der Kilometerstand macht die Laufleistung exakt – ohne ihn wird sie aus den zugeordneten Fahrten gezählt, und die eine Fahrt über den Wechsel hinweg fehlt darin.</string>
     <string name="tires_add_title">Neuer Reifenwechsel</string>
     <string name="tires_edit_title">Reifenwechsel bearbeiten</string>
+
+    <string name="tires_field_odometer">Kilometerstand beim Wechsel (optional)</string>
+    <string name="tires_km_estimated_hint">* Nur aus den zugeordneten Fahrten gezählt – die Fahrt über den Wechsel hinweg fehlt. Trage den Kilometerstand beim Wechsel ein, dann wird der Wert exakt.</string>
+    <string name="tires_stats_set_estimated">%1$d km * · %2$d Fahrten</string>
+    <string name="tires_stats_mounting_estimated">%1$d km * · %2$d Fahrten · %3$s</string>
 </resources>

@@ -425,7 +425,12 @@
     <string name="tires_field_installed_on">Fitted on</string>
     <string name="tires_field_size">Size (e.g. 235/45 R21)</string>
     <string name="tires_field_notes">Note (optional)</string>
-    <string name="tires_form_hint">From this date the set applies until the next change follows. That is why there is no end date.</string>
+    <string name="tires_form_hint">From this date the set applies until the next change follows. That is why there is no end date. The odometer reading makes the mileage exact – without it, it is counted from the attributed drives, and the one drive across the change is missing from it.</string>
     <string name="tires_add_title">New tire change</string>
     <string name="tires_edit_title">Edit tire change</string>
+
+    <string name="tires_field_odometer">Odometer at the change (optional)</string>
+    <string name="tires_km_estimated_hint">* Counted from the attributed drives only – the drive across the change is missing. Enter the odometer reading at the change and the figure becomes exact.</string>
+    <string name="tires_stats_set_estimated">%1$d km * · %2$d drives</string>
+    <string name="tires_stats_mounting_estimated">%1$d km * · %2$d drives · %3$s</string>
 </resources>

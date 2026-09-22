@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -46,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -152,6 +154,16 @@ fun TiresSettingsScreen(navController: NavController) {
                         summaries.forEachIndexed { index, summary ->
                             if (index > 0) HorizontalDivider()
                             TireSetSummaryRow(summary)
+                        }
+                        // Das Sternchen an einer Zahl braucht seine Erklaerung
+                        // auf derselben Karte, nicht irgendwo darunter.
+                        if (summaries.any { !it.kmIsExact }) {
+                            Text(
+                                stringResource(R.string.tires_km_estimated_hint),
+                                Modifier.padding(top = 8.dp),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -294,7 +306,11 @@ private fun TireSetSummaryRow(summary: TireSetSummary) {
             }
         }
         Text(
-            stringResource(R.string.tires_stats_set, summary.km.roundToInt(), summary.drives) +
+            stringResource(
+                if (summary.kmIsExact) R.string.tires_stats_set else R.string.tires_stats_set_estimated,
+                summary.km.roundToInt(),
+                summary.drives
+            ) +
                 (summary.avgConsumptionKwhPer100km?.let { " · " + Fmt.n("%.1f kWh/100 km", it) } ?: ""),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -339,10 +355,11 @@ private fun TireMountingRow(mounting: TireMounting, vehicles: List<Vehicle>) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        if (mounting.drives > 0) {
+        if (mounting.drives > 0 || mounting.km > 0) {
             Text(
                 stringResource(
-                    R.string.tires_stats_mounting,
+                    if (mounting.kmIsExact) R.string.tires_stats_mounting
+                    else R.string.tires_stats_mounting_estimated,
                     mounting.km.roundToInt(),
                     mounting.drives,
                     tireDuration(mounting.days)
@@ -395,6 +412,7 @@ fun AddEditTireSetModal(
     var vehicleId by remember { mutableStateOf(tireSet?.vehicleId ?: vehicles.firstOrNull()?.id ?: "") }
     var kind by remember { mutableStateOf(tireSet?.tireKind ?: TireKind.SUMMER) }
     var installedOn by remember { mutableStateOf(tireSet?.installedOn ?: System.currentTimeMillis()) }
+    var odometer by remember { mutableStateOf(tireSet?.odometerKm?.let { Fmt.n("%.0f", it) } ?: "") }
     var size by remember { mutableStateOf(tireSet?.size ?: "") }
     var brand by remember { mutableStateOf(tireSet?.brand ?: "") }
     var model by remember { mutableStateOf(tireSet?.model ?: "") }
@@ -416,6 +434,10 @@ fun AddEditTireSetModal(
                 vehicleId = if (isEditing) null else vehicleId,
                 kind = kind.wire,
                 installedOn = day,
+                // Ohne Angabe bewusst null statt 0 - die Auswertung faellt dann
+                // auf die Fahrten zurueck, statt bei Kilometerstand 0 zu
+                // beginnen.
+                odometerKm = odometer.replace(",", ".").toDoubleOrNull(),
                 size = size.trim().ifEmpty { null },
                 brand = brand.trim().ifEmpty { null },
                 model = model.trim().ifEmpty { null },
@@ -477,6 +499,14 @@ fun AddEditTireSetModal(
                 OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.tires_field_installed_on) + ": " + Fmt.dateMedium(installedOn))
                 }
+                OutlinedTextField(
+                    value = odometer,
+                    onValueChange = { odometer = it },
+                    label = { Text(stringResource(R.string.tires_field_odometer)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Text(
                     stringResource(R.string.tires_form_hint),
                     style = MaterialTheme.typography.bodySmall,

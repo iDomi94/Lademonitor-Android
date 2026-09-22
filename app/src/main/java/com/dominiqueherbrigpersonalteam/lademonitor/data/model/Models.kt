@@ -580,6 +580,12 @@ data class TireSet(
     @Json(name = "vehicle_id") val vehicleId: String,
     val kind: String,
     @ServerDate @Json(name = "installed_on") val installedOn: Long,
+    /**
+     * Kilometerstand beim Wechsel. Optional, aber die genauere Quelle fuer die
+     * Laufleistung: die Differenz zweier Wechsel enthaelt auch die Fahrt, die
+     * ueber den Wechsel hinweg lief und keinem Satz zugeordnet werden kann.
+     */
+    @Json(name = "odometer_km") val odometerKm: Double? = null,
     val size: String? = null,
     val brand: String? = null,
     val model: String? = null,
@@ -603,6 +609,7 @@ data class TireSetPayload(
     @Json(name = "vehicle_id") val vehicleId: String? = null,
     val kind: String,
     @ServerDate @Json(name = "installed_on") val installedOn: Long,
+    @Json(name = "odometer_km") val odometerKm: Double? = null,
     val size: String? = null,
     val brand: String? = null,
     val model: String? = null,
@@ -625,10 +632,16 @@ data class TireMounting(
     val days: Int = 0,
     val drives: Int = 0,
     val km: Double = 0.0,
+    /**
+     * "odometer" (Differenz der Kilometerstaende, exakt) oder "drives" (Summe
+     * der zugeordneten Fahrten - die Fahrt ueber den Wechsel fehlt dort).
+     */
+    @Json(name = "km_source") val kmSource: String? = null,
     @Json(name = "energy_kwh") val energyKwh: Double = 0.0,
     @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double? = null
 ) {
     val tireKind: TireKind get() = TireKind.from(kind)
+    val kmIsExact: Boolean get() = kmSource == "odometer"
 }
 
 /** Ein Satz ueber alle seine Montagen hinweg - erst so ergibt "wieviel km sind da drauf" eine Zahl. */
@@ -647,11 +660,14 @@ data class TireSetSummary(
     @Json(name = "days_mounted") val daysMounted: Int = 0,
     val drives: Int = 0,
     val km: Double = 0.0,
+    /** "odometer" nur, wenn JEDE Montage dieses Satzes gemessene Kilometer hat. */
+    @Json(name = "km_source") val kmSource: String? = null,
     @Json(name = "energy_kwh") val energyKwh: Double = 0.0,
     @Json(name = "is_current") val isCurrent: Boolean = false,
     @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double? = null
 ) {
     val tireKind: TireKind get() = TireKind.from(kind)
+    val kmIsExact: Boolean get() = kmSource == "odometer"
 }
 
 @JsonClass(generateAdapter = true)
