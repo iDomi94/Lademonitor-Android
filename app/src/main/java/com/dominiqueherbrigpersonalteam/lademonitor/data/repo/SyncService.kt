@@ -675,7 +675,13 @@ object SyncService {
         for (record in response.deletions) {
             when (record.entityType) {
                 "vehicle" -> vehicles.findByServerId(record.entityId)?.let { vehicles.delete(it) }
-                "provider" -> providers.findByServerId(record.entityId)?.let { providers.delete(it) }
+                "provider" -> providers.findByServerId(record.entityId)?.let { row ->
+                    // Seine Gebuehren mit: eine noch nie hochgeladene haette sonst keinen Anbieter
+                    // mehr und scheiterte bei jedem Push erneut.
+                    val refs = setOf(row.localId, record.entityId)
+                    fees.getAll().filter { it.providerId in refs }.forEach { fees.delete(it) }
+                    providers.delete(row)
+                }
                 "location" -> locations.findByServerId(record.entityId)?.let { locations.delete(it) }
                 "session" -> sessions.findByServerId(record.entityId)?.let { sessions.delete(it) }
                 "provider_fee" -> fees.findByServerId(record.entityId)?.let { fees.delete(it) }
