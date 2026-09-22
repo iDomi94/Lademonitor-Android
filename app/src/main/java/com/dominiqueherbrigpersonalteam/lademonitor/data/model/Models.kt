@@ -550,7 +550,7 @@ data class TempTrend(
     @Json(name = "at_0c_is_extrapolated") val at0cIsExtrapolated: Boolean = false
 )
 
-// ---------- Reifen (Server ab 0.26.0) ----------
+// ---------- Reifen (Server ab 0.26.1 fuer die zweite Groesse) ----------
 //
 // Bewusst NUR im Server-Modus: die Zuordnung der Fahrten zu den Saetzen und
 // der temperaturbereinigte Vergleich liegen komplett in `tires.py`. Sie lokal
@@ -586,16 +586,29 @@ data class TireSet(
      * ueber den Wechsel hinweg lief und keinem Satz zugeordnet werden kann.
      */
     @Json(name = "odometer_km") val odometerKm: Double? = null,
+    /**
+     * Groesse aller vier Raeder - oder, wenn [sizeRear] gesetzt ist, die der
+     * Vorderachse (Mischbereifung).
+     */
     val size: String? = null,
+    @Json(name = "size_rear") val sizeRear: String? = null,
     val brand: String? = null,
     val model: String? = null,
     val notes: String? = null
 ) {
     val tireKind: TireKind get() = TireKind.from(kind)
 
+    /**
+     * Bei Mischbereifung beide Achsen ("vorne / hinten"), sonst die eine
+     * Groesse - dieselbe Regel wie serverseitig in `tires.py::size_label()`.
+     */
+    val sizeLabel: String
+        get() = if (!size.isNullOrBlank() && !sizeRear.isNullOrBlank()) "$size / $sizeRear"
+        else listOfNotNull(size, sizeRear).firstOrNull { it.isNotBlank() } ?: ""
+
     /** Marke, Modell und Groesse in einer Zeile - leere Felder fallen weg. */
     val label: String
-        get() = listOfNotNull(brand, model, size).filter { it.isNotBlank() }.joinToString(" ")
+        get() = listOfNotNull(brand, model, sizeLabel).filter { it.isNotBlank() }.joinToString(" ")
 }
 
 /**
@@ -611,6 +624,7 @@ data class TireSetPayload(
     @ServerDate @Json(name = "installed_on") val installedOn: Long,
     @Json(name = "odometer_km") val odometerKm: Double? = null,
     val size: String? = null,
+    @Json(name = "size_rear") val sizeRear: String? = null,
     val brand: String? = null,
     val model: String? = null,
     val notes: String? = null

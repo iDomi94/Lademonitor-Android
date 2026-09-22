@@ -436,4 +436,7 @@
     <string name="tires_getting_started_heading">How to start</string>
     <string name="tires_getting_started">Record the set that is fitted right now – with the date it was mounted, even if that was a year ago, and the odometer reading from back then if you can still find it.</string>
     <string name="tires_getting_started_guess">Drives BEFORE that date stay without a tire set – the app has no idea what was fitted then. When guessing, pick a slightly later date rather than one that is too early: too early attributes other sets\' drives to this one, too late merely leaves a few drives out.</string>
+
+    <string name="tires_field_size_rear">Rear size (staggered fitment only)</string>
+    <string name="tires_size_hint">Same size all round? Then the first field is enough. With a staggered fitment it holds the front axle and the one below it the rear axle.</string>
 </resources>
