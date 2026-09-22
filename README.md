@@ -46,7 +46,8 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   der Verbrauch eines Ladevorgangs von der Fahrt davor stammt. Funktioniert
   auch im „Nur lokal"-Modus.
 - **Reifen** (Einstellungen → Reifen): jeden Reifenwechsel mit Art, Datum,
-  Kilometerstand, Größe, Marke und Modell eintragen. Dazu die Übersicht, wie lange ein Satz
+  Kilometerstand, Größe (bei Mischbereifung vorne/hinten getrennt), Marke und
+  Modell eintragen. Dazu die Übersicht, wie lange ein Satz
   aufgezogen war, wie viele Kilometer und Fahrten auf ihm liegen und wie alt er
   seit der ersten Montage ist, plus der temperaturbereinigte Vergleich Winter
   gegen Sommer. Braucht Lademonitor-Server 0.26.0 oder neuer und ist **nur im

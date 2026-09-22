@@ -46,7 +46,7 @@ plus a **server mode with bidirectional synchronization**.
   because a session's consumption comes from the drive before it. Works in
   local-only mode too.
 - **Tires** (Settings → Tires): record every tire change with type, date, odometer reading,
-  size, brand and model. Plus the overview of how long a set was fitted, how many
+  size (front/rear separately for a staggered fitment), brand and model. Plus the overview of how long a set was fitted, how many
   kilometres and drives are on it and how old it is since its first mounting,
   and the temperature-adjusted winter-versus-summer comparison. Requires
   Lademonitor-Server 0.26.0 or newer and is available **in server mode only**:

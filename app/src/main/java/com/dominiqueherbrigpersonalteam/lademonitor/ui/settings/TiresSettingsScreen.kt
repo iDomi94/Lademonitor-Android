@@ -428,6 +428,7 @@ fun AddEditTireSetModal(
     var installedOn by remember { mutableStateOf(tireSet?.installedOn ?: System.currentTimeMillis()) }
     var odometer by remember { mutableStateOf(tireSet?.odometerKm?.let { Fmt.n("%.0f", it) } ?: "") }
     var size by remember { mutableStateOf(tireSet?.size ?: "") }
+    var sizeRear by remember { mutableStateOf(tireSet?.sizeRear ?: "") }
     var brand by remember { mutableStateOf(tireSet?.brand ?: "") }
     var model by remember { mutableStateOf(tireSet?.model ?: "") }
     var notes by remember { mutableStateOf(tireSet?.notes ?: "") }
@@ -453,6 +454,7 @@ fun AddEditTireSetModal(
                 // beginnen.
                 odometerKm = odometer.replace(",", ".").toDoubleOrNull(),
                 size = size.trim().ifEmpty { null },
+                sizeRear = sizeRear.trim().ifEmpty { null },
                 brand = brand.trim().ifEmpty { null },
                 model = model.trim().ifEmpty { null },
                 notes = notes.trim().ifEmpty { null }
@@ -527,6 +529,12 @@ fun AddEditTireSetModal(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(value = size, onValueChange = { size = it }, label = { Text(stringResource(R.string.tires_field_size)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = sizeRear, onValueChange = { sizeRear = it }, label = { Text(stringResource(R.string.tires_field_size_rear)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Text(
+                    stringResource(R.string.tires_size_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 OutlinedTextField(value = brand, onValueChange = { brand = it }, label = { Text(stringResource(R.string.vehicle_field_brand)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = model, onValueChange = { model = it }, label = { Text(stringResource(R.string.vehicle_field_model)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.tires_field_notes)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
