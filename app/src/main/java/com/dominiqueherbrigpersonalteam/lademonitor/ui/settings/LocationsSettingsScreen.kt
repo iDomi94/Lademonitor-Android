@@ -139,24 +139,39 @@ fun LocationsSettingsScreen(navController: NavController) {
     }
 }
 
+/** Vorbelegung fuer einen neuen Ladeort, z.B. aus einem Ladevorgang heraus ("Als Ladeort anlegen"). */
+data class LocationPrefill(
+    val name: String,
+    val latitude: Double,
+    val longitude: Double,
+    val defaultProviderId: String?
+)
+
+/**
+ * [prefill] wirkt nur beim Anlegen (location == null), alle Felder bleiben editierbar.
+ * [onCreated] bekommt den neu angelegten Ort - beim Bearbeiten wird er nicht aufgerufen.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditLocationModal(
     location: ChargingLocation?,
     providers: List<Provider>,
     onDismiss: () -> Unit,
+    prefill: LocationPrefill? = null,
+    onCreated: ((ChargingLocation) -> Unit)? = null,
     onSaved: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val isEditing = location != null
+    val initial = if (location == null) prefill else null
 
     var providerList by remember { mutableStateOf(providers) }
-    var name by remember { mutableStateOf(location?.name ?: "") }
-    var latitude by remember { mutableStateOf(location?.let { Fmt.n("%.6f", it.latitude) } ?: "") }
-    var longitude by remember { mutableStateOf(location?.let { Fmt.n("%.6f", it.longitude) } ?: "") }
+    var name by remember { mutableStateOf(location?.name ?: initial?.name ?: "") }
+    var latitude by remember { mutableStateOf((location?.latitude ?: initial?.latitude)?.let { Fmt.n("%.6f", it) } ?: "") }
+    var longitude by remember { mutableStateOf((location?.longitude ?: initial?.longitude)?.let { Fmt.n("%.6f", it) } ?: "") }
     var radius by remember { mutableStateOf(location?.radiusM?.toString() ?: "100") }
-    var defaultProviderId by remember { mutableStateOf(location?.defaultProviderId) }
+    var defaultProviderId by remember { mutableStateOf(location?.defaultProviderId ?: initial?.defaultProviderId) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showAddProvider by remember { mutableStateOf(false) }
@@ -212,8 +227,12 @@ fun AddEditLocationModal(
                 defaultProviderId = defaultProviderId
             )
             try {
-                if (location != null) AppRepository.updateLocation(location.id, payload)
-                else AppRepository.createLocation(payload)
+                if (location != null) {
+                    AppRepository.updateLocation(location.id, payload)
+                } else {
+                    val created = AppRepository.createLocation(payload)
+                    onCreated?.invoke(created)
+                }
                 onSaved()
             } catch (e: Exception) { errorMessage = e.localizedMessage }
             isSaving = false

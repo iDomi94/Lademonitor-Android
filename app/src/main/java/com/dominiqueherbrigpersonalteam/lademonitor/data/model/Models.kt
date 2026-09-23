@@ -217,6 +217,12 @@ data class LocationPayload(
 data class ChargingSessionPayload(
     @Json(name = "vehicle_id") val vehicleId: String? = null,
     @Json(name = "provider_id") val providerId: String? = null,
+    /**
+     * Nur gesetzt, wenn die App die Zuordnung selbst herstellt ("Als Ladeort anlegen").
+     * null wird nicht gesendet (`encode`, nicht `encodeKeepingNulls`), eine bestehende
+     * Zuordnung bleibt beim normalen Speichern also stehen.
+     */
+    @Json(name = "location_id") val locationId: String? = null,
     @ServerDate @Json(name = "start_time") val startTime: Long? = null,
     @Json(name = "charging_type") val chargingType: String? = null,
     @Json(name = "soc_start") val socStart: Int? = null,
