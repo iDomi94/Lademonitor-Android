@@ -143,6 +143,11 @@ fun SettingsScreen(navController: NavController) {
             }
 
             SectionCard {
+                Header(stringResource(R.string.settings_section_tools))
+                NavRow(stringResource(R.string.settings_nav_public_providers)) { navController.navigate("tools/public-providers") }
+            }
+
+            SectionCard {
                 ActionText(stringResource(R.string.settings_reset_action), color = MaterialTheme.colorScheme.error) {
                     showReset = true
                 }

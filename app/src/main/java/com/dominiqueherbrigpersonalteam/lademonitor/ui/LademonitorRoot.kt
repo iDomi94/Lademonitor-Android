@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -29,6 +30,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.SyncService
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
@@ -47,6 +50,9 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ProvidersSetting
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.SettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.TiresSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehiclesSettingsScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.PublicProvidersScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.TariffCalculatorScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.ToolsScreen
 import kotlinx.coroutines.launch
 
 @Composable
@@ -128,6 +134,8 @@ private enum class Tab(val route: String, val labelRes: Int, val icon: ImageVect
     DASHBOARD("dashboard", R.string.tab_dashboard, Icons.Filled.BarChart),
     SESSIONS("sessions", R.string.tab_sessions, Icons.Filled.Bolt),
     MAP("map", R.string.tab_map, Icons.Filled.Map),
+    // Eine Liste von Tools, nicht ein Reiter je Tool - weitere kommen dort als Zeilen dazu.
+    TOOLS("tools", R.string.tab_tools, Icons.Filled.Build),
     SETTINGS("settings", R.string.tab_settings, Icons.Filled.Settings)
 }
 
@@ -167,6 +175,12 @@ private fun MainScaffold() {
             composable(Tab.DASHBOARD.route) { DashboardScreen() }
             composable(Tab.SESSIONS.route) { SessionsListScreen() }
             composable(Tab.MAP.route) { MapScreen() }
+            composable(Tab.TOOLS.route) { ToolsScreen(navController) }
+            composable(
+                "tools/tariff?providerId={providerId}",
+                arguments = listOf(navArgument("providerId") { type = NavType.StringType; nullable = true; defaultValue = null })
+            ) { entry -> TariffCalculatorScreen(navController, entry.arguments?.getString("providerId")) }
+            composable("tools/public-providers") { PublicProvidersScreen(navController) }
             composable(Tab.SETTINGS.route) { SettingsScreen(navController) }
             composable("settings/vehicles") { VehiclesSettingsScreen(navController) }
             composable("settings/providers") { ProvidersSettingsScreen(navController) }

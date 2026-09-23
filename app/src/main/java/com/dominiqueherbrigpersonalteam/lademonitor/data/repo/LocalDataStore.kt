@@ -221,7 +221,7 @@ object LocalDataStore {
      * inzwischen eine serverId hat - ohne diese Vereinheitlichung fiele die Umlage fuer genau diese
      * Vorgaenge still aus.
      */
-    private suspend fun canonicalProviderIds(): Map<String, String> {
+    suspend fun canonicalProviderIds(): Map<String, String> {
         val map = HashMap<String, String>()
         for (provider in providers.getAll()) {
             val canonical = provider.serverId ?: provider.localId
