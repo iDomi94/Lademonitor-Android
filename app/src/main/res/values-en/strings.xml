@@ -439,4 +439,43 @@
 
     <string name="tires_field_size_rear">Rear size (staggered fitment only)</string>
     <string name="tires_size_hint">Same size all round? Then the first field is enough. With a staggered fitment it holds the front axle and the one below it the rear axle.</string>
+    <!-- Provider base fees / subscriptions -->
+    <string name="entity_provider">Provider</string>
+    <string name="sync_error_item_fee">Base fee “%1$s”: %2$s</string>
+    <string name="local_data_summary_fees">%1$d base fees</string>
+    <string name="fee_interval_monthly">Monthly</string>
+    <string name="fee_interval_yearly">Yearly</string>
+    <string name="fee_interval_once">One-off</string>
+    <string name="fee_per_month">per month</string>
+    <string name="fee_per_year">per year</string>
+    <string name="fee_per_once">one-off</string>
+    <string name="settings_nav_fees">Base fees</string>
+    <string name="fees_empty_title">No base fees</string>
+    <string name="fees_empty_message">For example a subscription with a monthly fee that gets you a cheaper price per kWh.</string>
+    <string name="fees_footer">The fee is split by kWh across the provider’s charging sessions in each period and counts towards total cost, price per kWh and cost per 100 km. The price at the charger stays unchanged.</string>
+    <string name="fees_need_provider">Add a provider first.</string>
+    <string name="fees_unknown_provider">Unknown provider</string>
+    <string name="fees_since">since %1$s</string>
+    <string name="fees_charged_to_date">%1$s so far</string>
+    <string name="fees_add_title">New base fee</string>
+    <string name="fees_edit_title">Edit base fee</string>
+    <string name="fees_field_label">Label (e.g. Powerpass)</string>
+    <string name="fees_field_amount">Amount (€)</string>
+    <string name="fees_field_from">From</string>
+    <string name="fees_field_since">Since</string>
+    <string name="fees_field_until">Until</string>
+    <string name="fees_field_last_day">Last day</string>
+    <string name="fees_field_cancelled">Cancelled</string>
+    <string name="fees_hint_monthly">Every month from the start day, e.g. 3 May–2 June, 3 June–2 July and so on.</string>
+    <string name="fees_hint_yearly">Every year from the start day.</string>
+    <string name="fees_hint_once">Once for the chosen period.</string>
+    <string name="fees_hint_price_change">A price increase is a new entry from the effective date; set “Cancelled” on the old one.</string>
+    <string name="fees_delete_confirm_title">Delete base fee?</string>
+    <string name="fees_delete_confirm_message">“%1$s” will be deleted.</string>
+    <string name="session_detail_label_fee_share">Base fee share</string>
+    <string name="session_detail_label_effective_total">Effective total</string>
+    <string name="session_detail_label_effective_per_kwh">Effective per kWh</string>
+    <string name="session_detail_fee_hint">The provider’s base fee is split by kWh across all of its charging sessions in each period.</string>
+    <string name="sessions_fee_share">+ %1$s base fee</string>
+    <string name="dashboard_total_cost_fees">incl. %1$s base fees</string>
 </resources>

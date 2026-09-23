@@ -5,6 +5,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalProvider
+import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalProviderFee
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalStore
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
@@ -12,6 +13,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingType
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureSource
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
@@ -37,6 +40,7 @@ object LocalDataStore {
     private val providers get() = LocalStore.providers
     private val locations get() = LocalStore.locations
     private val sessions get() = LocalStore.sessions
+    private val fees get() = LocalStore.fees
 
     // MARK: - Reset
 
@@ -48,7 +52,7 @@ object LocalDataStore {
      */
     suspend fun hasAnyData(): Boolean =
         sessions.countAll() > 0 || vehicles.countAll() > 0 ||
-            providers.countAll() > 0 || locations.countAll() > 0
+            providers.countAll() > 0 || locations.countAll() > 0 || fees.countAll() > 0
 
     /** Short summary for the sign-in question ("3 vehicles, 128 charging sessions"). */
     suspend fun localDataSummary(): String {
@@ -62,12 +66,15 @@ object LocalDataStore {
                 ?.let { add(context.getString(R.string.local_data_summary_locations, it)) }
             sessions.countAll().takeIf { it > 0 }
                 ?.let { add(context.getString(R.string.local_data_summary_sessions, it)) }
+            fees.countAll().takeIf { it > 0 }
+                ?.let { add(context.getString(R.string.local_data_summary_fees, it)) }
         }
         return parts.joinToString(", ")
     }
 
     /** Irreversibly deletes ALL local data. */
     suspend fun resetAllData() {
+        fees.clear()
         sessions.clear()
         locations.clear()
         providers.clear()
@@ -148,8 +155,14 @@ object LocalDataStore {
         return provider.asDTO()
     }
 
+    /**
+     * Die Grundgebuehren des Anbieters gehen sofort und hart mit: der Server loescht sie beim
+     * Loeschen des Anbieters selbst (mit Grabstein), ein eigener Push waere ueberfluessig.
+     */
     suspend fun deleteProvider(id: String) {
         val provider = providers.find(id) ?: throw LocalStoreException.notFound()
+        val refs = setOfNotNull(provider.localId, provider.serverId)
+        fees.getAll().filter { it.providerId in refs }.forEach { fees.delete(it) }
         if (provider.serverId != null) {
             provider.pendingDelete = true
             provider.isDirty = true
@@ -200,6 +213,87 @@ object LocalDataStore {
         }
     }
 
+    // MARK: - Grundgebuehren
+
+    /**
+     * Alle Anbieter-Referenzen (localId ODER serverId) auf die kanonische DTO-ID abbilden.
+     * Gebuehren und Ladevorgaenge koennen ihren Anbieter noch ueber die localId kennen, obwohl er
+     * inzwischen eine serverId hat - ohne diese Vereinheitlichung fiele die Umlage fuer genau diese
+     * Vorgaenge still aus.
+     */
+    private suspend fun canonicalProviderIds(): Map<String, String> {
+        val map = HashMap<String, String>()
+        for (provider in providers.getAll()) {
+            val canonical = provider.serverId ?: provider.localId
+            map[provider.localId] = canonical
+            provider.serverId?.let { map[it] = canonical }
+        }
+        return map
+    }
+
+    suspend fun fetchFees(providerId: String? = null): List<ProviderFee> {
+        val canonical = canonicalProviderIds()
+        val list = fees.getAllUndeleted().map { row ->
+            val dto = row.asDTO()
+            dto.copy(providerId = canonical[dto.providerId] ?: dto.providerId)
+        }
+        if (providerId == null) return list
+        val wanted = canonical[providerId] ?: providerId
+        return list.filter { it.providerId == wanted }
+    }
+
+    /** Umlage ueber ALLE Ladevorgaenge, wie load_allocation() im Server; Filter greifen danach. */
+    suspend fun feeAllocation(): LocalFeeAllocator.Allocation {
+        val feeList = fetchFees()
+        if (feeList.isEmpty()) return LocalFeeAllocator.Allocation()
+        val canonical = canonicalProviderIds()
+        val all = allUndeletedSessions().map { s ->
+            s.copy(providerId = s.providerId?.let { canonical[it] ?: it })
+        }
+        return LocalFeeAllocator.allocate(feeList, all)
+    }
+
+    suspend fun createFee(payload: ProviderFeePayload): ProviderFee {
+        val fee = LocalProviderFee(
+            providerId = payload.providerId,
+            amount = payload.amount,
+            interval = payload.interval,
+            startDate = payload.startDate,
+            endDate = payload.endDate,
+            label = payload.label,
+            notes = payload.notes
+        )
+        fees.upsert(fee)
+        return fee.asDTO()
+    }
+
+    /** Ersetzt alle Felder: ein leeres Enddatum hebt eine Kuendigung wieder auf. */
+    suspend fun updateFee(id: String, payload: ProviderFeePayload): ProviderFee {
+        val fee = fees.find(id) ?: throw LocalStoreException.notFound()
+        fee.providerId = payload.providerId
+        fee.amount = payload.amount
+        fee.interval = payload.interval
+        fee.startDate = payload.startDate
+        fee.endDate = payload.endDate
+        fee.label = payload.label
+        fee.notes = payload.notes
+        fee.updatedAt = System.currentTimeMillis()
+        fee.isDirty = true
+        fees.upsert(fee)
+        return fee.asDTO()
+    }
+
+    suspend fun deleteFee(id: String) {
+        val fee = fees.find(id) ?: throw LocalStoreException.notFound()
+        if (fee.serverId != null) {
+            fee.pendingDelete = true
+            fee.isDirty = true
+            fees.upsert(fee)
+        } else {
+            fees.delete(fee)
+        }
+    }
+
     // MARK: - Sessions
 
     suspend fun fetchSessions(
@@ -211,7 +305,7 @@ object LocalDataStore {
         // so decorate first, then filter/sort — otherwise a date/needs_review filter would drop the
         // chronological predecessor from the calculation.
         val all = allUndeletedSessions()
-        var list = decoratedWithConsumption(all).sortedByDescending { it.startTime }
+        var list = decoratedWithFees(decoratedWithConsumption(all)).sortedByDescending { it.startTime }
         if (vehicleId != null) list = list.filter { it.vehicleId == vehicleId }
         if (needsReview != null) list = list.filter { it.needsReview == needsReview }
         if (dateRange != null) list = list.filter { it.startTime in dateRange }
@@ -322,7 +416,14 @@ object LocalDataStore {
 
     private suspend fun decorateOne(session: ChargingSession): ChargingSession {
         val siblings = allUndeletedSessions().filter { it.vehicleId == session.vehicleId }
-        return decoratedWithConsumption(siblings).firstOrNull { it.id == session.id } ?: session
+        val decorated = decoratedWithConsumption(siblings).firstOrNull { it.id == session.id } ?: session
+        return decorated.copy(feeShare = feeAllocation().shares[session.id])
+    }
+
+    private suspend fun decoratedWithFees(list: List<ChargingSession>): List<ChargingSession> {
+        val shares = feeAllocation().shares
+        if (shares.isEmpty()) return list
+        return list.map { it.copy(feeShare = shares[it.id]) }
     }
 
     /** Enriches sessions with consumption, computed per-vehicle (see LocalConsumptionCalculator). */

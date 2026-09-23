@@ -154,11 +154,26 @@ fun SessionDetailScreen(
                 session.consumptionKwhPer100km?.let { LabeledRow(stringResource(R.string.session_detail_label_consumption), Fmt.n("%.1f kWh/100km", it)) }
             }
 
-            if (session.priceTotal != null || session.pricePerKwh != null) {
+            if (session.priceTotal != null || session.pricePerKwh != null || session.feeShare != null) {
                 SectionCard {
                     CardTitle(stringResource(R.string.session_detail_section_price))
                     session.priceTotal?.let { LabeledRow(stringResource(R.string.session_detail_label_total), Fmt.n("%.2f €", it)) }
                     session.pricePerKwh?.let { LabeledRow(stringResource(R.string.session_detail_label_per_kwh), Fmt.n("%.4f €", it)) }
+                    session.feeShare?.let { share ->
+                        // Saeulenpreis bleibt unveraendert, die Grundgebuehr kommt nur in der Anzeige dazu.
+                        LabeledRow(stringResource(R.string.session_detail_label_fee_share), Fmt.n("%.2f €", share))
+                        session.effectiveTotal?.let { effective ->
+                            LabeledRow(stringResource(R.string.session_detail_label_effective_total), Fmt.n("%.2f €", effective))
+                            session.energyKwh?.takeIf { it > 0 }?.let { kwh ->
+                                LabeledRow(stringResource(R.string.session_detail_label_effective_per_kwh), Fmt.n("%.4f €", effective / kwh))
+                            }
+                        }
+                        Text(
+                            stringResource(R.string.session_detail_fee_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 

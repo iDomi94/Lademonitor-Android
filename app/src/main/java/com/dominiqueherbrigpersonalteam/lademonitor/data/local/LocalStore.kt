@@ -16,9 +16,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LocalVehicle::class,
         LocalProvider::class,
         LocalChargingLocation::class,
-        LocalChargingSession::class
+        LocalChargingSession::class,
+        LocalProviderFee::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class LademonitorDatabase : RoomDatabase() {
@@ -26,6 +27,7 @@ abstract class LademonitorDatabase : RoomDatabase() {
     abstract fun providerDao(): ProviderDao
     abstract fun locationDao(): LocationDao
     abstract fun sessionDao(): SessionDao
+    abstract fun providerFeeDao(): ProviderFeeDao
 }
 
 /**
@@ -61,6 +63,39 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+/**
+ * 3 -> 4: neue Tabelle `provider_fees` (Grundgebuehren/Abos, Server ab 0.27.0).
+ *
+ * Das SQL muss exakt dem entsprechen, was Room aus [LocalProviderFee] erzeugen wuerde - Room
+ * vergleicht beim Oeffnen das Schema und bricht bei jeder Abweichung ab (Spaltentyp, NOT NULL,
+ * Primaerschluessel). Kotlin-`String`/`Double`/`Long`/`Boolean` ohne `?` sind NOT NULL, Boolean
+ * liegt als INTEGER.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `provider_fees` (
+                `localId` TEXT NOT NULL,
+                `serverId` TEXT,
+                `providerId` TEXT NOT NULL,
+                `amount` REAL NOT NULL,
+                `interval` TEXT NOT NULL,
+                `startDate` INTEGER NOT NULL,
+                `endDate` INTEGER,
+                `label` TEXT,
+                `notes` TEXT,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                `isDirty` INTEGER NOT NULL,
+                `pendingDelete` INTEGER NOT NULL,
+                PRIMARY KEY(`localId`)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
 object LocalStore {
     lateinit var db: LademonitorDatabase
         private set
@@ -69,12 +104,13 @@ object LocalStore {
     val providers: ProviderDao get() = db.providerDao()
     val locations: LocationDao get() = db.locationDao()
     val sessions: SessionDao get() = db.sessionDao()
+    val fees: ProviderFeeDao get() = db.providerFeeDao()
 
     fun init(context: Context) {
         db = Room.databaseBuilder(
             context.applicationContext,
             LademonitorDatabase::class.java,
             "lademonitor.db"
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
     }
 }

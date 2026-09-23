@@ -440,4 +440,43 @@
 
     <string name="tires_field_size_rear">Größe hinten (nur bei Mischbereifung)</string>
     <string name="tires_size_hint">Gleiche Größe rundum? Dann reicht das erste Feld. Bei Mischbereifung steht dort die Vorderachse und darunter die Hinterachse.</string>
+    <!-- Grundgebuehren / Abos der Anbieter -->
+    <string name="entity_provider">Anbieter</string>
+    <string name="sync_error_item_fee">Grundgebühr „%1$s“: %2$s</string>
+    <string name="local_data_summary_fees">%1$d Grundgebühren</string>
+    <string name="fee_interval_monthly">Monatlich</string>
+    <string name="fee_interval_yearly">Jährlich</string>
+    <string name="fee_interval_once">Einmalig</string>
+    <string name="fee_per_month">pro Monat</string>
+    <string name="fee_per_year">pro Jahr</string>
+    <string name="fee_per_once">einmalig</string>
+    <string name="settings_nav_fees">Grundgebühren</string>
+    <string name="fees_empty_title">Keine Grundgebühren</string>
+    <string name="fees_empty_message">Zum Beispiel ein Abo mit monatlicher Gebühr, das einen günstigeren kWh-Preis bringt.</string>
+    <string name="fees_footer">Die Gebühr wird nach kWh auf die Ladevorgänge des Anbieters im jeweiligen Zeitraum umgelegt und zählt in Gesamtkosten, Preis pro kWh und Kosten pro 100 km mit. Der Preis an der Säule bleibt unverändert.</string>
+    <string name="fees_need_provider">Lege zuerst einen Anbieter an.</string>
+    <string name="fees_unknown_provider">Unbekannter Anbieter</string>
+    <string name="fees_since">ab %1$s</string>
+    <string name="fees_charged_to_date">Bisher insgesamt %1$s</string>
+    <string name="fees_add_title">Neue Grundgebühr</string>
+    <string name="fees_edit_title">Grundgebühr bearbeiten</string>
+    <string name="fees_field_label">Bezeichnung (z. B. Powerpass)</string>
+    <string name="fees_field_amount">Betrag (€)</string>
+    <string name="fees_field_from">Von</string>
+    <string name="fees_field_since">Ab</string>
+    <string name="fees_field_until">Bis</string>
+    <string name="fees_field_last_day">Letzter Tag</string>
+    <string name="fees_field_cancelled">Gekündigt</string>
+    <string name="fees_hint_monthly">Jeden Monat ab dem Starttag, z. B. 03.05.–02.06., 03.06.–02.07. usw.</string>
+    <string name="fees_hint_yearly">Jedes Jahr ab dem Starttag.</string>
+    <string name="fees_hint_once">Einmal für den gewählten Zeitraum.</string>
+    <string name="fees_hint_price_change">Eine Preiserhöhung ist ein neuer Eintrag ab dem Stichtag, beim alten wird „Gekündigt“ gesetzt.</string>
+    <string name="fees_delete_confirm_title">Grundgebühr löschen?</string>
+    <string name="fees_delete_confirm_message">„%1$s“ wird gelöscht.</string>
+    <string name="session_detail_label_fee_share">Grundgebühr-Anteil</string>
+    <string name="session_detail_label_effective_total">Effektiv gesamt</string>
+    <string name="session_detail_label_effective_per_kwh">Effektiv pro kWh</string>
+    <string name="session_detail_fee_hint">Die Grundgebühr des Anbieters wird nach kWh auf alle seine Ladevorgänge im jeweiligen Zeitraum umgelegt.</string>
+    <string name="sessions_fee_share">+ %1$s Grundgebühr</string>
+    <string name="dashboard_total_cost_fees">davon %1$s Grundgebühren</string>
 </resources>
