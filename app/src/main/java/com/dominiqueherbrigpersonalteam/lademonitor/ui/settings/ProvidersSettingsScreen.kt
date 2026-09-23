@@ -92,7 +92,13 @@ fun ProvidersSettingsScreen(navController: NavController) {
     }
 
     if (showAdd) AddEditProviderModal(null, onDismiss = { showAdd = false }) { showAdd = false; scope.launch { load() } }
-    editing?.let { p -> AddEditProviderModal(p, onDismiss = { editing = null }) { editing = null; scope.launch { load() } } }
+    editing?.let { p ->
+        AddEditProviderModal(
+            p,
+            onDismiss = { editing = null },
+            onOpenTariffCalculator = { editing = null; navController.navigate("tools/tariff?providerId=${p.id}") }
+        ) { editing = null; scope.launch { load() } }
+    }
 
     pendingDelete?.let { p ->
         AlertDialog(
@@ -112,7 +118,13 @@ fun ProvidersSettingsScreen(navController: NavController) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddEditProviderModal(provider: Provider?, onDismiss: () -> Unit, onSaved: (Provider) -> Unit) {
+fun AddEditProviderModal(
+    provider: Provider?,
+    onDismiss: () -> Unit,
+    /** Sprung in den Tarifrechner mit den Werten dieses Anbieters (nur beim Bearbeiten). */
+    onOpenTariffCalculator: (() -> Unit)? = null,
+    onSaved: (Provider) -> Unit
+) {
     val scope = rememberCoroutineScope()
     val isEditing = provider != null
     var name by remember { mutableStateOf(provider?.name ?: "") }
@@ -156,6 +168,10 @@ fun AddEditProviderModal(provider: Provider?, onDismiss: () -> Unit, onSaved: (P
                 OutlinedTextField(value = priceDc, onValueChange = { priceDc = it }, label = { Text(stringResource(R.string.provider_field_price_dc)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
                 Text(stringResource(R.string.provider_price_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.field_notes)) }, modifier = Modifier.fillMaxWidth())
+                if (onOpenTariffCalculator != null) {
+                    TextButton(onClick = onOpenTariffCalculator) { Text(stringResource(R.string.provider_tariff_link)) }
+                    Text(stringResource(R.string.provider_tariff_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         }

@@ -24,6 +24,13 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   (inkl. Matching-Radius) und Ladevorgängen; Antippen öffnet Detail/Bearbeiten.
 - **Fahrzeuge, Anbieter, Ladeorte** verwalten; Adresssuche (im lokalen Modus per
   OSM-Nominatim, im Server-Modus über den Server-Proxy) und „Aktueller Standort“.
+- **Tools**-Reiter mit dem Rechner **„Lohnt sich der Tarif?“**: effektiver
+  Preis pro kWh mit Grundgebühr, ob das günstiger ist als ohne Tarif und ab wie
+  viel km im Monat es sich lohnt. Tarifpreis, Grundgebühr, km im Monat und
+  Anteil beim Tarif sind Schieberegler, das Ergebnis rechnet beim Schieben live
+  mit. Vorbelegt aus den eigenen Ladevorgängen; der Preis ohne Tarif wahlweise
+  automatisch aus dem, was an öffentlichen Anbietern bezahlt wurde (welche das
+  sind, unter Einstellungen → Tools). Rechnet komplett auf dem Gerät
 - **Zeitraum-Filter** (Presets + eigener Zeitraum), global für Dashboard,
   Ladevorgänge und Karte.
 - **Anmelden mit Nutzername oder E-Mail-Adresse**; bei der Registrierung kann

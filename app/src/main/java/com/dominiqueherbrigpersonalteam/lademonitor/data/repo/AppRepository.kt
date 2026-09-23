@@ -147,6 +147,28 @@ object AppRepository {
         return LocalStatsCalculator.compute(sessions, vehicles, providers, unallocated)
     }
 
+    // MARK: - Tarifrechner
+
+    /**
+     * Alles, was der Tarifrechner fuer seine Vorschlagswerte braucht, mit EINER Anbieter-ID-Form
+     * (= `Provider.id`): Ladevorgaenge und die gespeicherte Abwahl koennen einen Anbieter noch
+     * ueber seine lokale ID kennen, obwohl er inzwischen eine Server-ID hat.
+     */
+    suspend fun tariffBasis(): TariffBasis {
+        syncBeforeRead()
+        val canonical = LocalDataStore.canonicalProviderIds()
+        val sessions = LocalDataStore.fetchSessions(null, null, null).map { s ->
+            s.copy(providerId = s.providerId?.let { canonical[it] ?: it })
+        }
+        val excluded = TariffCalculatorSettings.storedExcludedProviderIds.map { canonical[it] ?: it }.toSet()
+        return TariffBasis(
+            sessions = sessions,
+            providers = LocalDataStore.fetchProviders(),
+            fees = LocalDataStore.fetchFees(),
+            excludedProviderIds = excluded
+        )
+    }
+
     // MARK: - Grundgebuehren
 
     suspend fun fetchFees(providerId: String? = null): List<ProviderFee> {
@@ -165,3 +187,11 @@ object AppRepository {
         syncAfterWrite()
     }
 }
+
+data class TariffBasis(
+    val sessions: List<ChargingSession>,
+    val providers: List<Provider>,
+    val fees: List<ProviderFee>,
+    /** Als privat abgewaehlte Anbieter (zaehlen nicht zum Vergleichspreis). */
+    val excludedProviderIds: Set<String>
+)

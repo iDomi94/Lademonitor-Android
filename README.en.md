@@ -26,6 +26,14 @@ plus a **server mode with bidirectional synchronization**.
 - **Vehicles, providers, charging locations** management; address search
   (in local mode via OSM Nominatim, in server mode via the server proxy)
   and "current location".
+- **Tools** tab with the calculator **"Is the tariff worth it?"**: the
+  effective price per kWh including the base fee, whether that is cheaper than
+  charging without the tariff, and from how many km per month it pays off.
+  Tariff price, base fee, km per month and share on the tariff are sliders, and
+  the result updates live while dragging. Prefilled from your own sessions; the
+  price without tariff can be taken automatically from what you paid at public
+  providers (choose which ones under Settings → Tools). Runs entirely on the
+  device
 - **Time-range filter** (presets + custom range), global across dashboard,
   charging sessions, and map.
 - **Sign in with username or e-mail address**; an address can optionally be
