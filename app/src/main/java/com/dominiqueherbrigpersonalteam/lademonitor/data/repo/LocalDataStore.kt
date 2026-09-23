@@ -320,6 +320,7 @@ object LocalDataStore {
         val session = LocalChargingSession(
             vehicleId = vehicleId,
             providerId = payload.providerId,
+            locationId = payload.locationId,
             startTime = payload.startTime ?: System.currentTimeMillis(),
             chargingType = payload.chargingType,
             socStart = payload.socStart,
@@ -346,6 +347,7 @@ object LocalDataStore {
     suspend fun updateSession(id: String, payload: ChargingSessionPayload): ChargingSession {
         val session = sessions.find(id) ?: throw LocalStoreException.notFound()
         payload.providerId?.let { session.providerId = it }
+        payload.locationId?.let { session.locationId = it }
         payload.startTime?.let { session.startTime = it }
         payload.chargingType?.let { session.chargingType = it }
         payload.socStart?.let { session.socStart = it }

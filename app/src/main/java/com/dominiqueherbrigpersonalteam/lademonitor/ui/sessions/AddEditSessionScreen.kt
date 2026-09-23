@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddLocationAlt
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -66,7 +67,9 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.Fmt
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.SectionCard
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.AddEditLocationModal
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.AddEditProviderModal
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.LocationPrefill
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.theme.Green
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.theme.Orange
 import kotlinx.coroutines.launch
@@ -90,6 +93,11 @@ fun AddEditSessionScreen(
     val isEditing = session != null
 
     var providerList by remember { mutableStateOf(providers) }
+    var locationList by remember { mutableStateOf(locations) }
+    // Zugeordneter Ladeort. Wird nur gesendet, wenn gesetzt - die App kann eine Zuordnung
+    // herstellen, aber (wie bisher) nicht aufheben.
+    var locationId by remember { mutableStateOf(session?.locationId) }
+    var showCreateLocation by remember { mutableStateOf(false) }
     var vehicleId by remember { mutableStateOf(session?.vehicleId ?: vehicles.firstOrNull()?.id ?: "") }
     var providerId by remember { mutableStateOf(session?.providerId) }
     var startTime by remember { mutableStateOf(session?.startTime ?: System.currentTimeMillis()) }
@@ -163,12 +171,27 @@ fun AddEditSessionScreen(
         }
     }
 
+    // Vorbelegung fuer "Als Ladeort anlegen": die Koordinaten dieses Vorgangs, als Name der
+    // Ortstext bzw. der zuletzt gewaehlte Suchtreffer, als Standard-Anbieter der Anbieter
+    // dieses Vorgangs. null ohne Koordinaten.
+    fun locationPrefill(): LocationPrefill? {
+        val lat = latitude.replace(",", ".").toDoubleOrNull() ?: return null
+        val lon = longitude.replace(",", ".").toDoubleOrNull() ?: return null
+        return LocationPrefill(
+            name = geocodedPlace.trim().ifEmpty { addressQuery.trim() },
+            latitude = lat,
+            longitude = lon,
+            defaultProviderId = providerId
+        )
+    }
+
     fun save() {
         scope.launch {
             isSaving = true; errorMessage = null
             val payload = ChargingSessionPayload(
                 vehicleId = if (isEditing) null else vehicleId,
                 providerId = providerId,
+                locationId = locationId,
                 startTime = startTime,
                 chargingType = chargingType.raw,
                 socStart = if (socEnabled) socStart.toInt() else null,
@@ -340,16 +363,16 @@ fun AddEditSessionScreen(
                     Text(stringResource(R.string.location_current_location_action))
                     if (isLocating) { Spacer(Modifier.weight(1f)); CircularProgressIndicator(Modifier.height(20.dp), strokeWidth = 2.dp) }
                 }
-                if (locations.isNotEmpty()) {
+                if (locationList.isNotEmpty()) {
                     Box {
                         OutlinedButton(onClick = { locationMenu = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
                             Text(stringResource(R.string.add_session_use_location_action))
                         }
                         DropdownMenu(expanded = locationMenu, onDismissRequest = { locationMenu = false }) {
-                            locations.forEach { l ->
+                            locationList.forEach { l ->
                                 DropdownMenuItem(text = { Text(l.name) }, onClick = {
                                     latitude = Fmt.n("%.6f", l.latitude); longitude = Fmt.n("%.6f", l.longitude)
-                                    addressQuery = l.name; locationMenu = false
+                                    addressQuery = l.name; locationId = l.id; locationMenu = false
                                 })
                             }
                         }
@@ -358,6 +381,16 @@ fun AddEditSessionScreen(
                 if (latitude.isNotEmpty() || longitude.isNotEmpty()) {
                     Text(stringResource(R.string.add_session_coordinates_format, latitude, longitude), style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+                }
+                val assignedLocation = locationList.firstOrNull { it.id == locationId }
+                if (assignedLocation != null) {
+                    Text(stringResource(R.string.add_session_assigned_location_format, assignedLocation.name),
+                        style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
+                } else if (locationPrefill() != null) {
+                    OutlinedButton(onClick = { showCreateLocation = true }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                        Icon(Icons.Filled.AddLocationAlt, contentDescription = null)
+                        Text(stringResource(R.string.add_session_create_location_action))
+                    }
                 }
             }
 
@@ -370,6 +403,21 @@ fun AddEditSessionScreen(
             providerList = providerList + newProvider
             providerId = newProvider.id
             showAddProvider = false
+        }
+    }
+
+    if (showCreateLocation) {
+        locationPrefill()?.let { prefill ->
+            AddEditLocationModal(
+                location = null,
+                providers = providerList,
+                onDismiss = { showCreateLocation = false },
+                prefill = prefill,
+                onCreated = { created ->
+                    locationList = locationList + created
+                    locationId = created.id
+                }
+            ) { showCreateLocation = false }
         }
     }
 

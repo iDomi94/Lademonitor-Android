@@ -441,9 +441,11 @@ object SyncService {
                 }
                 val resolvedVehicleId = resolvedVehicleServerId(session.vehicleId)
                 val resolvedProviderId = resolvedProviderServerId(session.providerId)
+                val resolvedLocationId = resolvedLocationServerId(session.locationId)
                 val payload = ChargingSessionPayload(
                     vehicleId = if (session.serverId == null) resolvedVehicleId else null,
                     providerId = resolvedProviderId,
+                    locationId = resolvedLocationId,
                     startTime = session.startTime,
                     chargingType = session.chargingType,
                     socStart = session.socStart,
@@ -466,6 +468,9 @@ object SyncService {
                 }
                 session.vehicleId = resolvedVehicleId
                 session.providerId = resolvedProviderId
+                // Nur ueberschreiben, wenn aufgeloest: ein Ort, dessen eigener Push gerade
+                // fehlgeschlagen ist, soll seine Zuordnung nicht verlieren.
+                resolvedLocationId?.let { session.locationId = it }
                 session.isDirty = false
                 sessions.upsert(session)
             } catch (e: Exception) {
@@ -487,6 +492,16 @@ object SyncService {
     private suspend fun resolvedProviderServerId(ref: String?): String? {
         if (ref == null) return null
         return providers.find(ref)?.serverId
+    }
+
+    /**
+     * Wie beim Anbieter: der Ladeort ist optional, eine nicht aufloesbare Referenz (z.B. ein
+     * inzwischen geloeschter Ort) faellt still auf null zurueck. null wird nicht gesendet,
+     * die Zuordnung auf dem Server bleibt dann unberuehrt.
+     */
+    private suspend fun resolvedLocationServerId(ref: String?): String? {
+        if (ref == null) return null
+        return locations.find(ref)?.serverId
     }
 
     // MARK: - Pull

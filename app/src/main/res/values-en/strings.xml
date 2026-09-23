@@ -296,6 +296,8 @@
     <string name="add_session_section_position">Position</string>
     <string name="add_session_use_location_action">Use from charging location</string>
     <string name="add_session_coordinates_format">Coordinates: %1$s, %2$s</string>
+    <string name="add_session_create_location_action">Save as charging location</string>
+    <string name="add_session_assigned_location_format">Assigned charging location: %1$s</string>
 
     <!-- data/remote/ServerDate.kt -->
     <string name="server_date_error_unknown_format">Unknown date format: %1$s</string>

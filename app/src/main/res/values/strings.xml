@@ -296,6 +296,8 @@
     <string name="add_session_section_position">Position</string>
     <string name="add_session_use_location_action">Von Ladeort übernehmen</string>
     <string name="add_session_coordinates_format">Koordinaten: %1$s, %2$s</string>
+    <string name="add_session_create_location_action">Als Ladeort anlegen</string>
+    <string name="add_session_assigned_location_format">Zugeordneter Ladeort: %1$s</string>
 
     <!-- data/remote/ServerDate.kt -->
     <string name="server_date_error_unknown_format">Unbekanntes Datumsformat: %1$s</string>
