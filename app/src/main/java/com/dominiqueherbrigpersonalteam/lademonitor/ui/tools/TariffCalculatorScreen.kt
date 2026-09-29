@@ -538,9 +538,9 @@ private fun ResultCard(result: TariffCalculator.Result, fee: Double, price: Doub
     }
 }
 
-/** Eine Zeile mit Titel, antippbarem Wert, Regler und grauer Herkunftszeile. */
+/** Eine Zeile mit Titel, antippbarem Wert, Regler und grauer Herkunftszeile. Auch vom Verbrenner-Vergleich benutzt. */
 @Composable
-private fun SliderRow(
+internal fun SliderRow(
     title: String,
     valueText: String,
     value: Double,
@@ -578,13 +578,13 @@ private fun SliderRow(
 }
 
 @Composable
-private fun SectionHeader(text: String) {
+internal fun SectionHeader(text: String) {
     Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
 }
 
 @Composable
-private fun Footnote(text: String) {
+internal fun Footnote(text: String) {
     Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = 4.dp))
 }

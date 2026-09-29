@@ -34,6 +34,16 @@ plus a **server mode with bidirectional synchronization**.
   price without tariff can be taken automatically from what you paid at public
   providers (choose which ones under Settings → Tools). Runs entirely on the
   device
+- **Compared with a combustion car** (Tools): a switch at the top between
+  "Period" (what the kilometres driven would have cost with petrol/diesel),
+  "Per 100 km" (cost and CO₂ per 100 km) and "Lifecycle" (CO₂ including
+  production of vehicle and battery plus the fuel upstream chain, with the
+  mileage at which the production footprint is paid back). Runs on the device.
+- **Battery and charging losses** (Tools, server mode only, server 0.28.0+):
+  battery index per quarter and extra energy while charging by AC/DC and
+  provider.
+- **Home screen widget** with cost and kWh of the current month, from medium
+  width also the last charging session.
 - **Time-range filter** (presets + custom range), global across dashboard,
   charging sessions, and map.
 - **Sign in with username or e-mail address**; an address can optionally be

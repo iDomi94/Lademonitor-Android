@@ -41,6 +41,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
+import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.WidgetSnapshotWriter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.ErrorState
@@ -78,6 +79,7 @@ fun DashboardScreen() {
         try {
             stats = AppRepository.fetchStatsSummary(dateRange = dateRange)
             errorMessage = null
+            WidgetSnapshotWriter.refresh()
         } catch (e: Exception) {
             if (stats == null) errorMessage = e.localizedMessage
         }

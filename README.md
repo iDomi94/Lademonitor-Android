@@ -31,6 +31,15 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   mit. Vorbelegt aus den eigenen Ladevorgängen; der Preis ohne Tarif wahlweise
   automatisch aus dem, was an öffentlichen Anbietern bezahlt wurde (welche das
   sind, unter Einstellungen → Tools). Rechnet komplett auf dem Gerät
+- **Vergleich mit Verbrenner** (Tools): Umschalter oben zwischen „Zeitraum“
+  (was die gefahrenen km mit Benzin/Diesel gekostet hätten), „Pro 100 km“
+  (Kosten und CO₂ je 100 km) und „Lebenszyklus“ (CO₂ inklusive Herstellung von
+  Fahrzeug und Akku sowie Kraftstoff-Vorkette, mit dem Kilometerstand, ab dem
+  der Herstellungs-Rucksack eingeholt ist). Rechnet auf dem Gerät.
+- **Akku und Ladeverluste** (Tools, nur im Server-Modus, Server ab 0.28.0):
+  Akku-Index je Quartal und Mehrbedarf beim Laden nach AC/DC und Anbieter.
+- **Homescreen-Widget** mit Kosten und kWh des laufenden Monats, ab mittlerer
+  Breite zusätzlich mit dem letzten Ladevorgang.
 - **Zeitraum-Filter** (Presets + eigener Zeitraum), global für Dashboard,
   Ladevorgänge und Karte.
 - **Anmelden mit Nutzername oder E-Mail-Adresse**; bei der Registrierung kann

@@ -548,4 +548,86 @@
     <string name="settings_nav_public_providers">Tarifrechner: öffentliche Anbieter</string>
     <string name="provider_tariff_link">Lohnt sich der Tarif?</string>
     <string name="provider_tariff_hint">Rechnet mit den gespeicherten Preisen und Grundgebühren dieses Anbieters.</string>
+
+    <!-- Verbrenner-Vergleich -->
+    <string name="tools_combustion_title">Vergleich mit Verbrenner</string>
+    <string name="tools_combustion_subtitle">Was dieselben Kilometer mit Benzin oder Diesel gekostet hätten, und wie viel CO₂</string>
+    <string name="combustion_mode_total">Zeitraum</string>
+    <string name="combustion_mode_per100km">Pro 100 km</string>
+    <string name="combustion_mode_lifecycle">Lebenszyklus</string>
+    <string name="combustion_section_data">Deine Daten</string>
+    <string name="combustion_period_year">Letzte 12 Monate</string>
+    <string name="combustion_period_all">Gesamte Aufzeichnung</string>
+    <string name="combustion_driven">Gefahren</string>
+    <string name="combustion_charged">Geladen</string>
+    <string name="combustion_paid">Bezahlt</string>
+    <string name="combustion_no_data">Für den Zeitraum fehlen Ladevorgänge mit Kilometerstand.</string>
+    <string name="combustion_data_footer">Kilometer aus dem Kilometerstand deiner Ladevorgänge, Kosten inklusive Grundgebühren. Was du ohne Preis eingetragen hast (z. B. kostenlos an der Wallbox beim Arbeitgeber), zählt mit 0 €.</string>
+    <string name="combustion_section_vehicle">Vergleichsfahrzeug</string>
+    <string name="combustion_petrol">Benzin</string>
+    <string name="combustion_diesel">Diesel</string>
+    <string name="combustion_consumption">Verbrauch</string>
+    <string name="combustion_price">Preis pro Liter</string>
+    <string name="combustion_vehicle_footer">Die Markierung zeigt den Richtwert für einen vergleichbaren Verbrenner. Wartung, Steuer und Wertverlust sind nicht enthalten.</string>
+    <string name="combustion_section_co2">CO₂</string>
+    <string name="combustion_grid">CO₂ je kWh Strom</string>
+    <string name="combustion_co2_footer">Vorgabe ist der deutsche Strommix. Mit Ökostrom oder eigener PV-Anlage den Wert entsprechend senken. Beim Kraftstoff zählt nur die Verbrennung (%1$s kg je Liter), ohne Vorkette – die kommt in der Ansicht „Lebenszyklus“ dazu.</string>
+    <string name="combustion_section_lifecycle">Lebenszyklus</string>
+    <string name="combustion_lifetime">Laufleistung</string>
+    <string name="combustion_battery_kwh">Akkugröße</string>
+    <string name="combustion_battery_co2">CO₂ je kWh Akku</string>
+    <string name="combustion_battery_marker">Markierung: Akkukapazität deines Fahrzeugs</string>
+    <string name="combustion_lifecycle_footer">Die Herstellung des Fahrzeugs ohne Akku zählt für beide gleich (rund 7 t CO₂), beim E-Auto kommt der Akku dazu. Studien nennen dafür 60 bis 100 kg je kWh. Beim Kraftstoff zählt hier zusätzlich die Vorkette (Förderung, Raffinerie, Transport), beim Strom steckt sie schon im Emissionsfaktor. Verbrauch und Kosten pro km kommen aus deinem gewählten Zeitraum.</string>
+    <string name="combustion_saved">Gespart gegenüber Verbrenner</string>
+    <string name="combustion_extra">Mehrkosten gegenüber Verbrenner</string>
+    <string name="combustion_cheaper_per_100km">Pro 100 km günstiger</string>
+    <string name="combustion_dearer_per_100km">Pro 100 km teurer</string>
+    <string name="combustion_co2_less_over">CO₂ weniger über %1$s</string>
+    <string name="combustion_co2_more_over">CO₂ mehr über %1$s</string>
+    <string name="combustion_detail">Verbrenner %1$s (%2$s l), elektrisch %3$s</string>
+    <string name="combustion_co2_line">CO₂: %1$s kg statt %2$s kg</string>
+    <string name="combustion_break_even">Gleich teuer bei %1$s pro Liter</string>
+    <string name="combustion_per100_energy">%1$s kWh statt %2$s l %3$s</string>
+    <string name="combustion_per100_cost">Kosten: %1$s statt %2$s</string>
+    <string name="combustion_lifecycle_total">Gesamt %1$s statt %2$s, davon Herstellung %3$s statt %4$s</string>
+    <string name="combustion_lifecycle_per100">Pro 100 km inkl. Herstellung: %1$s kg statt %2$s kg CO₂</string>
+    <string name="combustion_lifecycle_energy_cost">Energiekosten: %1$s statt %2$s</string>
+    <string name="combustion_lifecycle_break_even">Herstellungs-Rucksack eingeholt nach %1$s</string>
+    <string name="combustion_lifecycle_never">Im Betrieb nicht sauberer – der Rucksack wird nie eingeholt</string>
+    <string name="combustion_edit_consumption">Verbrauch (l/100 km)</string>
+    <string name="combustion_edit_price">Preis pro Liter (€)</string>
+    <string name="combustion_edit_grid">CO₂ je kWh (g)</string>
+    <string name="combustion_edit_lifetime">Laufleistung (km)</string>
+    <string name="combustion_edit_battery_kwh">Akkugröße (kWh)</string>
+    <string name="combustion_edit_battery_co2">CO₂ je kWh Akku (kg)</string>
+
+    <!-- Akku und Ladeverluste -->
+    <string name="tools_battery_title">Akku und Ladeverluste</string>
+    <string name="tools_battery_subtitle">Wie viel beim Laden verloren geht und ob der Akku mit der Zeit weniger aufnimmt</string>
+    <string name="battery_server_only">Die Auswertung rechnet der Lademonitor-Server. Im Modus „Nur lokal auf diesem Gerät“ steht sie nicht zur Verfügung.</string>
+    <string name="battery_unavailable">Die Auswertung braucht Lademonitor-Server 0.28.0 oder neuer und eine Verbindung dorthin.</string>
+    <string name="battery_empty">Es gibt noch keine Ladevorgänge mit gemessener kWh-Angabe und ausreichend SoC-Hub. Automatisch erkannte Vorgänge zählen nicht mit, ihre Energie ist selbst geschätzt.</string>
+    <string name="battery_by_type">Ladeverluste nach Lade-Art</string>
+    <string name="battery_by_provider">Ladeverluste nach Anbieter</string>
+    <string name="battery_explanation">Grundlage sind nur Ladevorgänge mit echter kWh-Angabe (Rechnung, Wallbox, Import) und mindestens %1$d Prozentpunkten SoC-Hub. Die scheinbare Kapazität ist, was eine Ladung von 0 auf 100 %% am Zähler kosten würde. Der Verlust ist der Mehrbedarf gegenüber der Akkukapazität des Fahrzeugs – bei einem gealterten Akku fällt er etwas zu klein aus; belastbar ist vor allem der Unterschied zwischen AC und DC.</string>
+    <string name="battery_excluded">%1$d Ladevorgänge nicht berücksichtigt, davon %2$d mit geschätzter Energie</string>
+    <string name="battery_health">Akku-Gesundheit</string>
+    <string name="battery_health_none">Für einen Verlauf reichen die Daten noch nicht (mindestens drei Ladevorgänge je Lade-Art und zwei je Quartal).</string>
+    <string name="battery_health_label">Akku-Index gegenüber Beginn der Aufzeichnung, letztes Quartal</string>
+    <string name="battery_health_trend">Trend %1$s pro Jahr</string>
+    <string name="battery_health_footer" formatted="false">100 % = wie zu Beginn der Aufzeichnung. AC und DC werden getrennt auf ihren eigenen Anfang bezogen. Kein absoluter Gesundheitswert (SoH), zeigt aber, ob der Akku mit der Zeit weniger aufnimmt.</string>
+    <string name="battery_without_provider">Ohne Anbieter</string>
+    <string name="battery_unknown_type">Lade-Art unbekannt</string>
+    <string name="battery_group_detail">%1$d Vorgänge · scheinbar %2$s kWh</string>
+    <string name="battery_no_nominal">Ohne hinterlegte Akkukapazität am Fahrzeug lassen sich keine Verluste in Prozent angeben.</string>
+
+    <!-- Homescreen-Widget -->
+    <string name="widget_description">Kosten und Energie des laufenden Monats und der letzte Ladevorgang.</string>
+    <string name="widget_placeholder">Öffne die App einmal, dann erscheinen hier deine Zahlen.</string>
+    <string name="widget_last_title">Zuletzt geladen</string>
+    <string name="widget_no_session">Noch kein Ladevorgang</string>
+    <plurals name="widget_sessions">
+        <item quantity="one">%1$d Ladevorgang</item>
+        <item quantity="other">%1$d Ladevorgänge</item>
+    </plurals>
 </resources>
