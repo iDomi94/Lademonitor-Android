@@ -637,4 +637,29 @@
         <item quantity="one">%1$d Ladevorgang</item>
         <item quantity="other">%1$d Ladevorgänge</item>
     </plurals>
+    <string name="tires_field_dot">DOT (z. B. 2323)</string>
+    <string name="tires_field_dot_rear">DOT hinten (nur wenn abweichend)</string>
+    <string name="tires_dot_hint">Die letzten vier Ziffern der DOT-Nummer an der Reifenflanke: Produktionswoche und -jahr (2323 = KW 23/2023). Daraus ergibt sich das Reifenalter – ab 6 Jahren genauer hinsehen, nach spätestens 10 Jahren tauschen. Haben die Reifen einer Achse verschiedene Daten, trag das ältere ein. Bei Wiedermontage desselben Satzes reicht die DOT an einem Eintrag.</string>
+    <string name="tires_tread_new">Profil aufgezogener Satz</string>
+    <string name="tires_tread_removed">Profil abgenommener Satz (%1$s)</string>
+    <string name="tires_tread_change_hint">Optional: die geringste gemessene Tiefe in mm – oder je Reifen, dann zählt der geringste Wert. Beide Messungen bekommen Datum und Kilometerstand dieses Wechsels.</string>
+    <string name="tires_tread_min">Geringste Tiefe (mm)</string>
+    <string name="tires_tread_per_wheel">Je Reifen</string>
+    <string name="tires_tread_fl">VL</string>
+    <string name="tires_tread_fr">VR</string>
+    <string name="tires_tread_rl">HL</string>
+    <string name="tires_tread_rr">HR</string>
+    <string name="tires_tread_wheels_label">VL/VR/HL/HR: %1$s</string>
+    <string name="tires_section_tread">Profiltiefe</string>
+    <string name="tires_tread_empty">Noch keine Messung eingetragen.</string>
+    <string name="tires_tread_add">Messung eintragen</string>
+    <string name="tires_tread_measure">Profil messen</string>
+    <string name="tires_tread_hint">Gemessen wird in den Hauptrillen an der flachsten Stelle. Gesetzliches Minimum sind 1,6 mm; empfohlen werden mindestens 3 mm bei Sommer- und 4 mm bei Winter- und Ganzjahresreifen.</string>
+    <string name="tires_tread_measured_on">Gemessen am</string>
+    <string name="tires_dot_age">DOT %1$s · %2$s</string>
+    <string name="tires_age_check">prüfen</string>
+    <string name="tires_age_replace">tauschen</string>
+    <string name="tires_tread_low">unter Empfehlung</string>
+    <string name="tires_tread_legal_min">Mindestprofil</string>
+    <string name="tires_mm">%1$s mm</string>
 </resources>

@@ -675,7 +675,13 @@ data class TireSet(
     @Json(name = "size_rear") val sizeRear: String? = null,
     val brand: String? = null,
     val model: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    /**
+     * DOT-Datumscode (Woche + Jahr, "2323") je Achse, ab Server 0.30.0 -
+     * gegen einen aelteren Server einfach null.
+     */
+    val dot: String? = null,
+    @Json(name = "dot_rear") val dotRear: String? = null
 ) {
     val tireKind: TireKind get() = TireKind.from(kind)
 
@@ -708,8 +714,59 @@ data class TireSetPayload(
     @Json(name = "size_rear") val sizeRear: String? = null,
     val brand: String? = null,
     val model: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    val dot: String? = null,
+    @Json(name = "dot_rear") val dotRear: String? = null,
+    /**
+     * Nur beim Anlegen: Profiltiefe des aufgezogenen und des abgenommenen
+     * Satzes (die Montage davor an diesem Fahrzeug). Der Server legt daraus je
+     * eine Messung mit Datum und Kilometerstand des Wechsels an; beim
+     * Bearbeiten ignoriert er die Felder.
+     */
+    val tread: TreadInput? = null,
+    @Json(name = "removed_tread") val removedTread: TreadInput? = null
 )
+
+/** Profiltiefe in mm: ein Gesamtwert und/oder die vier Raeder. Gespeichert wird immer der geringste. */
+@JsonClass(generateAdapter = true)
+data class TreadInput(
+    @Json(name = "depth_mm") val depthMm: Double? = null,
+    @Json(name = "front_left_mm") val frontLeftMm: Double? = null,
+    @Json(name = "front_right_mm") val frontRightMm: Double? = null,
+    @Json(name = "rear_left_mm") val rearLeftMm: Double? = null,
+    @Json(name = "rear_right_mm") val rearRightMm: Double? = null
+) {
+    val isEmpty: Boolean
+        get() = listOf(depthMm, frontLeftMm, frontRightMm, rearLeftMm, rearRightMm).all { it == null }
+}
+
+@JsonClass(generateAdapter = true)
+data class TreadMeasurementPayload(
+    @ServerDate @Json(name = "measured_on") val measuredOn: Long,
+    @Json(name = "odometer_km") val odometerKm: Double? = null,
+    @Json(name = "depth_mm") val depthMm: Double? = null,
+    @Json(name = "front_left_mm") val frontLeftMm: Double? = null,
+    @Json(name = "front_right_mm") val frontRightMm: Double? = null,
+    @Json(name = "rear_left_mm") val rearLeftMm: Double? = null,
+    @Json(name = "rear_right_mm") val rearRightMm: Double? = null
+)
+
+/** Eine Profilmessung an einer Montage (Server ab 0.30.0). */
+@JsonClass(generateAdapter = true)
+data class TireTreadMeasurement(
+    val id: String,
+    @Json(name = "tire_set_id") val tireSetId: String,
+    @ServerDate @Json(name = "measured_on") val measuredOn: Long,
+    @Json(name = "odometer_km") val odometerKm: Double? = null,
+    /** Immer die geringste Tiefe - der Wert fuer Mindestprofil und Austausch. */
+    @Json(name = "depth_mm") val depthMm: Double,
+    @Json(name = "front_left_mm") val frontLeftMm: Double? = null,
+    @Json(name = "front_right_mm") val frontRightMm: Double? = null,
+    @Json(name = "rear_left_mm") val rearLeftMm: Double? = null,
+    @Json(name = "rear_right_mm") val rearRightMm: Double? = null
+) {
+    val wheels: List<Double?> get() = listOf(frontLeftMm, frontRightMm, rearLeftMm, rearRightMm)
+}
 
 /**
  * Kennzahlen einer einzelnen Montage. [removedOn] leitet der Server ab (der
@@ -733,7 +790,10 @@ data class TireMounting(
      */
     @Json(name = "km_source") val kmSource: String? = null,
     @Json(name = "energy_kwh") val energyKwh: Double = 0.0,
-    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double? = null
+    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double? = null,
+    /** Juengste Profilmessung dieser Montage; Status "ok" | "low" | "legal_min" (Schwellen in tires.py). */
+    @Json(name = "tread_depth_mm") val treadDepthMm: Double? = null,
+    @Json(name = "tread_status") val treadStatus: String? = null
 ) {
     val tireKind: TireKind get() = TireKind.from(kind)
     val kmIsExact: Boolean get() = kmSource == "odometer"
@@ -759,10 +819,24 @@ data class TireSetSummary(
     @Json(name = "km_source") val kmSource: String? = null,
     @Json(name = "energy_kwh") val energyKwh: Double = 0.0,
     @Json(name = "is_current") val isCurrent: Boolean = false,
-    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double? = null
+    @Json(name = "avg_consumption_kwh_per_100km") val avgConsumptionKwhPer100km: Double? = null,
+    /**
+     * Aus der DOT (aeltere Achse): Produktionsdatum als "YYYY-MM-DD" (reines
+     * Datum, deshalb String), Alter ab da und "ok" | "check" (ab 6 Jahren) |
+     * "replace" (ab 10). null ohne DOT oder bei aelterem Server.
+     */
+    @Json(name = "produced_on") val producedOn: String? = null,
+    @Json(name = "production_age_days") val productionAgeDays: Int? = null,
+    @Json(name = "age_status") val ageStatus: String? = null,
+    @Json(name = "tread_depth_mm") val treadDepthMm: Double? = null,
+    @Json(name = "tread_status") val treadStatus: String? = null
 ) {
     val tireKind: TireKind get() = TireKind.from(kind)
     val kmIsExact: Boolean get() = kmSource == "odometer"
+
+    /** "03/2024" - so, wie man es mit der DOT auf dem Reifen vergleicht. */
+    val producedLabel: String?
+        get() = producedOn?.split("-")?.takeIf { it.size >= 2 }?.let { "${it[1]}/${it[0]}" }
 }
 
 @JsonClass(generateAdapter = true)

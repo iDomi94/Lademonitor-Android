@@ -636,4 +636,29 @@
         <item quantity="one">%1$d charging session</item>
         <item quantity="other">%1$d charging sessions</item>
     </plurals>
+    <string name="tires_field_dot">DOT (e.g. 2323)</string>
+    <string name="tires_field_dot_rear">DOT rear (only if different)</string>
+    <string name="tires_dot_hint">The last four digits of the DOT number on the sidewall: production week and year (2323 = week 23 of 2023). This gives the tire age – look more closely from 6 years, replace after 10 years at the latest. If the tires of one axle have different dates, enter the older one. When the same set is fitted again, the DOT on one entry is enough.</string>
+    <string name="tires_tread_new">Tread of fitted set</string>
+    <string name="tires_tread_removed">Tread of removed set (%1$s)</string>
+    <string name="tires_tread_change_hint">Optional: the lowest measured depth in mm – or per tire, then the lowest value counts. Both measurements get the date and odometer of this change.</string>
+    <string name="tires_tread_min">Lowest depth (mm)</string>
+    <string name="tires_tread_per_wheel">Per tire</string>
+    <string name="tires_tread_fl">FL</string>
+    <string name="tires_tread_fr">FR</string>
+    <string name="tires_tread_rl">RL</string>
+    <string name="tires_tread_rr">RR</string>
+    <string name="tires_tread_wheels_label">FL/FR/RL/RR: %1$s</string>
+    <string name="tires_section_tread">Tread depth</string>
+    <string name="tires_tread_empty">No measurement yet.</string>
+    <string name="tires_tread_add">Add measurement</string>
+    <string name="tires_tread_measure">Measure tread</string>
+    <string name="tires_tread_hint">Measure in the main grooves at the shallowest point. The legal minimum is 1.6 mm; at least 3 mm is recommended for summer and 4 mm for winter and all-season tires.</string>
+    <string name="tires_tread_measured_on">Measured on</string>
+    <string name="tires_dot_age">DOT %1$s · %2$s</string>
+    <string name="tires_age_check">check</string>
+    <string name="tires_age_replace">replace</string>
+    <string name="tires_tread_low">below recommendation</string>
+    <string name="tires_tread_legal_min">legal minimum</string>
+    <string name="tires_mm">%1$s mm</string>
 </resources>

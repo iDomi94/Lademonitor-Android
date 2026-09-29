@@ -13,12 +13,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -59,6 +62,9 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireOverview
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSet
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSetPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSetSummary
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireTreadMeasurement
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TreadInput
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TreadMeasurementPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
@@ -91,6 +97,8 @@ fun TiresSettingsScreen(navController: NavController) {
     var showAdd by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<TireSet?>(null) }
     var pendingDelete by remember { mutableStateOf<TireMounting?>(null) }
+    var measurements by remember { mutableStateOf<List<TireTreadMeasurement>>(emptyList()) }
+    var measuringFor by remember { mutableStateOf<TireSet?>(null) }
     val serverAddressRequiredMessage = stringResource(R.string.error_server_address_required)
 
     suspend fun load() {
@@ -106,6 +114,8 @@ fun TiresSettingsScreen(navController: NavController) {
         // diese Endpunkte bleibt die Verwaltung trotzdem benutzbar.
         overview = runCatching { ApiClient.fetchTireOverview() }.getOrNull()
         comparison = runCatching { ApiClient.fetchTireComparison() }.getOrNull()
+        // Server vor 0.30.0 kennt keine Messungen - dann bleibt die Liste leer.
+        measurements = runCatching { ApiClient.fetchTreadMeasurements() }.getOrDefault(emptyList())
     }
     LaunchedEffect(Unit) { load() }
 
@@ -204,9 +214,58 @@ fun TiresSettingsScreen(navController: NavController) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) { TireMountingRow(mounting, vehicles) }
+                        // Profil zwischendurch messen; beim Wechsel selbst geht
+                        // es direkt im Wechsel-Formular.
+                        IconButton(onClick = { measuringFor = sets.firstOrNull { it.id == mounting.tireSetId } }) {
+                            Icon(Icons.Filled.Straighten, stringResource(R.string.tires_tread_measure))
+                        }
                         IconButton(onClick = { pendingDelete = mounting }) {
                             Icon(Icons.Filled.Delete, stringResource(R.string.action_delete), tint = MaterialTheme.colorScheme.error)
                         }
+                    }
+                }
+            }
+
+            if (sets.isNotEmpty()) {
+                item {
+                    SectionCard {
+                        SectionHeader(stringResource(R.string.tires_section_tread))
+                        if (measurements.isEmpty()) {
+                            Text(
+                                stringResource(R.string.tires_tread_empty),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        measurements.forEachIndexed { index, measurement ->
+                            if (index > 0) HorizontalDivider()
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    TreadMeasurementRow(measurement, sets.firstOrNull { it.id == measurement.tireSetId })
+                                }
+                                IconButton(onClick = {
+                                    scope.launch {
+                                        runCatching { ApiClient.deleteTreadMeasurement(measurement.id) }
+                                            .onFailure { errorMessage = it.localizedMessage }
+                                        load()
+                                    }
+                                }) {
+                                    Icon(Icons.Filled.Delete, stringResource(R.string.action_delete), tint = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                        // Ohne Auswahl der zuletzt aufgezogene Satz - der, den
+                        // man zwischendurch am haeufigsten misst.
+                        TextButton(onClick = { measuringFor = sets.maxByOrNull { it.installedOn } }) {
+                            Icon(Icons.Filled.Straighten, null)
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.tires_tread_add))
+                        }
+                        Text(
+                            stringResource(R.string.tires_tread_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -227,13 +286,18 @@ fun TiresSettingsScreen(navController: NavController) {
     }
 
     if (showAdd) {
-        AddEditTireSetModal(null, vehicles, onDismiss = { showAdd = false }) {
+        AddEditTireSetModal(null, vehicles, existing = sets, onDismiss = { showAdd = false }) {
             showAdd = false; scope.launch { load() }
         }
     }
     editing?.let { set ->
-        AddEditTireSetModal(set, vehicles, onDismiss = { editing = null }) {
+        AddEditTireSetModal(set, vehicles, existing = sets, onDismiss = { editing = null }) {
             editing = null; scope.launch { load() }
+        }
+    }
+    measuringFor?.let { set ->
+        AddTreadMeasurementModal(set, onDismiss = { measuringFor = null }) {
+            measuringFor = null; scope.launch { load() }
         }
     }
 
@@ -341,6 +405,86 @@ private fun TireSetSummaryRow(summary: TireSetSummary) {
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        summary.productionAgeDays?.let { days ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.tires_dot_age, summary.producedLabel ?: "", tireDuration(days)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TireStatusText(ageStatus = summary.ageStatus)
+            }
+        }
+        summary.treadDepthMm?.let { depth ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.tires_mm, Fmt.n("%.1f", depth)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TireStatusText(treadStatus = summary.treadStatus)
+            }
+        }
+    }
+}
+
+/**
+ * Wort plus Farbe, nie Farbe allein: tertiaer = genauer hinsehen, Fehlerfarbe
+ * = handeln. Die Schwellen liegen auf dem Server (tires.py).
+ */
+@Composable
+private fun TireStatusText(ageStatus: String? = null, treadStatus: String? = null) {
+    val (res, error) = when {
+        ageStatus == "check" -> R.string.tires_age_check to false
+        ageStatus == "replace" -> R.string.tires_age_replace to true
+        treadStatus == "low" -> R.string.tires_tread_low to false
+        treadStatus == "legal_min" -> R.string.tires_tread_legal_min to true
+        else -> return
+    }
+    Spacer(Modifier.width(6.dp))
+    Text(
+        stringResource(res),
+        style = MaterialTheme.typography.labelSmall,
+        color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
+    )
+}
+
+@Composable
+private fun TreadMeasurementRow(measurement: TireTreadMeasurement, tireSet: TireSet?) {
+    Column(Modifier.padding(vertical = 6.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(stringResource(R.string.tires_mm, Fmt.n("%.1f", measurement.depthMm)), style = MaterialTheme.typography.bodyLarge)
+            Text(
+                Fmt.dateMedium(measurement.measuredOn),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        tireSet?.let {
+            Text(
+                stringResource(it.tireKind.labelRes()) + (it.label.takeIf { l -> l.isNotBlank() }?.let { l -> " · $l" } ?: ""),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        // Einzelwerte in Fahrzeug-Reihenfolge VL/VR/HL/HR, nur wenn da.
+        if (measurement.wheels.any { it != null }) {
+            Text(
+                stringResource(
+                    R.string.tires_tread_wheels_label,
+                    measurement.wheels.joinToString(" / ") { v -> v?.let { Fmt.n("%.1f", it) } ?: "–" }
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        measurement.odometerKm?.let {
+            Text(
+                "${it.roundToInt()} km",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -382,6 +526,16 @@ private fun TireMountingRow(mounting: TireMounting, vehicles: List<Vehicle>) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        mounting.treadDepthMm?.let { depth ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    stringResource(R.string.tires_mm, Fmt.n("%.1f", depth)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                TireStatusText(treadStatus = mounting.treadStatus)
+            }
+        }
     }
 }
 
@@ -416,6 +570,9 @@ private fun TireKind.labelRes(): Int = when (this) {
 fun AddEditTireSetModal(
     tireSet: TireSet?,
     vehicles: List<Vehicle>,
+    // Alle bisherigen Montagen - nur um zu wissen, ob es einen "abgenommenen"
+    // Satz gibt, dessen Profil man beim Wechsel mitmessen kann.
+    existing: List<TireSet> = emptyList(),
     onDismiss: () -> Unit,
     onSaved: () -> Unit
 ) {
@@ -432,11 +589,23 @@ fun AddEditTireSetModal(
     var brand by remember { mutableStateOf(tireSet?.brand ?: "") }
     var model by remember { mutableStateOf(tireSet?.model ?: "") }
     var notes by remember { mutableStateOf(tireSet?.notes ?: "") }
+    var dot by remember { mutableStateOf(tireSet?.dot ?: "") }
+    var dotRear by remember { mutableStateOf(tireSet?.dotRear ?: "") }
+    var treadNew by remember { mutableStateOf(TreadDraft()) }
+    var treadRemoved by remember { mutableStateOf(TreadDraft()) }
     var vehicleMenu by remember { mutableStateOf(false) }
     var kindMenu by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Die Montage, die dieser Wechsel beendet - dieselbe Regel wie auf dem
+    // Server (letzte Montage VOR dem Datum an diesem Fahrzeug).
+    val startOfDay = Instant.ofEpochMilli(installedOn).atZone(zone).toLocalDate()
+        .atStartOfDay(zone).toInstant().toEpochMilli()
+    val removedSet = existing
+        .filter { it.vehicleId == vehicleId && it.installedOn < startOfDay }
+        .maxByOrNull { it.installedOn }
 
     fun save() {
         scope.launch {
@@ -457,7 +626,11 @@ fun AddEditTireSetModal(
                 sizeRear = sizeRear.trim().ifEmpty { null },
                 brand = brand.trim().ifEmpty { null },
                 model = model.trim().ifEmpty { null },
-                notes = notes.trim().ifEmpty { null }
+                notes = notes.trim().ifEmpty { null },
+                dot = dot.trim().ifEmpty { null },
+                dotRear = dotRear.trim().ifEmpty { null },
+                tread = if (isEditing) null else treadNew.input,
+                removedTread = if (isEditing || removedSet == null) null else treadRemoved.input
             )
             try {
                 if (tireSet != null) ApiClient.updateTireSet(tireSet.id, payload)
@@ -483,7 +656,7 @@ fun AddEditTireSetModal(
             )
         }) { padding ->
             Column(
-                Modifier.padding(padding).padding(16.dp).fillMaxWidth(),
+                Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(16.dp).fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Box {
@@ -538,6 +711,33 @@ fun AddEditTireSetModal(
                 OutlinedTextField(value = brand, onValueChange = { brand = it }, label = { Text(stringResource(R.string.vehicle_field_brand)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = model, onValueChange = { model = it }, label = { Text(stringResource(R.string.vehicle_field_model)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.tires_field_notes)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = dot, onValueChange = { dot = it }, label = { Text(stringResource(R.string.tires_field_dot)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = dotRear, onValueChange = { dotRear = it }, label = { Text(stringResource(R.string.tires_field_dot_rear)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                Text(
+                    stringResource(R.string.tires_dot_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                // Gemessen wird beim Anlegen des Wechsels; spaeter ueber
+                // "Profil messen" in der Liste.
+                if (!isEditing) {
+                    SectionHeader(stringResource(R.string.tires_tread_new))
+                    TreadFields(treadNew) { treadNew = it }
+                    removedSet?.let { removed ->
+                        SectionHeader(
+                            stringResource(
+                                R.string.tires_tread_removed,
+                                removed.label.ifBlank { stringResource(removed.tireKind.labelRes()) }
+                            )
+                        )
+                        TreadFields(treadRemoved) { treadRemoved = it }
+                    }
+                    Text(
+                        stringResource(R.string.tires_tread_change_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             }
         }
@@ -554,6 +754,158 @@ fun AddEditTireSetModal(
                     state.selectedDateMillis?.let { picked ->
                         val date: LocalDate = Instant.ofEpochMilli(picked).atZone(ZoneId.of("UTC")).toLocalDate()
                         installedOn = date.atStartOfDay(zone).toInstant().toEpochMilli()
+                    }
+                    showDatePicker = false
+                }) { Text(stringResource(R.string.action_ok)) }
+            },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.action_cancel)) } }
+        ) { DatePicker(state = state) }
+    }
+}
+
+/** Eingabe einer Profilmessung als Text - leere Felder bleiben null. */
+data class TreadDraft(
+    val minimum: String = "",
+    val frontLeft: String = "",
+    val frontRight: String = "",
+    val rearLeft: String = "",
+    val rearRight: String = ""
+) {
+    val input: TreadInput?
+        get() = TreadInput(
+            depthMm = mm(minimum),
+            frontLeftMm = mm(frontLeft),
+            frontRightMm = mm(frontRight),
+            rearLeftMm = mm(rearLeft),
+            rearRightMm = mm(rearRight)
+        ).takeUnless { it.isEmpty }
+
+    private fun mm(text: String): Double? = text.trim().replace(",", ".").toDoubleOrNull()
+}
+
+/** Ein Gesamtwert plus - aufklappbar - die vier Raeder, 2x2 wie am Fahrzeug. */
+@Composable
+private fun TreadFields(draft: TreadDraft, onChange: (TreadDraft) -> Unit) {
+    var perWheel by remember { mutableStateOf(draft.frontLeft.isNotEmpty() || draft.rearLeft.isNotEmpty()) }
+    val decimal = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+    OutlinedTextField(
+        value = draft.minimum,
+        onValueChange = { onChange(draft.copy(minimum = it)) },
+        label = { Text(stringResource(R.string.tires_tread_min)) },
+        singleLine = true,
+        keyboardOptions = decimal,
+        modifier = Modifier.fillMaxWidth()
+    )
+    TextButton(onClick = { perWheel = !perWheel }) {
+        Text((if (perWheel) "▾ " else "▸ ") + stringResource(R.string.tires_tread_per_wheel))
+    }
+    if (perWheel) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(draft.frontLeft, { onChange(draft.copy(frontLeft = it)) }, Modifier.weight(1f),
+                label = { Text(stringResource(R.string.tires_tread_fl)) }, singleLine = true, keyboardOptions = decimal)
+            OutlinedTextField(draft.frontRight, { onChange(draft.copy(frontRight = it)) }, Modifier.weight(1f),
+                label = { Text(stringResource(R.string.tires_tread_fr)) }, singleLine = true, keyboardOptions = decimal)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(draft.rearLeft, { onChange(draft.copy(rearLeft = it)) }, Modifier.weight(1f),
+                label = { Text(stringResource(R.string.tires_tread_rl)) }, singleLine = true, keyboardOptions = decimal)
+            OutlinedTextField(draft.rearRight, { onChange(draft.copy(rearRight = it)) }, Modifier.weight(1f),
+                label = { Text(stringResource(R.string.tires_tread_rr)) }, singleLine = true, keyboardOptions = decimal)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddTreadMeasurementModal(tireSet: TireSet, onDismiss: () -> Unit, onSaved: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    val zone = ZoneId.systemDefault()
+    var measuredOn by remember {
+        mutableStateOf(LocalDate.now(zone).atStartOfDay(zone).toInstant().toEpochMilli())
+    }
+    var odometer by remember { mutableStateOf("") }
+    var draft by remember { mutableStateOf(TreadDraft()) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    var isSaving by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    fun save() {
+        val tread = draft.input ?: return
+        scope.launch {
+            isSaving = true; errorMessage = null
+            try {
+                ApiClient.createTreadMeasurement(
+                    tireSet.id,
+                    TreadMeasurementPayload(
+                        measuredOn = measuredOn,
+                        odometerKm = odometer.replace(",", ".").toDoubleOrNull(),
+                        depthMm = tread.depthMm,
+                        frontLeftMm = tread.frontLeftMm,
+                        frontRightMm = tread.frontRightMm,
+                        rearLeftMm = tread.rearLeftMm,
+                        rearRightMm = tread.rearRightMm
+                    )
+                )
+                onSaved()
+            } catch (e: Exception) { errorMessage = e.localizedMessage }
+            isSaving = false
+        }
+    }
+
+    FullScreenModal(onDismiss = onDismiss) {
+        Scaffold(topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.tires_tread_measure)) },
+                navigationIcon = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+                actions = {
+                    TextButton(onClick = { save() }, enabled = !isSaving && draft.input != null) {
+                        Text(if (isSaving) stringResource(R.string.action_saving) else stringResource(R.string.action_save))
+                    }
+                }
+            )
+        }) { padding ->
+            Column(
+                Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(16.dp).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    stringResource(tireSet.tireKind.labelRes()) +
+                        (tireSet.label.takeIf { it.isNotBlank() }?.let { " · $it" } ?: ""),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedButton(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.tires_tread_measured_on) + ": " + Fmt.dateMedium(measuredOn))
+                }
+                OutlinedTextField(
+                    value = odometer,
+                    onValueChange = { odometer = it },
+                    label = { Text(stringResource(R.string.tires_field_odometer)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                TreadFields(draft) { draft = it }
+                Text(
+                    stringResource(R.string.tires_tread_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            }
+        }
+    }
+
+    if (showDatePicker) {
+        val state = rememberDatePickerState(initialSelectedDateMillis = measuredOn)
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    // Der Picker liefert UTC-Mitternacht - als lokales Datum lesen.
+                    state.selectedDateMillis?.let { picked ->
+                        val date: LocalDate = Instant.ofEpochMilli(picked).atZone(ZoneId.of("UTC")).toLocalDate()
+                        measuredOn = date.atStartOfDay(zone).toInstant().toEpochMilli()
                     }
                     showDatePicker = false
                 }) { Text(stringResource(R.string.action_ok)) }
