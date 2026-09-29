@@ -38,6 +38,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureSource
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
@@ -136,7 +137,10 @@ fun SessionDetailScreen(
                 session.energyKwh?.let {
                     LabeledRow(
                         stringResource(R.string.session_detail_label_kwh),
-                        Fmt.n("%.2f kWh", it) + if (session.energyIsEstimated) stringResource(R.string.session_detail_estimated_suffix) else ""
+                        Fmt.n("%.2f kWh", it) +
+                            (if (session.energyIsEstimated) stringResource(R.string.session_detail_estimated_suffix) else "") +
+                            (if (session.effectiveEnergyMeter(providers) == EnergyMeter.VEHICLE)
+                                stringResource(R.string.session_detail_vehicle_measured_suffix) else "")
                     )
                 }
                 session.odometerKm?.let { LabeledRow(stringResource(R.string.session_detail_label_odometer), Fmt.km(it)) }

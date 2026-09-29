@@ -61,6 +61,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingType
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.GeocodeResult
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
@@ -100,6 +101,10 @@ fun AddEditSessionScreen(
     var showCreateLocation by remember { mutableStateOf(false) }
     var vehicleId by remember { mutableStateOf(session?.vehicleId ?: vehicles.firstOrNull()?.id ?: "") }
     var providerId by remember { mutableStateOf(session?.providerId) }
+    // Messort der kWh, vorbelegt mit dem wirksamen Wert (Uebersteuerung, sonst Anbieter).
+    var energyMeter by remember {
+        mutableStateOf(session?.effectiveEnergyMeter(providers) ?: EnergyMeter.CHARGER)
+    }
     var startTime by remember { mutableStateOf(session?.startTime ?: System.currentTimeMillis()) }
     var chargingType by remember { mutableStateOf(session?.chargingTypeValue ?: ChargingType.AC) }
     var socEnabled by remember { mutableStateOf(session?.socStart != null || session?.socEnd != null) }
@@ -130,6 +135,10 @@ fun AddEditSessionScreen(
     var locationMenu by remember { mutableStateOf(false) }
     val searchNoResultsMessage = stringResource(R.string.add_session_search_no_results)
     val searchFailedMessage = stringResource(R.string.location_search_failed)
+
+    /** Standard-Messort des gewaehlten Anbieters - beim Anbieterwechsel wird darauf zurueckgesetzt. */
+    fun providerDefaultMeter(): EnergyMeter =
+        EnergyMeter.effective(null, providerList.firstOrNull { it.id == providerId }?.energyMeter)
 
     fun suggestPrice() {
         if (isEditing || pricePerKwh.isNotEmpty()) return
@@ -205,7 +214,10 @@ fun AddEditSessionScreen(
                 longitude = longitude.replace(",", ".").toDoubleOrNull(),
                 geocodedPlace = geocodedPlace.trim().ifEmpty { null },
                 notes = null,
-                needsReview = if (isEditing) false else null
+                needsReview = if (isEditing) false else null,
+                // Immer die ausdrueckliche Wahl: gleicht sie dem Standard des Anbieters, legen
+                // Server und lokaler Speicher sie als null ab (folgt dann dem Anbieter).
+                energyMeter = energyMeter.raw
             )
             try {
                 if (session != null) AppRepository.updateSession(session.id, payload)
@@ -267,9 +279,9 @@ fun AddEditSessionScreen(
                         Text(providerList.firstOrNull { it.id == providerId }?.name ?: stringResource(R.string.provider_none_selected))
                     }
                     DropdownMenu(expanded = providerMenu, onDismissRequest = { providerMenu = false }) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.provider_none_selected)) }, onClick = { providerId = null; providerMenu = false; suggestPrice() })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.provider_none_selected)) }, onClick = { providerId = null; providerMenu = false; energyMeter = providerDefaultMeter(); suggestPrice() })
                         providerList.forEach { p ->
-                            DropdownMenuItem(text = { Text(p.name) }, onClick = { providerId = p.id; providerMenu = false; suggestPrice() })
+                            DropdownMenuItem(text = { Text(p.name) }, onClick = { providerId = p.id; providerMenu = false; energyMeter = providerDefaultMeter(); suggestPrice() })
                         }
                         DropdownMenuItem(text = { Text(stringResource(R.string.provider_add_new_ellipsis)) }, onClick = { providerMenu = false; showAddProvider = true })
                     }
@@ -302,6 +314,27 @@ fun AddEditSessionScreen(
             SectionCard {
                 FieldLabel(stringResource(R.string.add_session_section_energy_price))
                 DecimalField(stringResource(R.string.session_detail_label_kwh), energyKwh, stringResource(R.string.add_session_kwh_placeholder)) { energyKwh = it }
+                Text(
+                    stringResource(R.string.add_session_energy_meter_label),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                )
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    EnergyMeter.entries.forEachIndexed { index, meter ->
+                        SegmentedButton(
+                            selected = energyMeter == meter,
+                            onClick = { energyMeter = meter },
+                            shape = SegmentedButtonDefaults.itemShape(index, EnergyMeter.entries.size)
+                        ) {
+                            Text(
+                                stringResource(
+                                    if (meter == EnergyMeter.VEHICLE) R.string.energy_meter_vehicle
+                                    else R.string.energy_meter_charger
+                                )
+                            )
+                        }
+                    }
+                }
                 DecimalField(stringResource(R.string.add_session_field_price_per_kwh), pricePerKwh, stringResource(R.string.field_optional_placeholder)) { pricePerKwh = it }
                 DecimalField(stringResource(R.string.add_session_field_total_price), priceTotal, stringResource(R.string.field_optional_placeholder)) { priceTotal = it }
             }
@@ -402,6 +435,7 @@ fun AddEditSessionScreen(
         AddEditProviderModal(provider = null, onDismiss = { showAddProvider = false }) { newProvider ->
             providerList = providerList + newProvider
             providerId = newProvider.id
+            energyMeter = providerDefaultMeter()
             showAddProvider = false
         }
     }

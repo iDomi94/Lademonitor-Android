@@ -223,6 +223,8 @@
     <string name="provider_field_price_ac">Preis AC/kWh (€, optional)</string>
     <string name="provider_field_price_dc">Preis DC/kWh (€, optional)</string>
     <string name="provider_price_hint">Diese Preise dienen als Vorschlag und werden bei jedem Ladevorgang mit Preis automatisch aktualisiert.</string>
+    <string name="provider_energy_meter_vehicle">kWh misst das Fahrzeug</string>
+    <string name="provider_energy_meter_hint">Im Fahrzeug abgelesene kWh enthalten keine Ladeverluste. Solche Ladevorgänge fallen bei der Auswertung der Ladeverluste heraus, zählen aber weiter für den Akku-Index.</string>
 
     <!-- Shared -->
     <string name="action_search">Suchen</string>
@@ -263,6 +265,7 @@
     <string name="session_detail_section_battery_energy">Akkustand &amp; Energie</string>
     <string name="session_detail_label_soc">SoC</string>
     <string name="session_detail_estimated_suffix"> (geschätzt)</string>
+    <string name="session_detail_vehicle_measured_suffix"> (an Fahrzeug abgelesen)</string>
     <string name="session_detail_label_kwh">kWh</string>
     <string name="session_detail_label_odometer">Kilometerstand</string>
     <string name="session_detail_label_outside_temp">Außentemperatur</string>
@@ -286,6 +289,9 @@
     <string name="add_session_soc_toggle_label">SoC-Werte angeben</string>
     <string name="add_session_soc_end_label">Ende</string>
     <string name="add_session_section_energy_price">Energie &amp; Preis</string>
+    <string name="add_session_energy_meter_label">kWh abgelesen an</string>
+    <string name="energy_meter_charger">Ladesäule</string>
+    <string name="energy_meter_vehicle">Fahrzeug</string>
     <string name="add_session_kwh_placeholder">automatisch, falls leer</string>
     <string name="add_session_field_price_per_kwh">Preis/kWh (€)</string>
     <string name="add_session_field_total_price">Gesamtpreis (€)</string>
@@ -611,6 +617,7 @@
     <string name="battery_by_provider">Ladeverluste nach Anbieter</string>
     <string name="battery_explanation">Grundlage sind nur Ladevorgänge mit echter kWh-Angabe (Rechnung, Wallbox, Import) und mindestens %1$d Prozentpunkten SoC-Hub. Die scheinbare Kapazität ist, was eine Ladung von 0 auf 100 %% am Zähler kosten würde. Der Verlust ist der Mehrbedarf gegenüber der Akkukapazität des Fahrzeugs – bei einem gealterten Akku fällt er etwas zu klein aus; belastbar ist vor allem der Unterschied zwischen AC und DC.</string>
     <string name="battery_excluded">%1$d Ladevorgänge nicht berücksichtigt, davon %2$d mit geschätzter Energie</string>
+    <string name="battery_vehicle_measured">%1$d Ladevorgänge im Fahrzeug abgelesen – zählen im Akku-Index, nicht bei den Ladeverlusten</string>
     <string name="battery_health">Akku-Gesundheit</string>
     <string name="battery_health_none">Für einen Verlauf reichen die Daten noch nicht (mindestens drei Ladevorgänge je Lade-Art und zwei je Quartal).</string>
     <string name="battery_health_label">Akku-Index gegenüber Beginn der Aufzeichnung, letztes Quartal</string>

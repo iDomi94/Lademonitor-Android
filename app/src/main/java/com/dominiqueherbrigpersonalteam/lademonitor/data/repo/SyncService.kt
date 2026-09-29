@@ -12,6 +12,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalStore
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
@@ -335,7 +336,8 @@ object SyncService {
                 }
                 val payload = ProviderPayload(
                     name = provider.name, lastPriceAcPerKwh = provider.lastPriceAcPerKwh,
-                    lastPriceDcPerKwh = provider.lastPriceDcPerKwh, notes = provider.notes
+                    lastPriceDcPerKwh = provider.lastPriceDcPerKwh, notes = provider.notes,
+                    energyMeter = provider.energyMeter
                 )
                 if (provider.serverId != null) {
                     ApiClient.updateProvider(provider.serverId!!, payload)
@@ -459,7 +461,14 @@ object SyncService {
                     longitude = session.longitude,
                     geocodedPlace = session.geocodedPlace,
                     notes = session.notes,
-                    needsReview = session.needsReview
+                    needsReview = session.needsReview,
+                    // Immer der wirksame Wert statt des Rohwerts: null wuerde nicht gesendet und
+                    // liesse eine fruehere Uebersteuerung auf dem Server stehen. Der Server legt
+                    // eine Wahl gleich dem Standard des Anbieters selbst als null ab.
+                    energyMeter = EnergyMeter.effective(
+                        session.energyMeter,
+                        session.providerId?.let { providers.find(it)?.energyMeter }
+                    ).raw
                 )
                 if (session.serverId != null) {
                     ApiClient.updateSession(session.serverId!!, payload)
@@ -540,13 +549,15 @@ object SyncService {
                     existing.lastPriceAcPerKwh = sp.lastPriceAcPerKwh
                     existing.lastPriceDcPerKwh = sp.lastPriceDcPerKwh
                     existing.notes = sp.notes
+                    existing.energyMeter = sp.energyMeter
                     providers.upsert(existing)
                 }
             } else {
                 providers.upsert(
                     LocalProvider(
                         serverId = sp.id, name = sp.name, lastPriceAcPerKwh = sp.lastPriceAcPerKwh,
-                        lastPriceDcPerKwh = sp.lastPriceDcPerKwh, notes = sp.notes, isDirty = false
+                        lastPriceDcPerKwh = sp.lastPriceDcPerKwh, notes = sp.notes,
+                        energyMeter = sp.energyMeter, isDirty = false
                     )
                 )
             }
@@ -623,7 +634,8 @@ object SyncService {
                         priceTotal = ss.priceTotal, pricePerKwh = ss.pricePerKwh,
                         latitude = ss.latitude, longitude = ss.longitude, geocodedPlace = ss.geocodedPlace,
                         notes = ss.notes, source = ss.source, needsReview = ss.needsReview,
-                        externalSessionId = ss.externalSessionId, isDirty = false
+                        externalSessionId = ss.externalSessionId, energyMeter = ss.energyMeter,
+                        isDirty = false
                     )
                 )
             }
@@ -653,6 +665,8 @@ object SyncService {
         session.source = dto.source
         session.needsReview = dto.needsReview
         session.externalSessionId = dto.externalSessionId
+        // Rohwert (null = folgt dem Anbieter), nicht energy_meter_effective.
+        session.energyMeter = dto.energyMeter
     }
 
     // NOTE: like the iOS version, rows that vanish from a pull are intentionally NOT auto-deleted

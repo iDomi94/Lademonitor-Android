@@ -11,6 +11,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingType
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
@@ -137,7 +138,8 @@ object LocalDataStore {
             name = payload.name ?: "",
             lastPriceAcPerKwh = payload.lastPriceAcPerKwh,
             lastPriceDcPerKwh = payload.lastPriceDcPerKwh,
-            notes = payload.notes
+            notes = payload.notes,
+            energyMeter = EnergyMeter.from(payload.energyMeter)?.raw ?: EnergyMeter.CHARGER.raw
         )
         providers.upsert(provider)
         return provider.asDTO()
@@ -149,6 +151,7 @@ object LocalDataStore {
         payload.lastPriceAcPerKwh?.let { provider.lastPriceAcPerKwh = it }
         payload.lastPriceDcPerKwh?.let { provider.lastPriceDcPerKwh = it }
         payload.notes?.let { provider.notes = it }
+        EnergyMeter.from(payload.energyMeter)?.let { provider.energyMeter = it.raw }
         provider.updatedAt = System.currentTimeMillis()
         provider.isDirty = true
         providers.upsert(provider)
@@ -337,12 +340,17 @@ object LocalDataStore {
             geocodedPlace = payload.geocodedPlace,
             notes = payload.notes,
             source = "manual",
-            needsReview = payload.needsReview ?: false
+            needsReview = payload.needsReview ?: false,
+            energyMeter = EnergyMeter.normalizedOverride(payload.energyMeter, providerEnergyMeter(payload.providerId))
         )
         sessions.upsert(session)
         updateProviderPriceMemory(payload.providerId, ChargingType.from(payload.chargingType), payload.pricePerKwh)
         return decorateOne(session.asDTO())
     }
+
+    /** Standard-Messort des Anbieters (lokale oder Server-ID), null ohne Anbieter. */
+    private suspend fun providerEnergyMeter(providerRef: String?): String? =
+        providerRef?.let { providers.find(it)?.energyMeter }
 
     suspend fun updateSession(id: String, payload: ChargingSessionPayload): ChargingSession {
         val session = sessions.find(id) ?: throw LocalStoreException.notFound()
@@ -382,6 +390,10 @@ object LocalDataStore {
         payload.geocodedPlace?.let { session.geocodedPlace = it }
         payload.notes?.let { session.notes = it }
         payload.needsReview?.let { session.needsReview = it }
+        // Nach dem Anbieter: normalisiert wird gegen den Standard des (ggf. neuen) Anbieters.
+        payload.energyMeter?.let {
+            session.energyMeter = EnergyMeter.normalizedOverride(it, providerEnergyMeter(session.providerId))
+        }
         session.updatedAt = System.currentTimeMillis()
         session.isDirty = true
         sessions.upsert(session)

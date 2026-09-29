@@ -223,6 +223,8 @@
     <string name="provider_field_price_ac">AC price/kWh (€, optional)</string>
     <string name="provider_field_price_dc">DC price/kWh (€, optional)</string>
     <string name="provider_price_hint">These prices serve as a suggestion and are updated automatically with every charging session that has a price.</string>
+    <string name="provider_energy_meter_vehicle">kWh measured by the vehicle</string>
+    <string name="provider_energy_meter_hint">kWh read in the vehicle contain no charging losses. Such sessions are left out of the charging-loss evaluation but still count for the battery index.</string>
 
     <!-- Shared -->
     <string name="action_search">Search</string>
@@ -263,6 +265,7 @@
     <string name="session_detail_section_battery_energy">Battery &amp; energy</string>
     <string name="session_detail_label_soc">SoC</string>
     <string name="session_detail_estimated_suffix"> (estimated)</string>
+    <string name="session_detail_vehicle_measured_suffix"> (read in vehicle)</string>
     <string name="session_detail_label_kwh">kWh</string>
     <string name="session_detail_label_odometer">Odometer reading</string>
     <string name="session_detail_label_outside_temp">Outside temperature</string>
@@ -286,6 +289,9 @@
     <string name="add_session_soc_toggle_label">Enter SoC values</string>
     <string name="add_session_soc_end_label">End</string>
     <string name="add_session_section_energy_price">Energy &amp; price</string>
+    <string name="add_session_energy_meter_label">kWh read at</string>
+    <string name="energy_meter_charger">Charger</string>
+    <string name="energy_meter_vehicle">Vehicle</string>
     <string name="add_session_kwh_placeholder">automatic if empty</string>
     <string name="add_session_field_price_per_kwh">Price/kWh (€)</string>
     <string name="add_session_field_total_price">Total price (€)</string>
@@ -610,6 +616,7 @@
     <string name="battery_by_provider">Charging losses by provider</string>
     <string name="battery_explanation">Only sessions with a real kWh value (invoice, wallbox, import) and at least %1$d percentage points of SoC range are used. The apparent capacity is what charging from 0 to 100 %% would cost at the meter. The loss is the extra energy compared with the vehicle\'s battery capacity – with an aged battery it comes out slightly too low; the difference between AC and DC is the most reliable part.</string>
     <string name="battery_excluded">%1$d charging sessions not used, %2$d of them with estimated energy</string>
+    <string name="battery_vehicle_measured">%1$d charging sessions read in the vehicle – they count for the battery index, not for the charging losses</string>
     <string name="battery_health">Battery health</string>
     <string name="battery_health_none">There is not enough data for a history yet (at least three sessions per charging type and two per quarter).</string>
     <string name="battery_health_label">Battery index compared with the start of the records, last quarter</string>

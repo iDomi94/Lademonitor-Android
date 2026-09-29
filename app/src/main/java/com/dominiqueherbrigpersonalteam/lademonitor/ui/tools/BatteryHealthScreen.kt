@@ -120,6 +120,9 @@ fun BatteryHealthScreen(navController: NavController) {
                     if (selected.excluded.total > 0) {
                         Footnote(stringResource(R.string.battery_excluded, selected.excluded.total, selected.excluded.estimatedEnergy))
                     }
+                    if (selected.excluded.vehicleMeasured > 0) {
+                        Footnote(stringResource(R.string.battery_vehicle_measured, selected.excluded.vehicleMeasured))
+                    }
                 }
             }
         }
