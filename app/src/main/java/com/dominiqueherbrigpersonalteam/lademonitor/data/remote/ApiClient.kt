@@ -23,6 +23,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.RegisterCredentials
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.BatteryStats
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireComparison
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireOverview
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSet
@@ -433,4 +434,8 @@ object ApiClient {
         val path = "/api/stats/temperature" + if (params.isEmpty()) "" else "?" + params.joinToString("&")
         return send(path, type = TemperatureStats::class.java)
     }
+
+    /** Akku-Index und Ladeverluste je Fahrzeug (Server ab 0.28.0). Nur im Server-Modus. */
+    suspend fun fetchBatteryStats(): BatteryStats =
+        send("/api/stats/battery", type = BatteryStats::class.java)
 }

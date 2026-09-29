@@ -50,6 +50,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ProvidersSetting
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.SettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.TiresSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehiclesSettingsScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.BatteryHealthScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.CombustionComparisonScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.PublicProvidersScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.TariffCalculatorScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.ToolsScreen
@@ -181,6 +183,8 @@ private fun MainScaffold() {
                 arguments = listOf(navArgument("providerId") { type = NavType.StringType; nullable = true; defaultValue = null })
             ) { entry -> TariffCalculatorScreen(navController, entry.arguments?.getString("providerId")) }
             composable("tools/public-providers") { PublicProvidersScreen(navController) }
+            composable("tools/combustion") { CombustionComparisonScreen(navController) }
+            composable("tools/battery") { BatteryHealthScreen(navController) }
             composable(Tab.SETTINGS.route) { SettingsScreen(navController) }
             composable("settings/vehicles") { VehiclesSettingsScreen(navController) }
             composable("settings/providers") { ProvidersSettingsScreen(navController) }

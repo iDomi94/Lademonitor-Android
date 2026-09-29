@@ -113,14 +113,15 @@ object AppRepository {
     }
 
     suspend fun createSession(payload: ChargingSessionPayload): ChargingSession =
-        LocalDataStore.createSession(payload).also { syncAfterWrite() }
+        LocalDataStore.createSession(payload).also { syncAfterWrite(); WidgetSnapshotWriter.refreshAsync() }
 
     suspend fun updateSession(id: String, payload: ChargingSessionPayload): ChargingSession =
-        LocalDataStore.updateSession(id, payload).also { syncAfterWrite() }
+        LocalDataStore.updateSession(id, payload).also { syncAfterWrite(); WidgetSnapshotWriter.refreshAsync() }
 
     suspend fun deleteSession(id: String) {
         LocalDataStore.deleteSession(id)
         syncAfterWrite()
+        WidgetSnapshotWriter.refreshAsync()
     }
 
     // MARK: - Stats (always computed locally, so the dashboard is never empty offline)

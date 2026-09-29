@@ -547,4 +547,86 @@
     <string name="settings_nav_public_providers">Tariff calculator: public providers</string>
     <string name="provider_tariff_link">Is the tariff worth it?</string>
     <string name="provider_tariff_hint">Uses the saved prices and base fees of this provider.</string>
+
+    <!-- Combustion comparison -->
+    <string name="tools_combustion_title">Compared with a combustion car</string>
+    <string name="tools_combustion_subtitle">What the same kilometres would have cost with petrol or diesel, and how much CO₂</string>
+    <string name="combustion_mode_total">Period</string>
+    <string name="combustion_mode_per100km">Per 100 km</string>
+    <string name="combustion_mode_lifecycle">Lifecycle</string>
+    <string name="combustion_section_data">Your data</string>
+    <string name="combustion_period_year">Last 12 months</string>
+    <string name="combustion_period_all">Entire history</string>
+    <string name="combustion_driven">Driven</string>
+    <string name="combustion_charged">Charged</string>
+    <string name="combustion_paid">Paid</string>
+    <string name="combustion_no_data">There are no charging sessions with an odometer reading in this period.</string>
+    <string name="combustion_data_footer">Kilometres from the odometer readings of your charging sessions, costs including base fees. Sessions without a price (e.g. free charging at work) count as 0 €.</string>
+    <string name="combustion_section_vehicle">Comparison vehicle</string>
+    <string name="combustion_petrol">Petrol</string>
+    <string name="combustion_diesel">Diesel</string>
+    <string name="combustion_consumption">Consumption</string>
+    <string name="combustion_price">Price per litre</string>
+    <string name="combustion_vehicle_footer">The marker shows a typical value for a comparable combustion car. Maintenance, tax and depreciation are not included.</string>
+    <string name="combustion_section_co2">CO₂</string>
+    <string name="combustion_grid">CO₂ per kWh of electricity</string>
+    <string name="combustion_co2_footer">The default is the German grid mix. Lower it for green electricity or your own solar power. For fuel only combustion counts (%1$s kg per litre), without the upstream chain – the Lifecycle view adds it.</string>
+    <string name="combustion_section_lifecycle">Lifecycle</string>
+    <string name="combustion_lifetime">Lifetime mileage</string>
+    <string name="combustion_battery_kwh">Battery size</string>
+    <string name="combustion_battery_co2">CO₂ per kWh of battery</string>
+    <string name="combustion_battery_marker">Marker: your vehicle\'s battery capacity</string>
+    <string name="combustion_lifecycle_footer">Building the vehicle without its battery counts the same for both (about 7 t CO₂); the EV adds its battery. Studies put that at 60 to 100 kg per kWh. For fuel the upstream chain (extraction, refinery, transport) is added here; for electricity it is already part of the emission factor. Consumption and cost per km come from the period you selected.</string>
+    <string name="combustion_saved">Saved compared with combustion</string>
+    <string name="combustion_extra">Extra cost compared with combustion</string>
+    <string name="combustion_cheaper_per_100km">Cheaper per 100 km</string>
+    <string name="combustion_dearer_per_100km">More expensive per 100 km</string>
+    <string name="combustion_co2_less_over">Less CO₂ over %1$s</string>
+    <string name="combustion_co2_more_over">More CO₂ over %1$s</string>
+    <string name="combustion_detail">Combustion %1$s (%2$s l), electric %3$s</string>
+    <string name="combustion_co2_line">CO₂: %1$s kg instead of %2$s kg</string>
+    <string name="combustion_break_even">Same cost at %1$s per litre</string>
+    <string name="combustion_per100_energy">%1$s kWh instead of %2$s l %3$s</string>
+    <string name="combustion_per100_cost">Cost: %1$s instead of %2$s</string>
+    <string name="combustion_lifecycle_total">Total %1$s instead of %2$s, of which production %3$s instead of %4$s</string>
+    <string name="combustion_lifecycle_per100">Per 100 km incl. production: %1$s kg instead of %2$s kg CO₂</string>
+    <string name="combustion_lifecycle_energy_cost">Energy cost: %1$s instead of %2$s</string>
+    <string name="combustion_lifecycle_break_even">Production footprint paid back after %1$s</string>
+    <string name="combustion_lifecycle_never">Not cleaner in use – the production footprint is never paid back</string>
+    <string name="combustion_edit_consumption">Consumption (l/100 km)</string>
+    <string name="combustion_edit_price">Price per litre (€)</string>
+    <string name="combustion_edit_grid">CO₂ per kWh (g)</string>
+    <string name="combustion_edit_lifetime">Lifetime mileage (km)</string>
+    <string name="combustion_edit_battery_kwh">Battery size (kWh)</string>
+    <string name="combustion_edit_battery_co2">CO₂ per kWh of battery (kg)</string>
+
+    <!-- Battery and charging losses -->
+    <string name="tools_battery_title">Battery and charging losses</string>
+    <string name="tools_battery_subtitle">How much is lost while charging and whether the battery takes less over time</string>
+    <string name="battery_server_only">This analysis is computed by the Lademonitor server. It is not available in the “Local only on this device” mode.</string>
+    <string name="battery_unavailable">This analysis needs Lademonitor server 0.28.0 or newer and a connection to it.</string>
+    <string name="battery_empty">There are no charging sessions with a measured kWh value and enough SoC range yet. Automatically detected sessions do not count, their energy is itself estimated.</string>
+    <string name="battery_by_type">Charging losses by type</string>
+    <string name="battery_by_provider">Charging losses by provider</string>
+    <string name="battery_explanation">Only sessions with a real kWh value (invoice, wallbox, import) and at least %1$d percentage points of SoC range are used. The apparent capacity is what charging from 0 to 100 %% would cost at the meter. The loss is the extra energy compared with the vehicle\'s battery capacity – with an aged battery it comes out slightly too low; the difference between AC and DC is the most reliable part.</string>
+    <string name="battery_excluded">%1$d charging sessions not used, %2$d of them with estimated energy</string>
+    <string name="battery_health">Battery health</string>
+    <string name="battery_health_none">There is not enough data for a history yet (at least three sessions per charging type and two per quarter).</string>
+    <string name="battery_health_label">Battery index compared with the start of the records, last quarter</string>
+    <string name="battery_health_trend">Trend %1$s per year</string>
+    <string name="battery_health_footer" formatted="false">100 % = as at the start of the records. AC and DC are each compared with their own start. Not an absolute state of health (SoH), but it shows whether the battery takes less over time.</string>
+    <string name="battery_without_provider">Without provider</string>
+    <string name="battery_unknown_type">Charging type unknown</string>
+    <string name="battery_group_detail">%1$d sessions · apparent %2$s kWh</string>
+    <string name="battery_no_nominal">Without a battery capacity stored on the vehicle, losses cannot be given in percent.</string>
+
+    <!-- Home screen widget -->
+    <string name="widget_description">Cost and energy for the current month and your last charging session.</string>
+    <string name="widget_placeholder">Open the app once and your figures will appear here.</string>
+    <string name="widget_last_title">Last charged</string>
+    <string name="widget_no_session">No charging session yet</string>
+    <plurals name="widget_sessions">
+        <item quantity="one">%1$d charging session</item>
+        <item quantity="other">%1$d charging sessions</item>
+    </plurals>
 </resources>

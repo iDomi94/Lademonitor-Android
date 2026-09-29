@@ -807,3 +807,74 @@ data class ProviderFeePayload(
     val label: String? = null,
     val notes: String? = null
 )
+
+// MARK: - Akku-Gesundheit und Ladeverluste
+
+/**
+ * Antwort von `GET /api/stats/battery` (Server ab 0.28.0): Akku-Index und Ladeverluste je
+ * Fahrzeug. Wie die Temperaturauswertung bewusst NUR im Server-Modus - die Regeln liegen allein
+ * in `battery.py`, ein Nachbau hier wuerde frueher oder spaeter andere Zahlen zeigen.
+ */
+@JsonClass(generateAdapter = true)
+data class BatteryStats(
+    val vehicles: List<BatteryVehicleStats> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class BatteryVehicleStats(
+    @Json(name = "vehicle_id") val vehicleId: String,
+    @Json(name = "vehicle_name") val vehicleName: String,
+    @Json(name = "nominal_capacity_kwh") val nominalCapacityKwh: Double? = null,
+    val points: List<BatteryPoint> = emptyList(),
+    @Json(name = "losses_by_type") val lossesByType: List<BatteryLossGroup> = emptyList(),
+    @Json(name = "losses_by_provider") val lossesByProvider: List<BatteryLossGroup> = emptyList(),
+    /** Index 100 = wie zu Beginn der Aufzeichnung, je Quartal. */
+    @Json(name = "health_periods") val healthPeriods: List<BatteryHealthPeriod> = emptyList(),
+    @Json(name = "health_latest_index_pct") val healthLatestIndexPct: Double? = null,
+    @Json(name = "health_trend_pct_per_year") val healthTrendPctPerYear: Double? = null,
+    val excluded: BatteryExclusions = BatteryExclusions(),
+    @Json(name = "min_soc_delta") val minSocDelta: Int = 20
+)
+
+@JsonClass(generateAdapter = true)
+data class BatteryPoint(
+    @Json(name = "session_id") val sessionId: String,
+    @ServerDate @Json(name = "start_time") val startTime: Long,
+    /** "AC", "DC" oder "unknown" */
+    @Json(name = "charging_type") val chargingType: String,
+    @Json(name = "soc_delta") val socDelta: Int,
+    @Json(name = "energy_kwh") val energyKwh: Double,
+    @Json(name = "apparent_capacity_kwh") val apparentCapacityKwh: Double,
+    @Json(name = "loss_pct") val lossPct: Double? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class BatteryLossGroup(
+    /** Lade-Art (AC/DC/unknown) bzw. Anbietername ("" = ohne Anbieter). */
+    val key: String,
+    @Json(name = "session_count") val sessionCount: Int,
+    @Json(name = "energy_kwh") val energyKwh: Double,
+    @Json(name = "apparent_capacity_kwh") val apparentCapacityKwh: Double,
+    /** Mehrbedarf gegenueber der Nennkapazitaet in Prozent. */
+    @Json(name = "loss_pct") val lossPct: Double? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class BatteryHealthPeriod(
+    /** "2026-Q3" */
+    val period: String,
+    @Json(name = "index_pct") val indexPct: Double,
+    @Json(name = "session_count") val sessionCount: Int
+) {
+    val label: String get() = period.replace("-", " ")
+}
+
+@JsonClass(generateAdapter = true)
+data class BatteryExclusions(
+    @Json(name = "estimated_energy") val estimatedEnergy: Int = 0,
+    @Json(name = "missing_values") val missingValues: Int = 0,
+    @Json(name = "small_soc_delta") val smallSocDelta: Int = 0,
+    val implausible: Int = 0
+) {
+    val total: Int get() = estimatedEnergy + missingValues + smallSocDelta + implausible
+}
