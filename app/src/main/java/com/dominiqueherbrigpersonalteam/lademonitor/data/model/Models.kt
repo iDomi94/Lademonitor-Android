@@ -67,6 +67,36 @@ enum class TemperatureSource(val raw: String, @param:StringRes val labelRes: Int
     }
 }
 
+/**
+ * Wo die kWh eines Ladevorgangs abgelesen wurden (Server ab 0.29.0): an der Ladesaeule bzw.
+ * Wallbox (enthaelt die Ladeverluste) oder im Fahrzeug (ohne Ladeverluste). Der Anbieter traegt
+ * den Standard, ein Ladevorgang kann ihn uebersteuern (`null` = folgt dem Anbieter). Die
+ * Akku-Auswertung laesst im Fahrzeug abgelesene Vorgaenge bei den Ladeverlusten weg, zaehlt sie
+ * aber im Akku-Index mit.
+ */
+enum class EnergyMeter(val raw: String) {
+    CHARGER("charger"),
+    VEHICLE("vehicle");
+
+    companion object {
+        fun from(raw: String?): EnergyMeter? = entries.firstOrNull { it.raw == raw }
+
+        /** Uebersteuerung am Vorgang, sonst Standard des Anbieters, sonst Ladesaeule. */
+        fun effective(sessionOverride: String?, providerDefault: String?): EnergyMeter =
+            from(sessionOverride) ?: from(providerDefault) ?: CHARGER
+
+        /**
+         * Was am Vorgang gespeichert wird - dieselbe Regel wie serverseitig: eine Wahl, die dem
+         * Standard des Anbieters entspricht, wird als `null` abgelegt, damit der Vorgang einer
+         * spaeteren Aenderung am Anbieter folgt.
+         */
+        fun normalizedOverride(choice: String?, providerDefault: String?): String? {
+            val c = from(choice) ?: return null
+            return if (c == (from(providerDefault) ?: CHARGER)) null else c.raw
+        }
+    }
+}
+
 enum class ConsumptionMethod(
     val raw: String,
     val marker: String,
@@ -116,7 +146,12 @@ data class Provider(
     val name: String,
     @Json(name = "last_price_ac_per_kwh") val lastPriceAcPerKwh: Double? = null,
     @Json(name = "last_price_dc_per_kwh") val lastPriceDcPerKwh: Double? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    /**
+     * Wo die kWh bei diesem Anbieter standardmaessig abgelesen werden ("charger" | "vehicle",
+     * siehe [EnergyMeter]). Ein Server vor 0.29.0 schickt das Feld nicht - dann Ladesaeule.
+     */
+    @Json(name = "energy_meter") val energyMeter: String = EnergyMeter.CHARGER.raw
 )
 
 @JsonClass(generateAdapter = true)
@@ -172,8 +207,18 @@ data class ChargingSession(
      * Vorgaenge der Periode umgelegt. Steckt NICHT in [priceTotal] - das bleibt der Saeulenpreis.
      * Nur lesend und lokal immer frisch berechnet ([com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalFeeAllocator]).
      */
-    @Json(name = "fee_share") val feeShare: Double? = null
+    @Json(name = "fee_share") val feeShare: Double? = null,
+    /**
+     * Uebersteuerung des Messorts der kWh (Server ab 0.29.0) - roh, `null` = folgt dem Anbieter.
+     * Das vom Server zusaetzlich gelieferte `energy_meter_effective` wird bewusst nicht
+     * uebernommen: gespiegelt wird nur der Rohwert, wirksam ist [effectiveEnergyMeter].
+     */
+    @Json(name = "energy_meter") val energyMeter: String? = null
 ) {
+    /** Uebersteuerung am Vorgang, sonst Standard des Anbieters aus [providers], sonst Ladesaeule. */
+    fun effectiveEnergyMeter(providers: List<Provider>): EnergyMeter =
+        EnergyMeter.effective(energyMeter, providers.firstOrNull { it.id == providerId }?.energyMeter)
+
     /** Saeulenpreis plus Grundgebuehranteil; `null` nur, wenn beides fehlt. */
     val effectiveTotal: Double?
         get() = if (priceTotal == null && feeShare == null) null else (priceTotal ?: 0.0) + (feeShare ?: 0.0)
@@ -201,7 +246,9 @@ data class ProviderPayload(
     val name: String? = null,
     @Json(name = "last_price_ac_per_kwh") val lastPriceAcPerKwh: Double? = null,
     @Json(name = "last_price_dc_per_kwh") val lastPriceDcPerKwh: Double? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    /** "charger" | "vehicle"; null = unveraendert. */
+    @Json(name = "energy_meter") val energyMeter: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -236,7 +283,14 @@ data class ChargingSessionPayload(
     val longitude: Double? = null,
     @Json(name = "geocoded_place") val geocodedPlace: String? = null,
     val notes: String? = null,
-    @Json(name = "needs_review") val needsReview: Boolean? = null
+    @Json(name = "needs_review") val needsReview: Boolean? = null,
+    /**
+     * Messort der kWh als ausdrueckliche Wahl ("charger" | "vehicle"), null = unveraendert.
+     * Bewusst immer ein Wert statt `null` fuer "folgt dem Anbieter": null wird nicht gesendet
+     * (`encode`), liesse sich also nie zuruecksetzen. Der Server wie auch der lokale Speicher
+     * legen eine Wahl, die dem Standard des Anbieters entspricht, selbst als null ab.
+     */
+    @Json(name = "energy_meter") val energyMeter: String? = null
 )
 
 // MARK: - Auth
@@ -845,7 +899,9 @@ data class BatteryPoint(
     @Json(name = "soc_delta") val socDelta: Int,
     @Json(name = "energy_kwh") val energyKwh: Double,
     @Json(name = "apparent_capacity_kwh") val apparentCapacityKwh: Double,
-    @Json(name = "loss_pct") val lossPct: Double? = null
+    @Json(name = "loss_pct") val lossPct: Double? = null,
+    /** "charger" | "vehicle" (Server ab 0.29.0), wirksamer Messort der kWh. */
+    @Json(name = "energy_meter") val energyMeter: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -874,7 +930,12 @@ data class BatteryExclusions(
     @Json(name = "estimated_energy") val estimatedEnergy: Int = 0,
     @Json(name = "missing_values") val missingValues: Int = 0,
     @Json(name = "small_soc_delta") val smallSocDelta: Int = 0,
-    val implausible: Int = 0
+    val implausible: Int = 0,
+    /**
+     * Im Fahrzeug abgelesene Vorgaenge (Server ab 0.29.0). Sie zaehlen im Akku-Index mit, fehlen
+     * aber bei den Ladeverlusten - deshalb NICHT Teil von [total].
+     */
+    @Json(name = "vehicle_measured") val vehicleMeasured: Int = 0
 ) {
     val total: Int get() = estimatedEnergy + missingValues + smallSocDelta + implausible
 }

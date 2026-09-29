@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
@@ -57,14 +58,21 @@ data class LocalProvider(
     var createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis(),
     var isDirty: Boolean = true,
-    var pendingDelete: Boolean = false
+    var pendingDelete: Boolean = false,
+    /**
+     * Messort der kWh bei diesem Anbieter ("charger" | "vehicle", Room 4 -> 5). Bewusst nullable
+     * ohne Default in der Tabelle: `null` gilt als Ladesaeule, und die Migration braucht so keinen
+     * DEFAULT, der exakt zu Rooms Schemapruefung passen muesste.
+     */
+    var energyMeter: String? = "charger"
 ) {
     fun asDTO() = Provider(
         id = serverId ?: localId,
         name = name,
         lastPriceAcPerKwh = lastPriceAcPerKwh,
         lastPriceDcPerKwh = lastPriceDcPerKwh,
-        notes = notes
+        notes = notes,
+        energyMeter = energyMeter ?: EnergyMeter.CHARGER.raw
     )
 }
 
@@ -127,7 +135,12 @@ data class LocalChargingSession(
     var createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis(),
     var isDirty: Boolean = true,
-    var pendingDelete: Boolean = false
+    var pendingDelete: Boolean = false,
+    /**
+     * Uebersteuerung des Messorts der kWh (Room 4 -> 5), roh wie vom Server: `null` = folgt dem
+     * Anbieter (siehe Models.EnergyMeter).
+     */
+    var energyMeter: String? = null
 ) {
     /** Consumption fields are decorated later by the LocalConsumptionCalculator, hence null here. */
     fun asDTO() = ChargingSession(
@@ -155,7 +168,8 @@ data class LocalChargingSession(
         notes = notes,
         source = source,
         needsReview = needsReview,
-        externalSessionId = externalSessionId
+        externalSessionId = externalSessionId,
+        energyMeter = energyMeter
     )
 }
 

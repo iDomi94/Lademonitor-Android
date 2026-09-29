@@ -22,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.dominiqueherbrigpersonalteam.lademonitor.R
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
@@ -131,6 +133,7 @@ fun AddEditProviderModal(
     var priceAc by remember { mutableStateOf(provider?.lastPriceAcPerKwh?.let { Fmt.n("%.4f", it) } ?: "") }
     var priceDc by remember { mutableStateOf(provider?.lastPriceDcPerKwh?.let { Fmt.n("%.4f", it) } ?: "") }
     var notes by remember { mutableStateOf(provider?.notes ?: "") }
+    var vehicleMeasured by remember { mutableStateOf(EnergyMeter.from(provider?.energyMeter) == EnergyMeter.VEHICLE) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -143,7 +146,8 @@ fun AddEditProviderModal(
                 name = name.trim(),
                 lastPriceAcPerKwh = priceAc.replace(",", ".").toDoubleOrNull(),
                 lastPriceDcPerKwh = priceDc.replace(",", ".").toDoubleOrNull(),
-                notes = notes.trim().ifEmpty { null }
+                notes = notes.trim().ifEmpty { null },
+                energyMeter = (if (vehicleMeasured) EnergyMeter.VEHICLE else EnergyMeter.CHARGER).raw
             )
             try {
                 val saved = if (provider != null) AppRepository.updateProvider(provider.id, payload)
@@ -167,6 +171,13 @@ fun AddEditProviderModal(
                 OutlinedTextField(value = priceAc, onValueChange = { priceAc = it }, label = { Text(stringResource(R.string.provider_field_price_ac)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = priceDc, onValueChange = { priceDc = it }, label = { Text(stringResource(R.string.provider_field_price_dc)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
                 Text(stringResource(R.string.provider_price_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // Messort der kWh: Standard fuer alle Ladevorgaenge dieses Anbieters, am einzelnen
+                // Vorgang uebersteuerbar. Steuert, ob der Vorgang in die Ladeverluste eingeht.
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.provider_energy_meter_vehicle), Modifier.weight(1f))
+                    Switch(checked = vehicleMeasured, onCheckedChange = { vehicleMeasured = it })
+                }
+                Text(stringResource(R.string.provider_energy_meter_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.field_notes)) }, modifier = Modifier.fillMaxWidth())
                 if (onOpenTariffCalculator != null) {
                     TextButton(onClick = onOpenTariffCalculator) { Text(stringResource(R.string.provider_tariff_link)) }
