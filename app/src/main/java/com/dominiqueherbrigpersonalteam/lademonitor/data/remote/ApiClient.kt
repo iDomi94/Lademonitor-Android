@@ -28,6 +28,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireComparison
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireOverview
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSet
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSetPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireTreadMeasurement
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TreadMeasurementPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
@@ -282,6 +284,15 @@ object ApiClient {
         send("/api/tires/$id", "PATCH", encodeKeepingNulls(payload), type = TireSet::class.java)
 
     suspend fun deleteTireSet(id: String) = sendNoContent("/api/tires/$id", "DELETE")
+
+    /** Profilmessungen, neueste zuerst (Server ab 0.30.0). */
+    suspend fun fetchTreadMeasurements(vehicleId: String? = null): List<TireTreadMeasurement> =
+        send("/api/tires/tread" + query(vehicleId), type = listType(TireTreadMeasurement::class.java))
+
+    suspend fun createTreadMeasurement(tireSetId: String, payload: TreadMeasurementPayload): TireTreadMeasurement =
+        send("/api/tires/$tireSetId/tread", "POST", encode(payload), type = TireTreadMeasurement::class.java)
+
+    suspend fun deleteTreadMeasurement(id: String) = sendNoContent("/api/tires/tread/$id", "DELETE")
 
     /** Laufleistung, Dauer und Alter je Montage und je Satz. */
     suspend fun fetchTireOverview(vehicleId: String? = null): TireOverview =
