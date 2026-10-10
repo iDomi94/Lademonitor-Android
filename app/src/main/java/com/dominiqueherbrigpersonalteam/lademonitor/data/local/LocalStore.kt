@@ -19,7 +19,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LocalChargingSession::class,
         LocalProviderFee::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class LademonitorDatabase : RoomDatabase() {
@@ -111,6 +111,20 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+/**
+ * 5 -> 6: Ladeort-Art des Anbieters (Server ab 0.31.0) - `providers.chargingPlace`
+ * ("home" | "work" | "public").
+ *
+ * Nullable ohne Default, genau wie `energyMeter` in 4 -> 5: Bestandszeilen bekommen NULL, das
+ * gilt als "unterwegs" (wie serverseitig der Standard), und ohne DEFAULT gibt es nichts, was
+ * exakt zu Rooms Schemapruefung passen muesste.
+ */
+val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE providers ADD COLUMN chargingPlace TEXT")
+    }
+}
+
 object LocalStore {
     lateinit var db: LademonitorDatabase
         private set
@@ -126,6 +140,6 @@ object LocalStore {
             context.applicationContext,
             LademonitorDatabase::class.java,
             "lademonitor.db"
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build()
     }
 }

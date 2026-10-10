@@ -507,9 +507,8 @@
     <string name="tariff_mode_manual">Enter manually</string>
     <string name="tariff_auto_value">Avg. paid (%1$s)</string>
     <string name="tariff_auto_basis">from %1$d sessions in the last year</string>
-    <string name="tariff_auto_none">No matching sessions in the last year. Enter the price yourself or check which providers count as public.</string>
-    <string name="tariff_choose_public">Choose public providers</string>
-    <string name="tariff_auto_footer">Automatic: the average you paid per kWh at public chargers over the last 12 months, including base fee shares, weighted by kWh and only for the selected charging type. The provider whose values were taken does not count. Choose which providers count as public under “Public providers”.</string>
+    <string name="tariff_auto_none">No matching sessions in the last year. Enter the price yourself or check which providers are set to “On the road”.</string>
+    <string name="tariff_auto_footer">Automatic: the average you paid per kWh at public chargers over the last 12 months, including base fee shares, weighted by kWh and only for the selected charging type. The provider whose values were taken does not count. All providers with the charging place “On the road” count as public – set it on each provider.</string>
     <string name="tariff_manual_label">Price per kWh (€)</string>
     <string name="tariff_manual_placeholder">e.g. 0.69</string>
     <string name="tariff_manual_footer">The price per kWh you would pay without this tariff, e.g. the ad-hoc price at the charger.</string>
@@ -545,12 +544,6 @@
     <string name="tariff_edit_km">km per month</string>
     <string name="tariff_value_hint">Value</string>
     <string name="tariff_apply">Apply</string>
-    <string name="public_providers_title">Public providers</string>
-    <string name="public_providers_paid">Avg. %1$s paid, %2$d sessions</string>
-    <string name="public_providers_no_data">No sessions with a price in the last year</string>
-    <string name="public_providers_footer">Only providers switched on count towards the automatic price without tariff in the tariff calculator. Switch off private providers such as your own wallbox. New providers count as public automatically. The selection applies to this device only.</string>
-    <string name="settings_section_tools">Tools</string>
-    <string name="settings_nav_public_providers">Tariff calculator: public providers</string>
     <string name="provider_tariff_link">Is the tariff worth it?</string>
     <string name="provider_tariff_hint">Uses the saved prices and base fees of this provider.</string>
 
@@ -661,4 +654,15 @@
     <string name="tires_tread_low">below recommendation</string>
     <string name="tires_tread_legal_min">legal minimum</string>
     <string name="tires_mm">%1$s mm</string>
+    <string name="charging_place_home">Home</string>
+    <string name="charging_place_work">Work</string>
+    <string name="charging_place_public">On the road</string>
+    <string name="provider_charging_place_label">Charging place</string>
+    <string name="provider_charging_place_hint">Splits the dashboard into home, work and on the road. In the tariff calculator only providers set to “On the road” count towards the automatic price without tariff.</string>
+    <string name="dashboard_section_by_place">Home, work, on the road</string>
+    <string name="dashboard_place_price_per_kwh">%1$s € per kWh</string>
+    <plurals name="dashboard_place_sessions">
+        <item quantity="one">%1$d session</item>
+        <item quantity="other">%1$d sessions</item>
+    </plurals>
 </resources>

@@ -508,9 +508,8 @@
     <string name="tariff_mode_manual">Selbst eintragen</string>
     <string name="tariff_auto_value">Ø bezahlt (%1$s)</string>
     <string name="tariff_auto_basis">aus %1$d Ladevorgängen im letzten Jahr</string>
-    <string name="tariff_auto_none">Keine passenden Ladevorgänge im letzten Jahr. Trag den Preis selbst ein oder prüfe die Auswahl der öffentlichen Anbieter.</string>
-    <string name="tariff_choose_public">Öffentliche Anbieter auswählen</string>
-    <string name="tariff_auto_footer">Automatik: Durchschnitt dessen, was du in den letzten 12 Monaten an öffentlichen Ladesäulen pro kWh bezahlt hast, inklusive Grundgebührenanteilen, gewichtet nach kWh und nur für die gewählte Lade-Art. Der Anbieter, dessen Werte übernommen wurden, zählt nicht mit. Welche Anbieter als öffentlich zählen, stellst du unter „Öffentliche Anbieter“ ein.</string>
+    <string name="tariff_auto_none">Keine passenden Ladevorgänge im letzten Jahr. Trag den Preis selbst ein oder prüfe bei den Anbietern, welche als „Unterwegs“ eingestellt sind.</string>
+    <string name="tariff_auto_footer">Automatik: Durchschnitt dessen, was du in den letzten 12 Monaten an öffentlichen Ladesäulen pro kWh bezahlt hast, inklusive Grundgebührenanteilen, gewichtet nach kWh und nur für die gewählte Lade-Art. Der Anbieter, dessen Werte übernommen wurden, zählt nicht mit. Als öffentlich zählen alle Anbieter mit dem Ladeort „Unterwegs“ – einstellbar beim jeweiligen Anbieter.</string>
     <string name="tariff_manual_label">Preis je kWh (€)</string>
     <string name="tariff_manual_placeholder">z. B. 0,69</string>
     <string name="tariff_manual_footer">Der Preis, den du ohne diesen Tarif pro kWh zahlen würdest, z. B. der Ad-hoc-Preis an der Säule.</string>
@@ -546,12 +545,6 @@
     <string name="tariff_edit_km">km im Monat</string>
     <string name="tariff_value_hint">Wert</string>
     <string name="tariff_apply">Übernehmen</string>
-    <string name="public_providers_title">Öffentliche Anbieter</string>
-    <string name="public_providers_paid">Ø %1$s bezahlt, %2$d Ladevorgänge</string>
-    <string name="public_providers_no_data">Keine Ladevorgänge mit Preis im letzten Jahr</string>
-    <string name="public_providers_footer">Nur eingeschaltete Anbieter zählen zum automatischen Preis ohne Tarif im Tarifrechner. Schalte private Anbieter wie die eigene Wallbox aus. Neue Anbieter zählen automatisch als öffentlich. Die Auswahl gilt nur auf diesem Gerät.</string>
-    <string name="settings_section_tools">Tools</string>
-    <string name="settings_nav_public_providers">Tarifrechner: öffentliche Anbieter</string>
     <string name="provider_tariff_link">Lohnt sich der Tarif?</string>
     <string name="provider_tariff_hint">Rechnet mit den gespeicherten Preisen und Grundgebühren dieses Anbieters.</string>
 
@@ -662,4 +655,15 @@
     <string name="tires_tread_low">unter Empfehlung</string>
     <string name="tires_tread_legal_min">Mindestprofil</string>
     <string name="tires_mm">%1$s mm</string>
+    <string name="charging_place_home">Zuhause</string>
+    <string name="charging_place_work">Arbeit</string>
+    <string name="charging_place_public">Unterwegs</string>
+    <string name="provider_charging_place_label">Ladeort</string>
+    <string name="provider_charging_place_hint">Teilt das Dashboard in Zuhause, Arbeit und unterwegs. Im Tarifrechner zählen nur Anbieter mit „Unterwegs“ zum automatischen Preis ohne Tarif.</string>
+    <string name="dashboard_section_by_place">Zuhause, Arbeit, unterwegs</string>
+    <string name="dashboard_place_price_per_kwh">%1$s € je kWh</string>
+    <plurals name="dashboard_place_sessions">
+        <item quantity="one">%1$d Vorgang</item>
+        <item quantity="other">%1$d Vorgänge</item>
+    </plurals>
 </resources>

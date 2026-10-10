@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
@@ -64,7 +65,12 @@ data class LocalProvider(
      * ohne Default in der Tabelle: `null` gilt als Ladesaeule, und die Migration braucht so keinen
      * DEFAULT, der exakt zu Rooms Schemapruefung passen muesste.
      */
-    var energyMeter: String? = "charger"
+    var energyMeter: String? = "charger",
+    /**
+     * Ladeort-Art ("home" | "work" | "public", Room 5 -> 6), siehe Models.ChargingPlace. Wie
+     * [energyMeter] nullable ohne Default in der Tabelle: `null` gilt als unterwegs.
+     */
+    var chargingPlace: String? = "public"
 ) {
     fun asDTO() = Provider(
         id = serverId ?: localId,
@@ -72,7 +78,8 @@ data class LocalProvider(
         lastPriceAcPerKwh = lastPriceAcPerKwh,
         lastPriceDcPerKwh = lastPriceDcPerKwh,
         notes = notes,
-        energyMeter = energyMeter ?: EnergyMeter.CHARGER.raw
+        energyMeter = energyMeter ?: EnergyMeter.CHARGER.raw,
+        chargingPlace = ChargingPlace.from(chargingPlace).raw
     )
 }
 

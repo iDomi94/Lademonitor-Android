@@ -254,30 +254,35 @@ object TariffCalculator {
     /**
      * Automatischer Vergleichspreis "ohne Tarif": was an oeffentlichen Anbietern bezahlt wurde,
      * ohne den gerade betrachteten (dort wurde ja schon zum Tarifpreis geladen) und nur fuer
-     * dieselbe Lade-Art.
+     * dieselbe Lade-Art. Oeffentlich ist, wessen Ladeort-Art "unterwegs" ist
+     * ([com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace.PUBLIC]) - die
+     * Angabe am Anbieter, synchronisiert wie seine uebrigen Felder.
      */
     fun automaticComparisonPrice(
         sessions: List<ChargingSession>,
-        excludedProviderIds: Set<String>,
+        nonPublicProviderIds: Set<String>,
         selectedProviderId: String?,
         chargingType: ChargingType,
         now: Long = System.currentTimeMillis()
     ): PaidPrice? = paidPrice(sessions, now) { session ->
         val providerId = session.providerId ?: return@paidPrice false
-        providerId !in excludedProviderIds &&
+        providerId !in nonPublicProviderIds &&
             providerId != selectedProviderId &&
             session.chargingType == chargingType.raw
     }
 }
 
 /**
- * Lokale Einstellungen des Tarifrechners. Bewusst NICHT synchronisiert (Entscheidung 23.09.2026):
- * auf einem zweiten Geraet waehlt man die privaten Anbieter neu ab. Gespeichert werden die
- * ABGEWAEHLTEN Anbieter, damit neue Anbieter automatisch als oeffentlich zaehlen.
+ * Lokale Einstellungen des Tarifrechners (Vergleichsmodus und eingetragener Preis).
+ *
+ * Bis zur Ladeort-Art am Anbieter (Server 0.31.0) lag hier ausserdem eine lokale, nicht
+ * synchronisierte Liste der als privat abgewaehlten Anbieter. Die wird nur noch einmalig
+ * uebernommen ([AppRepository.migrateLegacyTariffExclusions]) und danach geloescht.
  */
 object TariffCalculatorSettings {
     private const val PREFS = "tariff_calculator"
     private const val KEY_EXCLUDED = "excludedProviderIds"
+    private const val KEY_EXCLUDED_MIGRATED = "excludedProviderIdsMigrated"
     private const val KEY_MODE = "comparisonMode"
     private const val KEY_MANUAL_PRICE = "manualComparisonPrice"
 
@@ -285,14 +290,19 @@ object TariffCalculatorSettings {
         get() = LademonitorApp.appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     /**
-     * Roh gespeicherte IDs. Ein Anbieter kann hier noch unter seiner lokalen ID stehen, obwohl er
-     * inzwischen eine Server-ID hat - [AppRepository.tariffBasis] bildet sie deshalb ab.
+     * Die alte Abwahl, solange sie noch nicht uebernommen wurde - sonst null. Kann lokale IDs
+     * enthalten, obwohl der Anbieter inzwischen eine Server-ID hat, oder IDs geloeschter Anbieter.
      */
-    val storedExcludedProviderIds: Set<String>
-        get() = prefs.getStringSet(KEY_EXCLUDED, emptySet())?.toSet() ?: emptySet()
+    val legacyExcludedProviderIds: Set<String>?
+        get() {
+            if (prefs.getBoolean(KEY_EXCLUDED_MIGRATED, false)) return null
+            if (!prefs.contains(KEY_EXCLUDED)) return null
+            return prefs.getStringSet(KEY_EXCLUDED, emptySet())?.toSet() ?: emptySet()
+        }
 
-    fun setExcluded(ids: Set<String>) {
-        prefs.edit().putStringSet(KEY_EXCLUDED, ids.toSet()).apply()
+    /** Alte Abwahl entfernen und die Uebernahme als erledigt merken. */
+    fun markLegacyExclusionsMigrated() {
+        prefs.edit().remove(KEY_EXCLUDED).putBoolean(KEY_EXCLUDED_MIGRATED, true).apply()
     }
 
     /** true = Automatik, false = selbst eintragen. */

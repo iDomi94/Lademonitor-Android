@@ -97,6 +97,24 @@ enum class EnergyMeter(val raw: String) {
     }
 }
 
+/**
+ * Wo der Anbieter laedt (Server ab 0.31.0): zu Hause, bei der Arbeit oder unterwegs. Haengt am
+ * Anbieter wie [EnergyMeter]. Unbekannte oder fehlende Werte gelten als unterwegs - genau wie
+ * serverseitig fuer Bestandszeilen und fuer Vorgaenge ohne Anbieter.
+ */
+enum class ChargingPlace(val raw: String, @param:StringRes val labelRes: Int) {
+    HOME("home", R.string.charging_place_home),
+    WORK("work", R.string.charging_place_work),
+    PUBLIC("public", R.string.charging_place_public);
+
+    companion object {
+        fun from(raw: String?): ChargingPlace = entries.firstOrNull { it.raw == raw } ?: PUBLIC
+
+        /** Nur bekannte Werte, sonst null - fuer "unveraendert lassen" beim Speichern/Sync. */
+        fun fromOrNull(raw: String?): ChargingPlace? = entries.firstOrNull { it.raw == raw }
+    }
+}
+
 enum class ConsumptionMethod(
     val raw: String,
     val marker: String,
@@ -151,7 +169,13 @@ data class Provider(
      * Wo die kWh bei diesem Anbieter standardmaessig abgelesen werden ("charger" | "vehicle",
      * siehe [EnergyMeter]). Ein Server vor 0.29.0 schickt das Feld nicht - dann Ladesaeule.
      */
-    @Json(name = "energy_meter") val energyMeter: String = EnergyMeter.CHARGER.raw
+    @Json(name = "energy_meter") val energyMeter: String = EnergyMeter.CHARGER.raw,
+    /**
+     * Ladeort-Art ("home" | "work" | "public", siehe [ChargingPlace]). Bewusst nullable: ein
+     * Server vor 0.31.0 schickt das Feld nicht, und der Sync darf den lokalen Wert dann nicht
+     * auf "unterwegs" zuruecksetzen.
+     */
+    @Json(name = "charging_place") val chargingPlace: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -248,7 +272,9 @@ data class ProviderPayload(
     @Json(name = "last_price_dc_per_kwh") val lastPriceDcPerKwh: Double? = null,
     val notes: String? = null,
     /** "charger" | "vehicle"; null = unveraendert. */
-    @Json(name = "energy_meter") val energyMeter: String? = null
+    @Json(name = "energy_meter") val energyMeter: String? = null,
+    /** "home" | "work" | "public"; null = unveraendert (ein Server vor 0.31.0 ignoriert es). */
+    @Json(name = "charging_place") val chargingPlace: String? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -485,8 +511,26 @@ data class StatsSummary(
      */
     @Json(name = "total_fees") val totalFees: Double? = null,
     /** Davon Perioden, in denen es keinen Ladevorgang des Anbieters gab. */
-    @Json(name = "unallocated_fees") val unallocatedFees: Double? = null
+    @Json(name = "unallocated_fees") val unallocatedFees: Double? = null,
+    /**
+     * Aufteilung nach Zuhause/Arbeit/unterwegs (Server ab 0.31.0), Reihenfolge HOME, WORK,
+     * PUBLIC. Leer, solange kein Vorgang zu Hause oder bei der Arbeit lag.
+     */
+    @Json(name = "by_place") val byPlace: List<PlaceStat> = emptyList()
 )
+
+@JsonClass(generateAdapter = true)
+data class PlaceStat(
+    /** "home" | "work" | "public", siehe [ChargingPlace]. */
+    val place: String,
+    @Json(name = "session_count") val sessionCount: Int,
+    @Json(name = "total_kwh") val totalKwh: Double,
+    /** Inklusive Grundgebuehren. */
+    @Json(name = "total_cost") val totalCost: Double,
+    @Json(name = "avg_price_per_kwh") val avgPricePerKwh: Double? = null
+) {
+    val placeValue: ChargingPlace get() = ChargingPlace.from(place)
+}
 
 // ---------- Sync: serverseitig geloeschte Datensaetze ----------
 
