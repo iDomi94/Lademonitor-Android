@@ -674,4 +674,75 @@
         <item quantity="one">%1$d Vorgang</item>
         <item quantity="other">%1$d Vorgänge</item>
     </plurals>
+
+    <!-- Fahrzeugkosten, Wertverlust/Leasing, Gesamtkosten -->
+    <string name="ownership_none">Keine Angabe</string>
+    <string name="ownership_purchase">Kauf</string>
+    <string name="ownership_leasing">Leasing</string>
+    <string name="cost_category_charging">Laden</string>
+    <string name="cost_category_depreciation">Wertverlust</string>
+    <string name="cost_category_leasing">Leasing</string>
+    <string name="cost_category_insurance">Versicherung</string>
+    <string name="cost_category_tax">Kfz-Steuer</string>
+    <string name="cost_category_maintenance">Wartung/Inspektion</string>
+    <string name="cost_category_repair">Reparatur</string>
+    <string name="cost_category_tires">Reifen</string>
+    <string name="cost_category_wallbox">Wallbox/Zubehör</string>
+    <string name="cost_category_parking">Parken</string>
+    <string name="cost_category_toll">Maut/Vignette</string>
+    <string name="cost_category_cleaning">Wäsche/Pflege</string>
+    <string name="cost_category_other">Sonstiges</string>
+    <string name="local_data_summary_vehicle_costs">%1$d Fahrzeugkosten</string>
+    <string name="sync_error_item_vehicle_cost">Fahrzeugkosten „%1$s“: %2$s</string>
+    <string name="action_clear_date">Datum entfernen</string>
+    <string name="vehicle_section_ownership">Kauf oder Leasing</string>
+    <string name="vehicle_ownership_none_hint">Mit Kaufpreis oder Leasingrate zählen Wertverlust bzw. Leasing in den Gesamtkosten mit.</string>
+    <string name="vehicle_field_purchase_price">Kaufpreis (€)</string>
+    <string name="vehicle_field_purchase_date">Kaufdatum</string>
+    <string name="vehicle_field_first_registration">Erstzulassung</string>
+    <string name="vehicle_first_registration_hint">Nur bei Gebrauchtwagen nötig - ohne Angabe gilt das Kaufdatum.</string>
+    <string name="vehicle_field_purchase_odometer">km-Stand beim Kauf</string>
+    <string name="vehicle_estimated_value">Geschätzter Wert heute</string>
+    <string name="vehicle_suggested_depreciation">Vorgeschlagener Wertverlust</string>
+    <string name="vehicle_field_depreciation_override">Fester Wertverlust je Monat (€)</string>
+    <string name="vehicle_depreciation_override_placeholder">leer = Vorschlag</string>
+    <string name="vehicle_depreciation_hint" formatted="false">Der Vorschlag folgt einer typischen Restwertkurve (1. Jahr auf 75 %, danach -13 % je Jahr) und berücksichtigt die Fahrleistung. Eine grobe Schätzung - ein fester Betrag ersetzt sie.</string>
+    <string name="vehicle_field_leasing_rate">Leasingrate je Monat (€)</string>
+    <string name="vehicle_field_leasing_start">Leasingbeginn</string>
+    <string name="vehicle_field_leasing_end">Leasingende</string>
+    <string name="vehicle_field_leasing_down_payment">Sonderzahlung (€)</string>
+    <string name="vehicle_leasing_monthly">Leasing je Monat inkl. Sonderzahlung</string>
+    <string name="vehicle_leasing_hint">Die Sonderzahlung wird auf die Laufzeit verteilt; ohne Leasingende zählt sie im ersten Monat. Das Ende darf nicht vor dem Beginn liegen.</string>
+    <string name="vehicle_costs_open">Kosten</string>
+    <string name="vehicle_costs_open_hint">Versicherung, Steuer, Wartung und weitere Kosten dieses Fahrzeugs. Nicht gespeicherte Änderungen oben gehen dabei verloren.</string>
+    <string name="vehicle_costs_title">Kosten</string>
+    <string name="vehicle_costs_title_named">Kosten: %1$s</string>
+    <string name="vehicle_costs_per_year">Kosten je Jahr</string>
+    <string name="vehicle_costs_entries">Einträge</string>
+    <string name="vehicle_costs_empty_title">Noch keine Kosten</string>
+    <string name="vehicle_costs_empty_message">Trage Versicherung, Steuer, Wartung, Reparaturen und andere Ausgaben ein - einmalig oder wiederkehrend.</string>
+    <string name="vehicle_costs_footer">Wiederkehrende Kosten zählen ab der ersten Zahlung in jedem Monat bzw. Jahr bis zur letzten Zahlung oder bis heute. Die Jahresübersicht enthält auch Laden und Wertverlust bzw. Leasing.</string>
+    <string name="vehicle_costs_delete_confirm_title">Kosten löschen?</string>
+    <string name="vehicle_costs_delete_confirm_message">„%1$s“ wird gelöscht.</string>
+    <string name="vehicle_costs_add_title">Kosten hinzufügen</string>
+    <string name="vehicle_costs_edit_title">Kosten bearbeiten</string>
+    <string name="vehicle_cost_monthly">monatlich</string>
+    <string name="vehicle_cost_yearly">jährlich</string>
+    <string name="vehicle_cost_until">bis %1$s</string>
+    <string name="vehicle_cost_paid_to_date">Bisher bezahlt %1$s</string>
+    <string name="vehicle_cost_field_category">Kategorie</string>
+    <string name="vehicle_cost_field_amount">Betrag (€)</string>
+    <string name="vehicle_cost_field_interval">Wiederholung</string>
+    <string name="vehicle_cost_hint_yearly">Ein Jahresbetrag zählt in dem Monat, in dem er fällig ist.</string>
+    <string name="vehicle_cost_field_date">Datum</string>
+    <string name="vehicle_cost_field_first_payment">Erste Zahlung</string>
+    <string name="vehicle_cost_field_has_last_payment">Letzte Zahlung festlegen</string>
+    <string name="vehicle_cost_field_last_payment">Letzte Zahlung</string>
+    <string name="vehicle_cost_end_before_start">Die letzte Zahlung liegt vor der ersten.</string>
+    <string name="vehicle_cost_field_odometer">km-Stand (optional)</string>
+    <string name="vehicle_cost_field_label">Bezeichnung</string>
+    <string name="dashboard_section_total_costs">Gesamtkosten</string>
+    <string name="dashboard_total_costs_per_km">Kosten je km</string>
+    <string name="dashboard_total_costs_charging_share">Davon Laden</string>
+    <string name="dashboard_total_costs_hint">Laden, sonstige Kosten und Wertverlust bzw. Leasing im gewählten Zeitraum. Die Kennzahlen oben bleiben reine Ladekosten.</string>
 </resources>

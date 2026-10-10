@@ -71,6 +71,14 @@ plus a **server mode with bidirectional synchronization**.
   Lademonitor-Server 0.26.1 or newer and is available **in server mode only**:
   attributing the drives and adjusting for temperature happens on the server,
   so app and web never show different numbers.
+- **Vehicle costs and total costs:** store a purchase (price, date, first
+  registration, odometer at purchase) or a lease (payment, term, down payment)
+  on the vehicle – the app estimates today's value and suggests a monthly
+  depreciation (a fixed amount is possible). Under Settings → Vehicles →
+  vehicle → Costs, record other expenses such as insurance, tax, maintenance or
+  repairs, one-off or recurring, with a per-year overview. The dashboard turns
+  this into a "Total costs" section (including cost per km and charging
+  share). Works in both modes; with server 0.32.0 or newer everything syncs.
 - **Server-side deletions arrive**: charging sessions, vehicles, providers and
   charging locations deleted on the server also disappear from the app on the
   next sync, instead of lingering as "ghost rows". Requires

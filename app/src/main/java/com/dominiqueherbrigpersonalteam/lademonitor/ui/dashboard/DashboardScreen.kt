@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
@@ -44,9 +45,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dominiqueherbrigpersonalteam.lademonitor.LademonitorApp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.CostCategory
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PlaceStat
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCostSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.WidgetSnapshotWriter
@@ -190,6 +193,15 @@ private fun DashboardContent(stats: StatsSummary, temperature: TemperatureStats?
             Column {
                 SectionHeader(stringResource(R.string.dashboard_section_by_place))
                 SectionCard { PlaceSection(stats.byPlace) }
+            }
+        }
+
+        // Nur, wenn eines der betrachteten Fahrzeuge Kosten oder eine Kauf-/Leasingangabe hat.
+        // Die Kennzahlen oben bleiben reine Ladekosten.
+        stats.vehicleCosts?.let { costs ->
+            Column {
+                SectionHeader(stringResource(R.string.dashboard_section_total_costs))
+                SectionCard { VehicleCostsSection(costs) }
             }
         }
 
@@ -418,6 +430,70 @@ private fun PlaceSection(places: List<PlaceStat>) {
             }
         }
     }
+}
+
+/**
+ * Gesamtkosten im Zeitraum: Laden, sonstige Kosten und Wertverlust bzw. Leasing - gerechnet von
+ * [com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalVehicleCostCalculator] wie
+ * `build_vehicle_costs()` auf dem Server. Ein Balken je Kategorie, groesster Posten zuerst, jede
+ * Kategorie mit fester Farbe (dieselbe wie im Web), damit sie ueber Zeitraeume wiedererkennbar
+ * bleibt.
+ */
+@Composable
+private fun VehicleCostsSection(costs: VehicleCostSummary) {
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(Fmt.n("%.2f €", costs.totalCost), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.dashboard_total_costs_per_km), style = MaterialTheme.typography.labelSmall, color = secondary)
+                Text(costs.costPerKm?.let { Fmt.n("%.2f €", it) } ?: "–", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.dashboard_total_costs_charging_share), style = MaterialTheme.typography.labelSmall, color = secondary)
+                val share = if (costs.totalCost > 0) costs.chargingCost / costs.totalCost * 100 else null
+                Text(share?.let { Fmt.n("%.0f %%", it) } ?: "–", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+        }
+        val max = costs.byCategory.maxOfOrNull { it.amount } ?: 0.0
+        costs.byCategory.sortedByDescending { it.amount }.forEach { stat ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(CostCategory.labelResFor(stat.category)), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    Text(Fmt.n("%.2f €", stat.amount), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                }
+                val fraction = if (max > 0) (stat.amount / max).toFloat().coerceIn(0f, 1f) else 0f
+                Box(
+                    Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    if (fraction > 0f) {
+                        Box(
+                            Modifier.fillMaxWidth(fraction).height(8.dp).clip(RoundedCornerShape(4.dp))
+                                .background(costCategoryColor(stat.category))
+                        )
+                    }
+                }
+            }
+        }
+        Text(stringResource(R.string.dashboard_total_costs_hint), style = MaterialTheme.typography.bodySmall, color = secondary)
+    }
+}
+
+/** Feste Farbe je Kostenkategorie, wie im Web-Dashboard. */
+private fun costCategoryColor(category: String): Color = when (category) {
+    "charging" -> Color(0xFF5B8DEF)
+    "depreciation", "leasing" -> Color(0xFFA78BFA)
+    "insurance" -> Color(0xFF4FD1A5)
+    "tax" -> Color(0xFFF2B84B)
+    "maintenance" -> Color(0xFFF08A5D)
+    "repair" -> Color(0xFFE5534B)
+    "tires" -> Color(0xFF8B98A9)
+    "wallbox" -> Color(0xFF2EA87F)
+    "parking" -> Color(0xFFD48AC8)
+    "toll" -> Color(0xFFC9A227)
+    "cleaning" -> Color(0xFF6CC4E0)
+    else -> Color(0xFF6B7280)
 }
 
 private data class ProviderEntry(val name: String, val kwh: Double, val cost: Double, val color: androidx.compose.ui.graphics.Color)

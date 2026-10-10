@@ -12,6 +12,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayloa
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCost
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCostPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
@@ -146,9 +148,22 @@ object AppRepository {
                 unallocated = unallocated.filter { !it.start.isBefore(from) && !it.start.isAfter(to) }
             }
         }
-        return LocalStatsCalculator.compute(
+        val stats = LocalStatsCalculator.compute(
             sessions, vehicles, providers, unallocated, LocalDataStore.canonicalProviderIds()
         )
+        // Gesamtkosten (Laden + sonstige Kosten + Wertverlust/Leasing), wie build_vehicle_costs()
+        // auf dem Server: gleicher Fahrzeug- und Zeitraumfilter, Laden = total_cost von oben.
+        val basis = LocalDataStore.vehicleCostBasis()
+        val canonicalVehicle = vehicleId?.let { LocalDataStore.canonicalVehicleIds()[it] ?: it }
+        val vehicleCosts = LocalVehicleCostCalculator.summary(
+            basis = basis,
+            vehicleId = canonicalVehicle,
+            startDate = dateRange?.let { LocalFeeAllocator.day(it.first) },
+            endDate = dateRange?.let { LocalFeeAllocator.day(it.last) },
+            chargingCost = stats.totalCost,
+            kmDriven = stats.totalKmDriven
+        )
+        return stats.copy(vehicleCosts = vehicleCosts)
     }
 
     // MARK: - Tarifrechner
@@ -217,6 +232,30 @@ object AppRepository {
 
     suspend fun deleteFee(id: String) {
         LocalDataStore.deleteFee(id)
+        syncAfterWrite()
+    }
+
+    // MARK: - Fahrzeugkosten
+
+    suspend fun fetchVehicleCosts(vehicleId: String? = null): List<VehicleCost> {
+        syncBeforeRead()
+        return LocalDataStore.fetchVehicleCosts(vehicleId)
+    }
+
+    /** Grundlage fuer Jahresuebersicht und Wertverlust-Vorschlag, eine Fahrzeug-ID-Form. */
+    suspend fun vehicleCostBasis(): VehicleCostBasis {
+        syncBeforeRead()
+        return LocalDataStore.vehicleCostBasis()
+    }
+
+    suspend fun createVehicleCost(payload: VehicleCostPayload): VehicleCost =
+        LocalDataStore.createVehicleCost(payload).also { syncAfterWrite() }
+
+    suspend fun updateVehicleCost(id: String, payload: VehicleCostPayload): VehicleCost =
+        LocalDataStore.updateVehicleCost(id, payload).also { syncAfterWrite() }
+
+    suspend fun deleteVehicleCost(id: String) {
+        LocalDataStore.deleteVehicleCost(id)
         syncAfterWrite()
     }
 }

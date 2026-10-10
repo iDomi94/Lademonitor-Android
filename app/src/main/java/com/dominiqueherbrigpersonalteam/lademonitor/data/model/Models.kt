@@ -155,7 +155,72 @@ data class Vehicle(
     val brand: String? = null,
     val model: String? = null,
     @Json(name = "battery_capacity_kwh") val batteryCapacityKwh: Double? = null,
-    @Json(name = "is_active") val isActive: Boolean = true
+    @Json(name = "is_active") val isActive: Boolean = true,
+    /**
+     * Kauf/Leasing (Server ab 0.32.0): "none" | "purchase" | "leasing", siehe [Ownership].
+     * Bewusst nullable: ein aelterer Server schickt das Feld nicht, und der Sync darf die lokalen
+     * Angaben dann nicht leeren (siehe SyncService.pullVehicles). Die vom Server zusaetzlich
+     * berechneten Felder (estimated_value usw.) werden nicht uebernommen - die App rechnet sie
+     * selbst ([com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalVehicleCostCalculator]).
+     */
+    val ownership: String? = null,
+    @Json(name = "purchase_price") val purchasePrice: Double? = null,
+    /** Datumsfelder sind reine Kalendertage (lokale Mitternacht), wie bei den Grundgebuehren. */
+    @ServerDate @Json(name = "purchase_date") val purchaseDate: Long? = null,
+    @ServerDate @Json(name = "first_registration") val firstRegistration: Long? = null,
+    @Json(name = "purchase_odometer_km") val purchaseOdometerKm: Int? = null,
+    @Json(name = "depreciation_monthly_override") val depreciationMonthlyOverride: Double? = null,
+    @Json(name = "leasing_rate_monthly") val leasingRateMonthly: Double? = null,
+    @ServerDate @Json(name = "leasing_start") val leasingStart: Long? = null,
+    @ServerDate @Json(name = "leasing_end") val leasingEnd: Long? = null,
+    @Json(name = "leasing_down_payment") val leasingDownPayment: Double? = null
+) {
+    val ownershipValue: Ownership get() = Ownership.from(ownership)
+
+    /** Die Kauf-/Leasingangaben als eigenes Paket, z.B. zum Vorbefuellen des Formulars. */
+    val ownershipFields: VehicleOwnership
+        get() = VehicleOwnership(
+            ownership = ownershipValue.raw,
+            purchasePrice = purchasePrice,
+            purchaseDate = purchaseDate,
+            firstRegistration = firstRegistration,
+            purchaseOdometerKm = purchaseOdometerKm,
+            depreciationMonthlyOverride = depreciationMonthlyOverride,
+            leasingRateMonthly = leasingRateMonthly,
+            leasingStart = leasingStart,
+            leasingEnd = leasingEnd,
+            leasingDownPayment = leasingDownPayment
+        )
+}
+
+/** Kauf oder Leasing am Fahrzeug (Server ab 0.32.0). Fehlend oder unbekannt = keine Angabe. */
+enum class Ownership(val raw: String, @param:StringRes val labelRes: Int) {
+    NONE("none", R.string.ownership_none),
+    PURCHASE("purchase", R.string.ownership_purchase),
+    LEASING("leasing", R.string.ownership_leasing);
+
+    companion object {
+        fun from(raw: String?): Ownership = entries.firstOrNull { it.raw == raw } ?: NONE
+    }
+}
+
+/**
+ * Kauf-/Leasingangaben eines Fahrzeugs. Wird an [VehiclePayload] gehaengt und im ApiClient mit
+ * ALLEN Feldern inkl. `null` gesendet - der Server leert ein Feld nur, wenn es ausdruecklich als
+ * null kommt (z.B. einen wieder entfernten festen Wertverlust). [ownership] ist immer gesetzt.
+ */
+@JsonClass(generateAdapter = true)
+data class VehicleOwnership(
+    val ownership: String = Ownership.NONE.raw,
+    @Json(name = "purchase_price") val purchasePrice: Double? = null,
+    @ServerDate @Json(name = "purchase_date") val purchaseDate: Long? = null,
+    @ServerDate @Json(name = "first_registration") val firstRegistration: Long? = null,
+    @Json(name = "purchase_odometer_km") val purchaseOdometerKm: Int? = null,
+    @Json(name = "depreciation_monthly_override") val depreciationMonthlyOverride: Double? = null,
+    @Json(name = "leasing_rate_monthly") val leasingRateMonthly: Double? = null,
+    @ServerDate @Json(name = "leasing_start") val leasingStart: Long? = null,
+    @ServerDate @Json(name = "leasing_end") val leasingEnd: Long? = null,
+    @Json(name = "leasing_down_payment") val leasingDownPayment: Double? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -262,7 +327,13 @@ data class VehiclePayload(
     val brand: String? = null,
     val model: String? = null,
     @Json(name = "battery_capacity_kwh") val batteryCapacityKwh: Double? = null,
-    @Json(name = "is_active") val isActive: Boolean? = null
+    @Json(name = "is_active") val isActive: Boolean? = null,
+    /**
+     * Kauf/Leasing; null = unveraendert. NICHT Teil des JSON dieser Klasse (`@Transient`): der
+     * ApiClient haengt es mit allen Feldern inkl. null an, waehrend die uebrigen Felder hier wie
+     * bisher ohne null gesendet werden (null hiesse dort "unveraendert", nicht "leeren").
+     */
+    @Transient val ownership: VehicleOwnership? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -516,7 +587,13 @@ data class StatsSummary(
      * Aufteilung nach Zuhause/Arbeit/unterwegs (Server ab 0.31.0), Reihenfolge HOME, WORK,
      * PUBLIC. Leer, solange kein Vorgang zu Hause oder bei der Arbeit lag.
      */
-    @Json(name = "by_place") val byPlace: List<PlaceStat> = emptyList()
+    @Json(name = "by_place") val byPlace: List<PlaceStat> = emptyList(),
+    /**
+     * Gesamtkosten inkl. sonstiger Kosten und Wertverlust/Leasing (Server ab 0.32.0). null,
+     * solange keines der betrachteten Fahrzeuge Kosten oder eine Kauf-/Leasingangabe hat - dann
+     * fehlt der Abschnitt im Dashboard.
+     */
+    @Json(name = "vehicle_costs") val vehicleCosts: VehicleCostSummary? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -978,6 +1055,118 @@ data class ProviderFeePayload(
     @ServerDate @Json(name = "end_date") val endDate: Long? = null,
     val label: String? = null,
     val notes: String? = null
+)
+
+// ---------- Fahrzeugkosten (Server ab 0.32.0) ----------
+
+/**
+ * Feste Kategorienliste der sonstigen Fahrzeugkosten, wie `vehicle_costs.CATEGORIES` im Server.
+ * Unbekannte Werte gelten als [OTHER].
+ */
+enum class CostCategory(val raw: String, @param:StringRes val labelRes: Int) {
+    INSURANCE("insurance", R.string.cost_category_insurance),
+    TAX("tax", R.string.cost_category_tax),
+    MAINTENANCE("maintenance", R.string.cost_category_maintenance),
+    REPAIR("repair", R.string.cost_category_repair),
+    TIRES("tires", R.string.cost_category_tires),
+    WALLBOX("wallbox", R.string.cost_category_wallbox),
+    PARKING("parking", R.string.cost_category_parking),
+    TOLL("toll", R.string.cost_category_toll),
+    CLEANING("cleaning", R.string.cost_category_cleaning),
+    OTHER("other", R.string.cost_category_other);
+
+    companion object {
+        fun from(raw: String?): CostCategory = entries.firstOrNull { it.raw == raw } ?: OTHER
+
+        /** Anzeigename auch fuer die Auswertungs-Kategorien "charging", "depreciation", "leasing". */
+        @StringRes
+        fun labelResFor(raw: String): Int = when (raw) {
+            "charging" -> R.string.cost_category_charging
+            "depreciation" -> R.string.cost_category_depreciation
+            "leasing" -> R.string.cost_category_leasing
+            else -> from(raw).labelRes
+        }
+    }
+}
+
+/**
+ * Sonstige Kosten eines Fahrzeugs (Versicherung, Steuer, Wartung ...). Einmalig, monatlich oder
+ * jaehrlich; ein Jahresbetrag zaehlt in dem Monat, in dem er faellig ist (siehe
+ * LocalVehicleCostCalculator). [startDate]/[endDate] sind reine Kalendertage, [endDate] ist der
+ * letzte Tag, an dem noch gezahlt wird (nur bei wiederkehrenden).
+ */
+@JsonClass(generateAdapter = true)
+data class VehicleCost(
+    val id: String,
+    @Json(name = "vehicle_id") val vehicleId: String,
+    val amount: Double,
+    val category: String = CostCategory.OTHER.raw,
+    val interval: String = FeeInterval.ONCE.wire,
+    @ServerDate @Json(name = "start_date") val startDate: Long,
+    @ServerDate @Json(name = "end_date") val endDate: Long? = null,
+    @Json(name = "odometer_km") val odometerKm: Int? = null,
+    val label: String? = null,
+    val notes: String? = null
+) {
+    val categoryValue: CostCategory get() = CostCategory.from(category)
+
+    /** Wie der Server: alles ausser monatlich/jaehrlich ist eine einzelne Zahlung. */
+    val intervalValue: FeeInterval
+        get() = when (interval) {
+            FeeInterval.MONTHLY.wire -> FeeInterval.MONTHLY
+            FeeInterval.YEARLY.wire -> FeeInterval.YEARLY
+            else -> FeeInterval.ONCE
+        }
+}
+
+/**
+ * Payload fuer POST/PATCH /api/vehicle-costs - mit `encodeKeepingNulls` gesendet, damit sich
+ * Enddatum, km-Stand, Bezeichnung und Notiz per PATCH wieder leeren lassen.
+ */
+@JsonClass(generateAdapter = true)
+data class VehicleCostPayload(
+    @Json(name = "vehicle_id") val vehicleId: String,
+    val amount: Double,
+    val category: String,
+    val interval: String,
+    @ServerDate @Json(name = "start_date") val startDate: Long,
+    @ServerDate @Json(name = "end_date") val endDate: Long? = null,
+    @Json(name = "odometer_km") val odometerKm: Int? = null,
+    val label: String? = null,
+    val notes: String? = null
+)
+
+/** Ein Posten der Gesamtkosten: "charging" | "depreciation" | "leasing" | eine [CostCategory]. */
+@JsonClass(generateAdapter = true)
+data class CostCategoryStat(
+    val category: String,
+    val amount: Double
+)
+
+/**
+ * Gesamtkosten im Zeitraum (Dashboard-Abschnitt "Gesamtkosten", Server ab 0.32.0) - lokal
+ * gerechnet von LocalVehicleCostCalculator. Die uebrigen Kennzahlen der [StatsSummary] bleiben
+ * reine Ladekosten.
+ */
+@JsonClass(generateAdapter = true)
+data class VehicleCostSummary(
+    @Json(name = "charging_cost") val chargingCost: Double,
+    @Json(name = "other_cost") val otherCost: Double,
+    /** Wertverlust bzw. Leasing. */
+    @Json(name = "ownership_cost") val ownershipCost: Double,
+    @Json(name = "total_cost") val totalCost: Double,
+    @Json(name = "cost_per_km") val costPerKm: Double? = null,
+    /** Groesster Posten zuerst. */
+    @Json(name = "by_category") val byCategory: List<CostCategoryStat> = emptyList()
+)
+
+/** Kosten eines Kalenderjahres je Kategorie (Kostenliste eines Fahrzeugs). */
+data class YearCostStat(
+    val year: Int,
+    val total: Double,
+    val kmDriven: Int?,
+    val costPerKm: Double?,
+    val byCategory: List<CostCategoryStat>
 )
 
 // MARK: - Akku-Gesundheit und Ladeverluste

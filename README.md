@@ -69,6 +69,15 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   gegen Sommer. Braucht Lademonitor-Server 0.26.1 oder neuer und ist **nur im
   Server-Modus** verfügbar: die Zuordnung der Fahrten und die Bereinigung
   rechnet der Server, damit App und Web nicht unterschiedliche Zahlen zeigen.
+- **Fahrzeugkosten und Gesamtkosten:** am Fahrzeug Kauf (Kaufpreis, Kaufdatum,
+  Erstzulassung, km-Stand beim Kauf) oder Leasing (Rate, Laufzeit,
+  Sonderzahlung) hinterlegen – die App schätzt den heutigen Wert und schlägt
+  einen monatlichen Wertverlust vor (fester Betrag möglich). Unter
+  Einstellungen → Fahrzeuge → Fahrzeug → Kosten sonstige Ausgaben wie
+  Versicherung, Steuer, Wartung oder Reparaturen erfassen, einmalig oder
+  wiederkehrend, mit Übersicht je Jahr. Das Dashboard zeigt daraus den
+  Abschnitt „Gesamtkosten“ (inkl. Kosten je km und Anteil Laden). Funktioniert
+  in beiden Modi; mit Server ab 0.32.0 wird alles synchronisiert.
 - **Serverseitige Löschungen kommen an**: auf dem Server gelöschte Ladevorgänge,
   Fahrzeuge, Anbieter und Ladeorte verschwinden beim nächsten Abgleich auch aus
   der App, statt als „Geisterzeilen" stehenzubleiben. Braucht Lademonitor-Server

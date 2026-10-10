@@ -673,4 +673,75 @@
         <item quantity="one">%1$d session</item>
         <item quantity="other">%1$d sessions</item>
     </plurals>
+
+    <!-- Vehicle costs, depreciation/lease, total costs -->
+    <string name="ownership_none">Not specified</string>
+    <string name="ownership_purchase">Purchase</string>
+    <string name="ownership_leasing">Lease</string>
+    <string name="cost_category_charging">Charging</string>
+    <string name="cost_category_depreciation">Depreciation</string>
+    <string name="cost_category_leasing">Leasing</string>
+    <string name="cost_category_insurance">Insurance</string>
+    <string name="cost_category_tax">Vehicle tax</string>
+    <string name="cost_category_maintenance">Maintenance/service</string>
+    <string name="cost_category_repair">Repairs</string>
+    <string name="cost_category_tires">Tires</string>
+    <string name="cost_category_wallbox">Wallbox/accessories</string>
+    <string name="cost_category_parking">Parking</string>
+    <string name="cost_category_toll">Tolls/vignette</string>
+    <string name="cost_category_cleaning">Washing/care</string>
+    <string name="cost_category_other">Other</string>
+    <string name="local_data_summary_vehicle_costs">%1$d vehicle costs</string>
+    <string name="sync_error_item_vehicle_cost">Vehicle cost “%1$s”: %2$s</string>
+    <string name="action_clear_date">Clear date</string>
+    <string name="vehicle_section_ownership">Purchase or lease</string>
+    <string name="vehicle_ownership_none_hint">With a purchase price or lease payment, depreciation or leasing is included in the total costs.</string>
+    <string name="vehicle_field_purchase_price">Purchase price (€)</string>
+    <string name="vehicle_field_purchase_date">Purchase date</string>
+    <string name="vehicle_field_first_registration">First registration</string>
+    <string name="vehicle_first_registration_hint">Only needed for used cars - the purchase date is used otherwise.</string>
+    <string name="vehicle_field_purchase_odometer">Odometer at purchase (km)</string>
+    <string name="vehicle_estimated_value">Estimated value today</string>
+    <string name="vehicle_suggested_depreciation">Suggested depreciation</string>
+    <string name="vehicle_field_depreciation_override">Fixed depreciation per month (€)</string>
+    <string name="vehicle_depreciation_override_placeholder">empty = suggestion</string>
+    <string name="vehicle_depreciation_hint" formatted="false">The suggestion follows a typical residual value curve (75 % after the first year, then -13 % per year) and takes mileage into account. A rough estimate - a fixed amount replaces it.</string>
+    <string name="vehicle_field_leasing_rate">Monthly lease payment (€)</string>
+    <string name="vehicle_field_leasing_start">Lease start</string>
+    <string name="vehicle_field_leasing_end">Lease end</string>
+    <string name="vehicle_field_leasing_down_payment">Down payment (€)</string>
+    <string name="vehicle_leasing_monthly">Lease per month incl. down payment</string>
+    <string name="vehicle_leasing_hint">The down payment is spread over the lease term; without an end date it counts in the first month. The end must not be before the start.</string>
+    <string name="vehicle_costs_open">Costs</string>
+    <string name="vehicle_costs_open_hint">Insurance, tax, maintenance and other costs of this vehicle. Unsaved changes above are discarded.</string>
+    <string name="vehicle_costs_title">Costs</string>
+    <string name="vehicle_costs_title_named">Costs: %1$s</string>
+    <string name="vehicle_costs_per_year">Costs per year</string>
+    <string name="vehicle_costs_entries">Entries</string>
+    <string name="vehicle_costs_empty_title">No costs yet</string>
+    <string name="vehicle_costs_empty_message">Add insurance, tax, maintenance, repairs and other expenses - one-off or recurring.</string>
+    <string name="vehicle_costs_footer">Recurring costs count every month or year from the first payment until the last payment or today. The yearly overview also includes charging and depreciation or leasing.</string>
+    <string name="vehicle_costs_delete_confirm_title">Delete cost?</string>
+    <string name="vehicle_costs_delete_confirm_message">“%1$s” will be deleted.</string>
+    <string name="vehicle_costs_add_title">Add cost</string>
+    <string name="vehicle_costs_edit_title">Edit cost</string>
+    <string name="vehicle_cost_monthly">monthly</string>
+    <string name="vehicle_cost_yearly">yearly</string>
+    <string name="vehicle_cost_until">until %1$s</string>
+    <string name="vehicle_cost_paid_to_date">Paid so far %1$s</string>
+    <string name="vehicle_cost_field_category">Category</string>
+    <string name="vehicle_cost_field_amount">Amount (€)</string>
+    <string name="vehicle_cost_field_interval">Repeat</string>
+    <string name="vehicle_cost_hint_yearly">A yearly amount counts in the month it is due.</string>
+    <string name="vehicle_cost_field_date">Date</string>
+    <string name="vehicle_cost_field_first_payment">First payment</string>
+    <string name="vehicle_cost_field_has_last_payment">Set last payment</string>
+    <string name="vehicle_cost_field_last_payment">Last payment</string>
+    <string name="vehicle_cost_end_before_start">The last payment is before the first.</string>
+    <string name="vehicle_cost_field_odometer">Odometer (km, optional)</string>
+    <string name="vehicle_cost_field_label">Label</string>
+    <string name="dashboard_section_total_costs">Total costs</string>
+    <string name="dashboard_total_costs_per_km">Cost per km</string>
+    <string name="dashboard_total_costs_charging_share">Charging share</string>
+    <string name="dashboard_total_costs_hint">Charging, other costs and depreciation or leasing in the selected period. The figures above remain charging costs only.</string>
 </resources>

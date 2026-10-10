@@ -50,6 +50,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.LocationsSetting
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ProvidersSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.SettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.TiresSettingsScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehicleCostsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehiclesSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.BatteryHealthScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.CombustionComparisonScreen
@@ -186,6 +187,10 @@ private fun MainScaffold() {
             composable("tools/battery") { BatteryHealthScreen(navController) }
             composable(Tab.SETTINGS.route) { SettingsScreen(navController) }
             composable("settings/vehicles") { VehiclesSettingsScreen(navController) }
+            composable(
+                "settings/vehicles/costs/{vehicleId}",
+                arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
+            ) { entry -> VehicleCostsScreen(navController, entry.arguments?.getString("vehicleId") ?: "") }
             composable("settings/providers") { ProvidersSettingsScreen(navController) }
             composable("settings/fees") { FeesSettingsScreen(navController) }
             composable("settings/tires") { TiresSettingsScreen(navController) }
