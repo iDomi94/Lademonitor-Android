@@ -18,9 +18,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LocalChargingLocation::class,
         LocalChargingSession::class,
         LocalProviderFee::class,
-        LocalVehicleCost::class
+        LocalVehicleCost::class,
+        LocalReminder::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class LademonitorDatabase : RoomDatabase() {
@@ -30,6 +31,7 @@ abstract class LademonitorDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun providerFeeDao(): ProviderFeeDao
     abstract fun vehicleCostDao(): VehicleCostDao
+    abstract fun reminderDao(): ReminderDao
 }
 
 /**
@@ -173,6 +175,42 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+/**
+ * 7 -> 8: Erinnerungen (Server ab 0.33.0) - neue Tabelle `reminders`. Muss exakt
+ * [LocalReminder] entsprechen (Spaltennamen = Kotlin-Eigenschaften, String -> TEXT,
+ * Int/Long/Boolean -> INTEGER, nicht-nullable -> NOT NULL; Kotlin-Defaults sind keine
+ * SQL-Defaults und gehoeren deshalb nicht hierher), sonst bricht Rooms Schemapruefung ab.
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `reminders` (
+                `localId` TEXT NOT NULL,
+                `serverId` TEXT,
+                `vehicleId` TEXT NOT NULL,
+                `kind` TEXT NOT NULL,
+                `title` TEXT,
+                `dueDate` INTEGER,
+                `dueKm` INTEGER,
+                `repeatMonths` INTEGER,
+                `repeatKm` INTEGER,
+                `leadDays` INTEGER NOT NULL,
+                `leadKm` INTEGER NOT NULL,
+                `notes` TEXT,
+                `lastDoneDate` INTEGER,
+                `lastDoneKm` INTEGER,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                `isDirty` INTEGER NOT NULL,
+                `pendingDelete` INTEGER NOT NULL,
+                PRIMARY KEY(`localId`)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
 object LocalStore {
     lateinit var db: LademonitorDatabase
         private set
@@ -183,12 +221,13 @@ object LocalStore {
     val sessions: SessionDao get() = db.sessionDao()
     val fees: ProviderFeeDao get() = db.providerFeeDao()
     val vehicleCosts: VehicleCostDao get() = db.vehicleCostDao()
+    val reminders: ReminderDao get() = db.reminderDao()
 
     fun init(context: Context) {
         db = Room.databaseBuilder(
             context.applicationContext,
             LademonitorDatabase::class.java,
             "lademonitor.db"
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build()
     }
 }

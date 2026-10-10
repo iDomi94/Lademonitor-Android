@@ -1,6 +1,7 @@
 package com.dominiqueherbrigpersonalteam.lademonitor.ui.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,11 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCostSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
+import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalDataStore
+import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalReminderCalculator
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReminderStatus
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ReminderStatusChip
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.reminderDueLines
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.WidgetSnapshotWriter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
@@ -69,13 +75,15 @@ import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen() {
+fun DashboardScreen(onOpenReminders: (String) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val dateRange by SessionFilter.dateRange.collectAsStateWithLifecycle()
 
     var stats by remember { mutableStateOf<StatsSummary?>(null) }
     // Nur im Server-Modus gefuellt — siehe TemperatureSection.
     var temperature by remember { mutableStateOf<TemperatureStats?>(null) }
+    // Bald faellige/ueberfaellige Erinnerungen aller Fahrzeuge - bewusst ohne Zeitraumfilter.
+    var dueReminders by remember { mutableStateOf<List<LocalReminderCalculator.Evaluated>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var showFilter by remember { mutableStateOf(false) }
@@ -93,6 +101,14 @@ fun DashboardScreen() {
             WidgetSnapshotWriter.refresh()
         } catch (e: Exception) {
             if (stats == null) errorMessage = e.localizedMessage
+        }
+        // Lokal gerechnet (der Sync lief gerade schon); ein Fehler hier blendet nur die Karte aus.
+        dueReminders = try {
+            LocalDataStore.evaluatedReminders().filter {
+                it.state.status == ReminderStatus.DUE_SOON || it.state.status == ReminderStatus.OVERDUE
+            }
+        } catch (e: Exception) {
+            emptyList()
         }
         // Temperaturauswertung ausschliesslich im Server-Modus. Scheitert der Abruf (aelterer
         // Server ohne den Endpunkt, Netzfehler), bleibt der Abschnitt einfach weg: er ist eine
@@ -131,7 +147,7 @@ fun DashboardScreen() {
             when {
                 errorMessage != null && current == null ->
                     ErrorState(errorMessage!!, onRetry = { scope.launch { load() } })
-                current != null -> DashboardContent(current, temperature)
+                current != null -> DashboardContent(current, temperature, dueReminders, onOpenReminders)
                 isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -143,7 +159,12 @@ fun DashboardScreen() {
 }
 
 @Composable
-private fun DashboardContent(stats: StatsSummary, temperature: TemperatureStats?) {
+private fun DashboardContent(
+    stats: StatsSummary,
+    temperature: TemperatureStats?,
+    dueReminders: List<LocalReminderCalculator.Evaluated>,
+    onOpenReminders: (String) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -151,6 +172,14 @@ private fun DashboardContent(stats: StatsSummary, temperature: TemperatureStats?
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        // Ganz oben und nur, wenn etwas bald faellig oder ueberfaellig ist.
+        if (dueReminders.isNotEmpty()) {
+            Column {
+                SectionHeader(stringResource(R.string.dashboard_section_reminders))
+                SectionCard { DueRemindersSection(dueReminders, onOpenReminders) }
+            }
+        }
+
         // Stat grid
         val cards = buildList {
             add(stringResource(R.string.dashboard_stat_sessions) to "${stats.totalSessions}")
@@ -477,6 +506,31 @@ private fun VehicleCostsSection(costs: VehicleCostSummary) {
             }
         }
         Text(stringResource(R.string.dashboard_total_costs_hint), style = MaterialTheme.typography.bodySmall, color = secondary)
+    }
+}
+
+/** Die bald faelligen und ueberfaelligen Erinnerungen; ein Tipp oeffnet die Liste des Fahrzeugs. */
+@Composable
+private fun DueRemindersSection(items: List<LocalReminderCalculator.Evaluated>, onOpen: (String) -> Unit) {
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        items.forEach { item ->
+            Column(
+                Modifier.fillMaxWidth().clickable { onOpen(item.reminder.vehicleId) }.padding(vertical = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        listOfNotNull(item.reminder.displayTitle, item.vehicleName).joinToString(" · "),
+                        Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    ReminderStatusChip(item.state.status)
+                }
+                reminderDueLines(item).forEach { Text(it, style = MaterialTheme.typography.bodySmall, color = secondary) }
+            }
+        }
     }
 }
 

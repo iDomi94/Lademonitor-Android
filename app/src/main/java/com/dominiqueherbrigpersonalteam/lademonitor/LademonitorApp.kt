@@ -5,6 +5,7 @@ import android.content.Context
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalStore
 import com.dominiqueherbrigpersonalteam.lademonitor.data.net.NetworkMonitor
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
+import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.ReminderNotifier
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.SyncService
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
@@ -36,6 +37,8 @@ class LademonitorApp : Application() {
         LocalStore.init(this)
         NetworkMonitor.init(this)
         SyncService.init(this)
+        // Mitteilungskanal anlegen und die Erinnerungs-Mitteilungen beim App-Start neu planen.
+        ReminderNotifier.init(this)
         // Fruehere lokale Abwahl des Tarifrechners in die Ladeort-Art der Anbieter uebernehmen.
         AppRepository.migrateLegacyTariffExclusionsAsync()
 

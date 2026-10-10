@@ -10,6 +10,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Reminder
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReminderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCost
@@ -60,6 +62,8 @@ object AppRepository {
     suspend fun deleteVehicle(id: String) {
         LocalDataStore.deleteVehicle(id)
         syncAfterWrite()
+        // Seine Erinnerungen sind mit weg - ihre Mitteilungen auch.
+        ReminderNotifier.rescheduleAsync()
     }
 
     // MARK: - Providers
@@ -257,6 +261,50 @@ object AppRepository {
     suspend fun deleteVehicleCost(id: String) {
         LocalDataStore.deleteVehicleCost(id)
         syncAfterWrite()
+    }
+
+    // MARK: - Erinnerungen
+    //
+    // In beiden Modi gleich: Status und Prognose rechnet LocalReminderCalculator, "Erledigt" wird
+    // lokal fortgeschrieben und als normale Aenderung synchronisiert. Nach jeder Aenderung werden
+    // die lokalen Mitteilungen neu geplant.
+
+    /** Ausgewertet, dringendste zuerst; ohne [vehicleId] alle Fahrzeuge. */
+    suspend fun fetchEvaluatedReminders(vehicleId: String? = null): List<LocalReminderCalculator.Evaluated> {
+        syncBeforeRead()
+        return LocalDataStore.evaluatedReminders(vehicleId)
+    }
+
+    suspend fun vehicleMileage(vehicleId: String): LocalReminderCalculator.Mileage =
+        LocalDataStore.vehicleMileage(vehicleId)
+
+    suspend fun createReminder(payload: ReminderPayload): Reminder =
+        LocalDataStore.createReminder(payload).also { syncAfterWrite(); ReminderNotifier.rescheduleAsync() }
+
+    suspend fun updateReminder(id: String, payload: ReminderPayload): Reminder =
+        LocalDataStore.updateReminder(id, payload).also { syncAfterWrite(); ReminderNotifier.rescheduleAsync() }
+
+    suspend fun deleteReminder(id: String) {
+        LocalDataStore.deleteReminder(id)
+        syncAfterWrite()
+        ReminderNotifier.rescheduleAsync()
+    }
+
+    /**
+     * "Erledigt": Merker setzen und die naechste Faelligkeit aus der Wiederholung fortschreiben,
+     * wie `routers/reminders.py::complete()` - aber lokal gerechnet und als PATCH aller Felder
+     * gesendet, damit Local-Only- und Server-Modus dasselbe tun. Ohne Wiederholung bleiben Datum
+     * und km leer, die Erinnerung steht dann als erledigt da.
+     */
+    suspend fun completeReminder(reminder: Reminder, doneDay: java.time.LocalDate, doneKm: Int?): Reminder {
+        val (nextDay, nextKm) = LocalReminderCalculator.nextDue(reminder, doneDay, doneKm)
+        val payload = reminder.toPayload().copy(
+            lastDoneDate = LocalReminderCalculator.epochMillis(doneDay),
+            lastDoneKm = doneKm,
+            dueDate = nextDay?.let { LocalReminderCalculator.epochMillis(it) },
+            dueKm = nextKm
+        )
+        return updateReminder(reminder.id, payload)
     }
 }
 

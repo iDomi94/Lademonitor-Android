@@ -79,6 +79,14 @@ plus a **server mode with bidirectional synchronization**.
   repairs, one-off or recurring, with a per-year overview. The dashboard turns
   this into a "Total costs" section (including cost per km and charging
   share). Works in both modes; with server 0.32.0 or newer everything syncs.
+- **Reminders:** under Settings → Vehicles → vehicle → Reminders, track the
+  roadworthiness test, service, brake fluid, tyre changes, insurance, vehicle
+  tax, GHG quota or anything custom – due by date and/or odometer, with repeat
+  and lead time. The odometer comes from your charging sessions, which also
+  drives the forecast "at your mileage around …". "Done" advances the next due
+  date and offers to record the cost right away. Anything due soon appears at
+  the top of the dashboard, plus local notifications (can be switched off).
+  Works in both modes; with server 0.33.0 or newer everything syncs.
 - **Server-side deletions arrive**: charging sessions, vehicles, providers and
   charging locations deleted on the server also disappear from the app on the
   next sync, instead of lingering as "ghost rows". Requires

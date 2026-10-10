@@ -51,6 +51,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ProvidersSetting
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.SettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.TiresSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehicleCostsScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehicleRemindersScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehiclesSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.BatteryHealthScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.CombustionComparisonScreen
@@ -175,7 +176,9 @@ private fun MainScaffold() {
             startDestination = Tab.DASHBOARD.route,
             modifier = Modifier.padding(padding)
         ) {
-            composable(Tab.DASHBOARD.route) { DashboardScreen() }
+            composable(Tab.DASHBOARD.route) {
+                DashboardScreen(onOpenReminders = { id -> navController.navigate("settings/vehicles/reminders/$id") })
+            }
             composable(Tab.SESSIONS.route) { SessionsListScreen() }
             composable(Tab.MAP.route) { MapScreen() }
             composable(Tab.TOOLS.route) { ToolsScreen(navController) }
@@ -191,6 +194,10 @@ private fun MainScaffold() {
                 "settings/vehicles/costs/{vehicleId}",
                 arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
             ) { entry -> VehicleCostsScreen(navController, entry.arguments?.getString("vehicleId") ?: "") }
+            composable(
+                "settings/vehicles/reminders/{vehicleId}",
+                arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
+            ) { entry -> VehicleRemindersScreen(navController, entry.arguments?.getString("vehicleId") ?: "") }
             composable("settings/providers") { ProvidersSettingsScreen(navController) }
             composable("settings/fees") { FeesSettingsScreen(navController) }
             composable("settings/tires") { TiresSettingsScreen(navController) }

@@ -253,15 +253,32 @@ private enum class CostDateField { START, END }
 /** Reihenfolge im Auswahlmenue: die einzelne Zahlung ist der haeufigste Fall. */
 private val costIntervals = listOf(FeeInterval.ONCE, FeeInterval.MONTHLY, FeeInterval.YEARLY)
 
+/**
+ * Vorbelegung eines NEUEN Kosteneintrags, z.B. nach "Erledigt" an einer Erinnerung (Kategorie,
+ * Datum, km-Stand und die Erinnerung als Bezeichnung). Beim Bearbeiten ohne Wirkung.
+ */
+data class VehicleCostPrefill(
+    val category: CostCategory,
+    val date: LocalDate,
+    val odometerKm: Int?,
+    val label: String?
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddEditVehicleCostModal(cost: VehicleCost?, vehicleId: String, onDismiss: () -> Unit, onSaved: () -> Unit) {
+fun AddEditVehicleCostModal(
+    cost: VehicleCost?,
+    vehicleId: String,
+    prefill: VehicleCostPrefill? = null,
+    onDismiss: () -> Unit,
+    onSaved: () -> Unit
+) {
     val scope = rememberCoroutineScope()
     val zone = ZoneId.systemDefault()
     val isEditing = cost != null
-    val initialStart = cost?.let { LocalFeeAllocator.day(it.startDate) } ?: LocalDate.now()
+    val initialStart = cost?.let { LocalFeeAllocator.day(it.startDate) } ?: prefill?.date ?: LocalDate.now()
 
-    var category by remember { mutableStateOf(cost?.categoryValue ?: CostCategory.MAINTENANCE) }
+    var category by remember { mutableStateOf(cost?.categoryValue ?: prefill?.category ?: CostCategory.MAINTENANCE) }
     var amount by remember { mutableStateOf(cost?.amount?.let { Fmt.n("%.2f", it) } ?: "") }
     var interval by remember { mutableStateOf(cost?.intervalValue ?: FeeInterval.ONCE) }
     var startDate by remember { mutableStateOf(initialStart) }
@@ -269,8 +286,8 @@ fun AddEditVehicleCostModal(cost: VehicleCost?, vehicleId: String, onDismiss: ()
     var endDate by remember {
         mutableStateOf(cost?.endDate?.let { LocalFeeAllocator.day(it) } ?: initialStart.plusYears(1).minusDays(1))
     }
-    var odometer by remember { mutableStateOf(cost?.odometerKm?.toString() ?: "") }
-    var label by remember { mutableStateOf(cost?.label ?: "") }
+    var odometer by remember { mutableStateOf((if (cost != null) cost.odometerKm else prefill?.odometerKm)?.toString() ?: "") }
+    var label by remember { mutableStateOf(if (cost != null) cost.label ?: "" else prefill?.label ?: "") }
     var notes by remember { mutableStateOf(cost?.notes ?: "") }
     var categoryMenu by remember { mutableStateOf(false) }
     var intervalMenu by remember { mutableStateOf(false) }

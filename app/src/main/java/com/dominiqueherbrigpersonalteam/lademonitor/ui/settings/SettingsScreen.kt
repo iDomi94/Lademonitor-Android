@@ -17,6 +17,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -34,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalDataStore
+import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.ReminderNotifier
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.SyncService
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
@@ -145,6 +147,23 @@ fun SettingsScreen(navController: NavController) {
             SectionCard {
                 Header(stringResource(R.string.settings_section_display))
                 NavRow(stringResource(R.string.settings_nav_charge_bar)) { navController.navigate("settings/chargebar") }
+            }
+
+            // Lokale Mitteilungen fuer Erinnerungen - in beiden Modi, Standard an.
+            SectionCard {
+                val remindersEnabled by ReminderNotifier.enabled.collectAsStateWithLifecycle()
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Text(stringResource(R.string.settings_reminder_notifications), Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                    Switch(checked = remindersEnabled, onCheckedChange = { ReminderNotifier.setEnabled(it) })
+                }
+                Text(
+                    stringResource(R.string.settings_reminder_notifications_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             SectionCard {

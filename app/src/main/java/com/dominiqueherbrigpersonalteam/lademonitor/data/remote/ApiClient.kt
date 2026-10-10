@@ -28,6 +28,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireComparison
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireOverview
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSet
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSetPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Reminder
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReminderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireTreadMeasurement
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TreadMeasurementPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
@@ -374,6 +376,24 @@ object ApiClient {
         send("/api/vehicle-costs/$id", "PATCH", encodeKeepingNulls(payload), type = VehicleCost::class.java)
 
     suspend fun deleteVehicleCost(id: String) = sendNoContent("/api/vehicle-costs/$id", "DELETE")
+
+    // MARK: - Erinnerungen (Server ab 0.33.0)
+    //
+    // Wie bei den Fahrzeugkosten: ein aelterer Server antwortet mit 404, der SyncService laesst
+    // die Erinnerungen dann lokal liegen. "Erledigt" rechnet die App selbst und schickt die neuen
+    // Werte per PATCH - `/complete` wird bewusst nicht benutzt, damit beide Modi gleich rechnen.
+
+    suspend fun fetchReminders(): List<Reminder> =
+        send("/api/reminders", type = listType(Reminder::class.java))
+
+    /** `encodeKeepingNulls`: Faelligkeit, Wiederholung, Bezeichnung und Notiz muessen sich leeren lassen. */
+    suspend fun createReminder(payload: ReminderPayload): Reminder =
+        send("/api/reminders", "POST", encodeKeepingNulls(payload), type = Reminder::class.java)
+
+    suspend fun updateReminder(id: String, payload: ReminderPayload): Reminder =
+        send("/api/reminders/$id", "PATCH", encodeKeepingNulls(payload), type = Reminder::class.java)
+
+    suspend fun deleteReminder(id: String) = sendNoContent("/api/reminders/$id", "DELETE")
 
     // MARK: - Locations
 

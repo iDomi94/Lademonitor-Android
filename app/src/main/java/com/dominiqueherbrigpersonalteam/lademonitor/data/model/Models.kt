@@ -1169,6 +1169,100 @@ data class YearCostStat(
     val byCategory: List<CostCategoryStat>
 )
 
+// ---------- Erinnerungen (Server ab 0.33.0) ----------
+
+/**
+ * Art einer Erinnerung, wie `reminders.KINDS` im Server. Unbekannte Werte gelten als [CUSTOM].
+ * [repeatMonths]/[repeatKm] sind die Vorlagenwerte beim Anlegen (alle aenderbar), [costCategory]
+ * die Kostenkategorie, die "Erledigt" vorschlaegt (THG ist eine Einnahme - keine).
+ */
+enum class ReminderKind(
+    val raw: String,
+    @param:StringRes val labelRes: Int,
+    val repeatMonths: Int?,
+    val repeatKm: Int?,
+    val costCategory: CostCategory?
+) {
+    HU("hu", R.string.reminder_kind_hu, 24, null, CostCategory.MAINTENANCE),
+    INSPECTION("inspection", R.string.reminder_kind_inspection, 12, 30000, CostCategory.MAINTENANCE),
+    BRAKE_FLUID("brake_fluid", R.string.reminder_kind_brake_fluid, 24, null, CostCategory.MAINTENANCE),
+    TIRE_WINTER("tire_winter", R.string.reminder_kind_tire_winter, 12, null, CostCategory.TIRES),
+    TIRE_SUMMER("tire_summer", R.string.reminder_kind_tire_summer, 12, null, CostCategory.TIRES),
+    INSURANCE("insurance", R.string.reminder_kind_insurance, 12, null, CostCategory.INSURANCE),
+    TAX("tax", R.string.reminder_kind_tax, 12, null, CostCategory.TAX),
+    THG("thg", R.string.reminder_kind_thg, 12, null, null),
+    CUSTOM("custom", R.string.reminder_kind_custom, null, null, CostCategory.OTHER);
+
+    companion object {
+        fun from(raw: String?): ReminderKind = entries.firstOrNull { it.raw == raw } ?: CUSTOM
+    }
+}
+
+/** Status einer Erinnerung, wie `ReminderStatus` im Server; gerechnet von LocalReminderCalculator. */
+enum class ReminderStatus(val raw: String, val rank: Int, @param:StringRes val labelRes: Int) {
+    OK("ok", 0, R.string.reminder_status_ok),
+    DONE("done", 0, R.string.reminder_status_done),
+    DUE_SOON("due_soon", 1, R.string.reminder_status_due_soon),
+    OVERDUE("overdue", 2, R.string.reminder_status_overdue)
+}
+
+/**
+ * Erinnerung je Fahrzeug (HU, Inspektion, Reifenwechsel ...). Gespeichert wird nur die naechste
+ * Faelligkeit (Datum und/oder km-Stand). Die vom Server zusaetzlich berechneten Felder (status,
+ * current_km, km_remaining, ...) werden nicht uebernommen - die App rechnet sie selbst
+ * ([com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalReminderCalculator]), damit
+ * beide Modi gleich aussehen. Datumsfelder sind reine Kalendertage (lokale Mitternacht).
+ */
+@JsonClass(generateAdapter = true)
+data class Reminder(
+    val id: String,
+    @Json(name = "vehicle_id") val vehicleId: String,
+    val kind: String = ReminderKind.CUSTOM.raw,
+    val title: String? = null,
+    @ServerDate @Json(name = "due_date") val dueDate: Long? = null,
+    @Json(name = "due_km") val dueKm: Int? = null,
+    @Json(name = "repeat_months") val repeatMonths: Int? = null,
+    @Json(name = "repeat_km") val repeatKm: Int? = null,
+    @Json(name = "lead_days") val leadDays: Int = 30,
+    @Json(name = "lead_km") val leadKm: Int = 1000,
+    val notes: String? = null,
+    @ServerDate @Json(name = "last_done_date") val lastDoneDate: Long? = null,
+    @Json(name = "last_done_km") val lastDoneKm: Int? = null
+) {
+    val kindValue: ReminderKind get() = ReminderKind.from(kind)
+
+    /** Eigene Bezeichnung, sonst der Name der Art ("HU", "Inspektion" ...). */
+    val displayTitle: String
+        get() = title?.takeIf { it.isNotBlank() } ?: LademonitorApp.appContext.getString(kindValue.labelRes)
+
+    /** Ein Payload mit denselben Werten, z.B. als Ausgangspunkt fuer "Erledigt". */
+    fun toPayload() = ReminderPayload(
+        vehicleId = vehicleId, kind = kind, title = title, dueDate = dueDate, dueKm = dueKm,
+        repeatMonths = repeatMonths, repeatKm = repeatKm, leadDays = leadDays, leadKm = leadKm,
+        notes = notes, lastDoneDate = lastDoneDate, lastDoneKm = lastDoneKm
+    )
+}
+
+/**
+ * Payload fuer POST/PATCH /api/reminders - mit `encodeKeepingNulls` gesendet, damit sich
+ * Faelligkeit, Wiederholung, Bezeichnung und Notiz per PATCH wieder leeren lassen.
+ */
+@JsonClass(generateAdapter = true)
+data class ReminderPayload(
+    @Json(name = "vehicle_id") val vehicleId: String,
+    val kind: String,
+    val title: String? = null,
+    @ServerDate @Json(name = "due_date") val dueDate: Long? = null,
+    @Json(name = "due_km") val dueKm: Int? = null,
+    @Json(name = "repeat_months") val repeatMonths: Int? = null,
+    @Json(name = "repeat_km") val repeatKm: Int? = null,
+    @Json(name = "lead_days") val leadDays: Int = 30,
+    @Json(name = "lead_km") val leadKm: Int = 1000,
+    val notes: String? = null,
+    @ServerDate @Json(name = "last_done_date") val lastDoneDate: Long? = null,
+    @Json(name = "last_done_km") val lastDoneKm: Int? = null
+)
+
 // MARK: - Akku-Gesundheit und Ladeverluste
 
 /**

@@ -9,6 +9,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Ownership
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Reminder
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCost
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleOwnership
@@ -290,4 +291,63 @@ data class LocalVehicleCost(
         label = label,
         notes = notes
     )
+}
+
+/**
+ * Erinnerung eines Fahrzeugs (Room 7 -> 8, Server ab 0.33.0). [vehicleId] zeigt wie bei den
+ * Fahrzeugkosten auf `serverId ?: localId` des Fahrzeugs. Datumsfelder sind lokale Mitternacht in
+ * Epoch-Millis. Status und Prognose werden nie gespeichert (LocalReminderCalculator).
+ */
+@Entity(tableName = "reminders")
+data class LocalReminder(
+    @PrimaryKey val localId: String = UUID.randomUUID().toString(),
+    var serverId: String? = null,
+    var vehicleId: String = "",
+    var kind: String = "custom",
+    var title: String? = null,
+    var dueDate: Long? = null,
+    var dueKm: Int? = null,
+    var repeatMonths: Int? = null,
+    var repeatKm: Int? = null,
+    var leadDays: Int = 30,
+    var leadKm: Int = 1000,
+    var notes: String? = null,
+    var lastDoneDate: Long? = null,
+    var lastDoneKm: Int? = null,
+    var createdAt: Long = System.currentTimeMillis(),
+    var updatedAt: Long = System.currentTimeMillis(),
+    var isDirty: Boolean = true,
+    var pendingDelete: Boolean = false
+) {
+    fun asDTO() = Reminder(
+        id = serverId ?: localId,
+        vehicleId = vehicleId,
+        kind = kind,
+        title = title,
+        dueDate = dueDate,
+        dueKm = dueKm,
+        repeatMonths = repeatMonths,
+        repeatKm = repeatKm,
+        leadDays = leadDays,
+        leadKm = leadKm,
+        notes = notes,
+        lastDoneDate = lastDoneDate,
+        lastDoneKm = lastDoneKm
+    )
+
+    /** Uebernimmt alle fachlichen Felder (lokales Speichern wie Pull vom Server). */
+    fun applyFields(r: Reminder) {
+        vehicleId = r.vehicleId
+        kind = r.kind
+        title = r.title
+        dueDate = r.dueDate
+        dueKm = r.dueKm
+        repeatMonths = r.repeatMonths
+        repeatKm = r.repeatKm
+        leadDays = r.leadDays
+        leadKm = r.leadKm
+        notes = r.notes
+        lastDoneDate = r.lastDoneDate
+        lastDoneKm = r.lastDoneKm
+    }
 }

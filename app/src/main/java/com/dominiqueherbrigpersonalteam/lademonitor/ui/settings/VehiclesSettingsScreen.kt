@@ -132,7 +132,8 @@ fun VehiclesSettingsScreen(navController: NavController) {
         AddEditVehicleModal(
             v,
             onDismiss = { editing = null },
-            onOpenCosts = { id -> editing = null; navController.navigate("settings/vehicles/costs/$id") }
+            onOpenCosts = { id -> editing = null; navController.navigate("settings/vehicles/costs/$id") },
+            onOpenReminders = { id -> editing = null; navController.navigate("settings/vehicles/reminders/$id") }
         ) { editing = null; scope.launch { load() } }
     }
 
@@ -158,7 +159,8 @@ private enum class VehicleDateField { PURCHASE, REGISTRATION, LEASING_START, LEA
  * Fahrzeug anlegen/bearbeiten, inkl. Kauf/Leasing (Server ab 0.32.0). Die Kennzahlen darunter
  * (geschaetzter Wert, Wertverlust-Vorschlag, Leasing je Monat) rechnet die App selbst
  * ([LocalVehicleCostCalculator]) - live aus den Formularwerten, damit man die Wirkung einer
- * Eingabe sofort sieht. [onOpenCosts] fuehrt zur Kostenliste des Fahrzeugs (nur beim Bearbeiten).
+ * Eingabe sofort sieht. [onOpenCosts] fuehrt zur Kostenliste des Fahrzeugs, [onOpenReminders] zu
+ * seinen Erinnerungen (beides nur beim Bearbeiten).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,6 +168,7 @@ fun AddEditVehicleModal(
     vehicle: Vehicle?,
     onDismiss: () -> Unit,
     onOpenCosts: ((String) -> Unit)? = null,
+    onOpenReminders: ((String) -> Unit)? = null,
     onSaved: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -382,6 +385,16 @@ fun AddEditVehicleModal(
                     }
                     Text(
                         stringResource(R.string.vehicle_costs_open_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (vehicle != null && onOpenReminders != null) {
+                    OutlinedButton(onClick = { onOpenReminders(vehicle.id) }, modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                        Text(stringResource(R.string.reminders_open))
+                    }
+                    Text(
+                        stringResource(R.string.reminders_open_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
