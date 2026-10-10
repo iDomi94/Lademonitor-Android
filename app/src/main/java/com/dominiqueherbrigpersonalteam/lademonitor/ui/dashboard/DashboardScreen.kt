@@ -1,5 +1,6 @@
 package com.dominiqueherbrigpersonalteam.lademonitor.ui.dashboard
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,8 +10,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
@@ -31,12 +34,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dominiqueherbrigpersonalteam.lademonitor.LademonitorApp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PlaceStat
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
@@ -174,6 +182,14 @@ private fun DashboardContent(stats: StatsSummary, temperature: TemperatureStats?
             Column {
                 SectionHeader(stringResource(R.string.dashboard_section_ac_dc))
                 SectionCard { AcDcBar(acKwh, dcKwh) }
+            }
+        }
+
+        // Leer, solange kein Vorgang zu Hause oder bei der Arbeit lag - dann fehlt der Abschnitt.
+        if (stats.byPlace.isNotEmpty()) {
+            Column {
+                SectionHeader(stringResource(R.string.dashboard_section_by_place))
+                SectionCard { PlaceSection(stats.byPlace) }
             }
         }
 
@@ -343,6 +359,62 @@ private fun TemperatureSection(stats: TemperatureStats) {
                     " kWh",
                     decimals = 1
                 )
+            }
+        }
+    }
+}
+
+private fun placeColor(place: ChargingPlace): Color = when (place) {
+    ChargingPlace.HOME -> PlaceHomeColor
+    ChargingPlace.WORK -> PlaceWorkColor
+    ChargingPlace.PUBLIC -> PlacePublicColor
+}
+
+/**
+ * Zuhause/Arbeit/unterwegs: ein nach kWh geteilter Balken, darunter je Ort Anzahl, kWh mit
+ * Anteil, Kosten (inkl. Grundgebuehren) und - hervorgehoben - der Preis je kWh. Die Werte kommen
+ * aus [com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalStatsCalculator], gerechnet
+ * wie `build_by_place()` auf dem Server.
+ */
+@Composable
+private fun PlaceSection(places: List<PlaceStat>) {
+    val totalKwh = places.sumOf { it.totalKwh }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ShareBar(places.map { it.totalKwh to placeColor(it.placeValue) })
+        places.forEach { stat ->
+            Row(verticalAlignment = Alignment.Top) {
+                Box(
+                    Modifier.padding(top = 5.dp).size(10.dp).clip(CircleShape)
+                        .background(placeColor(stat.placeValue))
+                )
+                Spacer(Modifier.width(8.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(stat.placeValue.labelRes), fontWeight = FontWeight.SemiBold)
+                    Text(
+                        pluralStringResource(R.plurals.dashboard_place_sessions, stat.sessionCount, stat.sessionCount),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    val share = if (totalKwh > 0) stat.totalKwh / totalKwh * 100 else 0.0
+                    Text(
+                        Fmt.n("%.1f kWh", stat.totalKwh) + Fmt.n(" · %.0f %%", share),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        Fmt.n("%.2f €", stat.totalCost),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    stat.avgPricePerKwh?.let {
+                        Text(
+                            stringResource(R.string.dashboard_place_price_per_kwh, Fmt.n("%.3f", it)),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
         }
     }

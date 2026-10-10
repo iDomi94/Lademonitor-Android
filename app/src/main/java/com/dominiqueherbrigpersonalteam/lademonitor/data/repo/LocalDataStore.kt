@@ -11,6 +11,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingType
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
@@ -139,7 +140,8 @@ object LocalDataStore {
             lastPriceAcPerKwh = payload.lastPriceAcPerKwh,
             lastPriceDcPerKwh = payload.lastPriceDcPerKwh,
             notes = payload.notes,
-            energyMeter = EnergyMeter.from(payload.energyMeter)?.raw ?: EnergyMeter.CHARGER.raw
+            energyMeter = EnergyMeter.from(payload.energyMeter)?.raw ?: EnergyMeter.CHARGER.raw,
+            chargingPlace = ChargingPlace.from(payload.chargingPlace).raw
         )
         providers.upsert(provider)
         return provider.asDTO()
@@ -152,6 +154,7 @@ object LocalDataStore {
         payload.lastPriceDcPerKwh?.let { provider.lastPriceDcPerKwh = it }
         payload.notes?.let { provider.notes = it }
         EnergyMeter.from(payload.energyMeter)?.let { provider.energyMeter = it.raw }
+        ChargingPlace.fromOrNull(payload.chargingPlace)?.let { provider.chargingPlace = it.raw }
         provider.updatedAt = System.currentTimeMillis()
         provider.isDirty = true
         providers.upsert(provider)

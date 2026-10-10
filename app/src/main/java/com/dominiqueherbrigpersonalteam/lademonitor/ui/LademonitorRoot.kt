@@ -52,7 +52,6 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.TiresSettingsScr
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehiclesSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.BatteryHealthScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.CombustionComparisonScreen
-import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.PublicProvidersScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.TariffCalculatorScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.ToolsScreen
 import kotlinx.coroutines.launch
@@ -182,7 +181,6 @@ private fun MainScaffold() {
                 "tools/tariff?providerId={providerId}",
                 arguments = listOf(navArgument("providerId") { type = NavType.StringType; nullable = true; defaultValue = null })
             ) { entry -> TariffCalculatorScreen(navController, entry.arguments?.getString("providerId")) }
-            composable("tools/public-providers") { PublicProvidersScreen(navController) }
             composable("tools/combustion") { CombustionComparisonScreen(navController) }
             composable("tools/battery") { BatteryHealthScreen(navController) }
             composable(Tab.SETTINGS.route) { SettingsScreen(navController) }

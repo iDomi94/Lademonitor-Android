@@ -2,9 +2,11 @@ package com.dominiqueherbrigpersonalteam.lademonitor.data.repo
 
 import com.dominiqueherbrigpersonalteam.lademonitor.LademonitorApp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingType
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.MonthlyStat
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PlaceStat
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderStat
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
@@ -32,12 +34,17 @@ object LocalStatsCalculator {
      * [unallocatedFees] sind die schon nach Fahrzeug und Zeitraum gefilterten Perioden ohne
      * Ladevorgang ([AppRepository.fetchStatsSummary]) - wie in stats.py zaehlen Grundgebuehren in
      * allen Kostenkennzahlen mit.
+     *
+     * [canonicalProviderIds] bildet lokale wie Server-IDs eines Anbieters auf `Provider.id` ab
+     * ([LocalDataStore.canonicalProviderIds]) - ein Ladevorgang kann seinen Anbieter noch unter
+     * der lokalen ID kennen, obwohl der inzwischen eine Server-ID hat.
      */
     fun compute(
         sessions: List<ChargingSession>,
         vehicles: List<Vehicle>,
         providers: List<Provider>,
-        unallocatedFees: List<LocalFeeAllocator.Period> = emptyList()
+        unallocatedFees: List<LocalFeeAllocator.Period> = emptyList(),
+        canonicalProviderIds: Map<String, String> = emptyMap()
     ): StatsSummary {
         val sorted = sessions.sortedBy { it.startTime }
 
@@ -110,6 +117,8 @@ object LocalStatsCalculator {
                 )
             }
 
+        val byPlace = buildByPlace(sorted, providers, unallocatedFees, canonicalProviderIds) { cost(it) }
+
         // Monthly consumption: km-weighted mean over per-vehicle consumption results.
         val consumptionByVehicle = HashMap<String, LocalConsumptionCalculator.Result>()
         for (vehicle in vehicles) {
@@ -172,8 +181,58 @@ object LocalStatsCalculator {
             byProvider = byProvider,
             monthly = monthly,
             totalFees = round2(totalFees),
-            unallocatedFees = round2(unallocatedSum)
+            unallocatedFees = round2(unallocatedSum),
+            byPlace = byPlace
         )
+    }
+
+    /**
+     * Kennzahlen je Ladeort-Art, wie `build_by_place()` in stats.py. Leer, solange kein Vorgang
+     * "Zuhause" oder "Arbeit" ist - eine Aufteilung mit nur "Unterwegs" sagt nichts. Vorgaenge
+     * ohne (bekannten) Anbieter zaehlen als unterwegs; Perioden ohne Ladevorgang kommen erst
+     * dazu, wenn es ueberhaupt eine Aufteilung gibt.
+     */
+    private fun buildByPlace(
+        sessions: List<ChargingSession>,
+        providers: List<Provider>,
+        unallocatedFees: List<LocalFeeAllocator.Period>,
+        canonicalProviderIds: Map<String, String>,
+        cost: (ChargingSession) -> Double
+    ): List<PlaceStat> {
+        val placeById = providers.associate { it.id to ChargingPlace.from(it.chargingPlace) }
+        fun placeOf(providerId: String?): ChargingPlace {
+            if (providerId == null) return ChargingPlace.PUBLIC
+            val id = canonicalProviderIds[providerId] ?: providerId
+            return placeById[id] ?: ChargingPlace.PUBLIC
+        }
+
+        val count = HashMap<ChargingPlace, Int>()
+        val kwh = HashMap<ChargingPlace, Double>()
+        val total = HashMap<ChargingPlace, Double>()
+        for (s in sessions) {
+            val place = placeOf(s.providerId)
+            count[place] = (count[place] ?: 0) + 1
+            kwh[place] = (kwh[place] ?: 0.0) + (s.energyKwh ?: 0.0)
+            total[place] = (total[place] ?: 0.0) + cost(s)
+        }
+        if ((count[ChargingPlace.HOME] ?: 0) == 0 && (count[ChargingPlace.WORK] ?: 0) == 0) return emptyList()
+        for (period in unallocatedFees) {
+            val place = placeOf(period.providerId)
+            total[place] = (total[place] ?: 0.0) + period.amount
+        }
+        return ChargingPlace.entries.mapNotNull { place ->
+            val n = count[place] ?: 0
+            val k = kwh[place] ?: 0.0
+            val c = total[place] ?: 0.0
+            if (n == 0 && c == 0.0) return@mapNotNull null
+            PlaceStat(
+                place = place.raw,
+                sessionCount = n,
+                totalKwh = round2(k),
+                totalCost = round2(c),
+                avgPricePerKwh = if (k != 0.0) round4(c / k) else null
+            )
+        }
     }
 
     private fun round1(v: Double): Double = (v * 10).roundToLong() / 10.0

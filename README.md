@@ -29,8 +29,8 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   viel km im Monat es sich lohnt. Tarifpreis, Grundgebühr, km im Monat und
   Anteil beim Tarif sind Schieberegler, das Ergebnis rechnet beim Schieben live
   mit. Vorbelegt aus den eigenen Ladevorgängen; der Preis ohne Tarif wahlweise
-  automatisch aus dem, was an öffentlichen Anbietern bezahlt wurde (welche das
-  sind, unter Einstellungen → Tools). Rechnet komplett auf dem Gerät
+  automatisch aus dem, was an Anbietern mit Ladeort „Unterwegs“ bezahlt wurde
+  (einstellbar beim Anbieter). Rechnet komplett auf dem Gerät
 - **Vergleich mit Verbrenner** (Tools): Umschalter oben zwischen „Zeitraum“
   (was die gefahrenen km mit Benzin/Diesel gekostet hätten), „Pro 100 km“
   (Kosten und CO₂ je 100 km) und „Lebenszyklus“ (CO₂ inklusive Herstellung von

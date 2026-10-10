@@ -12,6 +12,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalStore
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayload
@@ -337,7 +338,8 @@ object SyncService {
                 val payload = ProviderPayload(
                     name = provider.name, lastPriceAcPerKwh = provider.lastPriceAcPerKwh,
                     lastPriceDcPerKwh = provider.lastPriceDcPerKwh, notes = provider.notes,
-                    energyMeter = provider.energyMeter
+                    energyMeter = provider.energyMeter,
+                    chargingPlace = ChargingPlace.from(provider.chargingPlace).raw
                 )
                 if (provider.serverId != null) {
                     ApiClient.updateProvider(provider.serverId!!, payload)
@@ -550,6 +552,8 @@ object SyncService {
                     existing.lastPriceDcPerKwh = sp.lastPriceDcPerKwh
                     existing.notes = sp.notes
                     existing.energyMeter = sp.energyMeter
+                    // Ein Server vor 0.31.0 schickt keine Ladeort-Art - dann bleibt der lokale Wert.
+                    ChargingPlace.fromOrNull(sp.chargingPlace)?.let { existing.chargingPlace = it.raw }
                     providers.upsert(existing)
                 }
             } else {
@@ -557,7 +561,8 @@ object SyncService {
                     LocalProvider(
                         serverId = sp.id, name = sp.name, lastPriceAcPerKwh = sp.lastPriceAcPerKwh,
                         lastPriceDcPerKwh = sp.lastPriceDcPerKwh, notes = sp.notes,
-                        energyMeter = sp.energyMeter, isDirty = false
+                        energyMeter = sp.energyMeter,
+                        chargingPlace = ChargingPlace.from(sp.chargingPlace).raw, isDirty = false
                     )
                 )
             }

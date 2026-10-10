@@ -3,7 +3,6 @@ package com.dominiqueherbrigpersonalteam.lademonitor.ui.tools
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +19,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DragHandle
@@ -98,7 +96,7 @@ private fun makeSuggestions(basis: TariffBasis?, providerId: String?, chargingTy
     val sessions = basis.sessions
     val publicShare = TariffCalculator.suggestedSharePct(sessions) { session ->
         val id = session.providerId ?: return@suggestedSharePct false
-        id !in basis.excludedProviderIds
+        id !in basis.nonPublicProviderIds
     }
     var share = publicShare
     var shareFromProvider = false
@@ -125,7 +123,7 @@ private fun makeSuggestions(basis: TariffBasis?, providerId: String?, chargingTy
         price = price,
         fee = fee,
         comparison = TariffCalculator.automaticComparisonPrice(
-            sessions, basis.excludedProviderIds, providerId, chargingType
+            sessions, basis.nonPublicProviderIds, providerId, chargingType
         )
     )
 }
@@ -393,15 +391,6 @@ fun TariffCalculatorScreen(navController: NavController, initialProviderId: Stri
                             Footnote(stringResource(R.string.tariff_auto_basis, comparison.sessionCount))
                         } else {
                             Text(stringResource(R.string.tariff_auto_none), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Row(
-                            Modifier.fillMaxWidth().clickable { navController.navigate("tools/public-providers") }
-                                .padding(vertical = 10.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(stringResource(R.string.tariff_choose_public), color = MaterialTheme.colorScheme.primary)
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Footnote(stringResource(R.string.tariff_auto_footer))
                     } else {

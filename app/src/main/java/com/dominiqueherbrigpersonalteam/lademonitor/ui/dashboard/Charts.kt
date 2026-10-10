@@ -292,6 +292,33 @@ fun AcDcBar(acKwh: Double, dcKwh: Double, modifier: Modifier = Modifier) {
     }
 }
 
+// ---------- Zuhause, Arbeit, unterwegs ----------
+
+/** Zuhause gruen, Arbeit blau, unterwegs gelb - wie im Web-Dashboard und in der iOS-App. */
+val PlaceHomeColor = Green
+val PlaceWorkColor = Blue
+val PlacePublicColor = Color(0xFFFFCC00)
+
+/**
+ * Ein Balken, nach kWh-Anteil geteilt (wie [AcDcBar], aber fuer beliebig viele Teile). Teile ohne
+ * kWh fallen weg; ist gar nichts geladen, bleibt der Balken leer.
+ */
+@Composable
+fun ShareBar(segments: List<Pair<Double, Color>>, modifier: Modifier = Modifier) {
+    val visible = segments.filter { it.first > 0 }
+    Row(
+        modifier.fillMaxWidth().height(24.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        visible.forEach { (value, color) ->
+            Box(
+                Modifier.weight(value.toFloat()).fillMaxWidth()
+                    .clip(RoundedCornerShape(4.dp)).background(color)
+            )
+        }
+    }
+}
+
 // ---------- Verbrauch nach Aussentemperatur ----------
 
 /**

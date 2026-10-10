@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -22,6 +24,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,6 +45,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.dominiqueherbrigpersonalteam.lademonitor.R
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
@@ -80,7 +86,12 @@ fun ProvidersSettingsScreen(navController: NavController) {
                 Row(Modifier.fillMaxWidth().clickable { editing = provider }.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(provider.name, style = MaterialTheme.typography.bodyLarge)
+                        // "Zuhause"/"Arbeit" als kleines Etikett; "Unterwegs" ist der Normalfall
+                        // und bleibt ohne Angabe.
+                        val place = ChargingPlace.from(provider.chargingPlace)
+                        val placeLabel = if (place != ChargingPlace.PUBLIC) stringResource(place.labelRes) else null
                         val prices = listOfNotNull(
+                            placeLabel,
                             provider.lastPriceAcPerKwh?.let { Fmt.n("AC %.3f €", it) },
                             provider.lastPriceDcPerKwh?.let { Fmt.n("DC %.3f €", it) }
                         ).joinToString(" · ")
@@ -134,6 +145,7 @@ fun AddEditProviderModal(
     var priceDc by remember { mutableStateOf(provider?.lastPriceDcPerKwh?.let { Fmt.n("%.4f", it) } ?: "") }
     var notes by remember { mutableStateOf(provider?.notes ?: "") }
     var vehicleMeasured by remember { mutableStateOf(EnergyMeter.from(provider?.energyMeter) == EnergyMeter.VEHICLE) }
+    var chargingPlace by remember { mutableStateOf(ChargingPlace.from(provider?.chargingPlace)) }
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -147,7 +159,8 @@ fun AddEditProviderModal(
                 lastPriceAcPerKwh = priceAc.replace(",", ".").toDoubleOrNull(),
                 lastPriceDcPerKwh = priceDc.replace(",", ".").toDoubleOrNull(),
                 notes = notes.trim().ifEmpty { null },
-                energyMeter = (if (vehicleMeasured) EnergyMeter.VEHICLE else EnergyMeter.CHARGER).raw
+                energyMeter = (if (vehicleMeasured) EnergyMeter.VEHICLE else EnergyMeter.CHARGER).raw,
+                chargingPlace = chargingPlace.raw
             )
             try {
                 val saved = if (provider != null) AppRepository.updateProvider(provider.id, payload)
@@ -166,7 +179,7 @@ fun AddEditProviderModal(
                 actions = { TextButton(onClick = { save() }, enabled = !isSaving && canSave) { Text(if (isSaving) stringResource(R.string.action_saving) else stringResource(R.string.action_save)) } }
             )
         }) { padding ->
-            Column(Modifier.padding(padding).padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.field_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = priceAc, onValueChange = { priceAc = it }, label = { Text(stringResource(R.string.provider_field_price_ac)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(value = priceDc, onValueChange = { priceDc = it }, label = { Text(stringResource(R.string.provider_field_price_dc)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
@@ -178,6 +191,21 @@ fun AddEditProviderModal(
                     Switch(checked = vehicleMeasured, onCheckedChange = { vehicleMeasured = it })
                 }
                 Text(stringResource(R.string.provider_energy_meter_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // Ladeort-Art: teilt das Dashboard in Zuhause/Arbeit/unterwegs und bestimmt, welche
+                // Anbieter im Tarifrechner als oeffentlich zaehlen.
+                Text(stringResource(R.string.provider_charging_place_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    ChargingPlace.entries.forEachIndexed { index, place ->
+                        SegmentedButton(
+                            selected = chargingPlace == place,
+                            onClick = { chargingPlace = place },
+                            shape = SegmentedButtonDefaults.itemShape(index, ChargingPlace.entries.size)
+                        ) {
+                            Text(stringResource(place.labelRes))
+                        }
+                    }
+                }
+                Text(stringResource(R.string.provider_charging_place_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text(stringResource(R.string.field_notes)) }, modifier = Modifier.fillMaxWidth())
                 if (onOpenTariffCalculator != null) {
                     TextButton(onClick = onOpenTariffCalculator) { Text(stringResource(R.string.provider_tariff_link)) }

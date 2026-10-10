@@ -1,6 +1,7 @@
 package com.dominiqueherbrigpersonalteam.lademonitor.data.repo
 
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.GeocodeResult
@@ -145,15 +146,17 @@ object AppRepository {
                 unallocated = unallocated.filter { !it.start.isBefore(from) && !it.start.isAfter(to) }
             }
         }
-        return LocalStatsCalculator.compute(sessions, vehicles, providers, unallocated)
+        return LocalStatsCalculator.compute(
+            sessions, vehicles, providers, unallocated, LocalDataStore.canonicalProviderIds()
+        )
     }
 
     // MARK: - Tarifrechner
 
     /**
      * Alles, was der Tarifrechner fuer seine Vorschlagswerte braucht, mit EINER Anbieter-ID-Form
-     * (= `Provider.id`): Ladevorgaenge und die gespeicherte Abwahl koennen einen Anbieter noch
-     * ueber seine lokale ID kennen, obwohl er inzwischen eine Server-ID hat.
+     * (= `Provider.id`): Ladevorgaenge koennen einen Anbieter noch ueber seine lokale ID kennen,
+     * obwohl er inzwischen eine Server-ID hat.
      */
     suspend fun tariffBasis(): TariffBasis {
         syncBeforeRead()
@@ -161,13 +164,42 @@ object AppRepository {
         val sessions = LocalDataStore.fetchSessions(null, null, null).map { s ->
             s.copy(providerId = s.providerId?.let { canonical[it] ?: it })
         }
-        val excluded = TariffCalculatorSettings.storedExcludedProviderIds.map { canonical[it] ?: it }.toSet()
+        val providers = LocalDataStore.fetchProviders()
         return TariffBasis(
             sessions = sessions,
-            providers = LocalDataStore.fetchProviders(),
+            providers = providers,
             fees = LocalDataStore.fetchFees(),
-            excludedProviderIds = excluded
+            nonPublicProviderIds = providers
+                .filter { ChargingPlace.from(it.chargingPlace) != ChargingPlace.PUBLIC }
+                .map { it.id }
+                .toSet()
         )
+    }
+
+    /**
+     * Einmalige Uebernahme der frueheren, nur lokal gespeicherten Abwahl "nicht oeffentlicher"
+     * Anbieter des Tarifrechners: jeder dort abgewaehlte Anbieter wird "Zuhause". Laeuft ueber den
+     * normalen Aenderungsweg, damit die Zeile dirty wird und mitsynchronisiert. IDs, die es nicht
+     * mehr gibt, werden uebergangen; danach wird die alte Liste geloescht und die Uebernahme als
+     * erledigt gemerkt, ein zweiter Lauf tut also nichts mehr.
+     */
+    fun migrateLegacyTariffExclusionsAsync() {
+        scope.launch { runCatching { migrateLegacyTariffExclusions() } }
+    }
+
+    suspend fun migrateLegacyTariffExclusions() {
+        val ids = TariffCalculatorSettings.legacyExcludedProviderIds ?: return
+        var changed = false
+        for (id in ids) {
+            try {
+                LocalDataStore.updateProvider(id, ProviderPayload(chargingPlace = ChargingPlace.HOME.raw))
+                changed = true
+            } catch (e: Exception) {
+                // Anbieter inzwischen geloescht - nichts zu uebernehmen.
+            }
+        }
+        TariffCalculatorSettings.markLegacyExclusionsMigrated()
+        if (changed) syncAfterWrite()
     }
 
     // MARK: - Grundgebuehren
@@ -193,6 +225,9 @@ data class TariffBasis(
     val sessions: List<ChargingSession>,
     val providers: List<Provider>,
     val fees: List<ProviderFee>,
-    /** Als privat abgewaehlte Anbieter (zaehlen nicht zum Vergleichspreis). */
-    val excludedProviderIds: Set<String>
+    /**
+     * Anbieter, die nicht "Unterwegs" sind (Zuhause/Arbeit) - sie zaehlen nicht zum
+     * Vergleichspreis. Anbieter, die es nicht (mehr) gibt, gelten wie serverseitig als unterwegs.
+     */
+    val nonPublicProviderIds: Set<String>
 )
