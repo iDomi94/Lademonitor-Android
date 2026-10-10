@@ -458,6 +458,14 @@
     <string name="fee_per_year">per year</string>
     <string name="fee_per_once">one-off</string>
     <string name="settings_nav_fees">Base fees</string>
+    <string name="settings_section_display">Appearance</string>
+    <string name="settings_nav_charge_bar">Charge bar</string>
+    <string name="charge_bar_preview">Preview</string>
+    <string name="charge_bar_lower_marker">Lower marker</string>
+    <string name="charge_bar_upper_marker">Upper marker</string>
+    <string name="charge_bar_marker_value">%1$d%%</string>
+    <string name="charge_bar_hint">Red markers in the charge bar of the charging session list, e.g. for your minimum and target charge level. Applies to this device only.</string>
+    <string name="charge_bar_content_description">Charged from %1$d%% to %2$d%%</string>
     <string name="fees_empty_title">No base fees</string>
     <string name="fees_empty_message">For example a subscription with a monthly fee that gets you a cheaper price per kWh.</string>
     <string name="fees_footer">The fee is split by kWh across the provider’s charging sessions in each period and counts towards total cost, price per kWh and cost per 100 km. The price at the charger stays unchanged.</string>

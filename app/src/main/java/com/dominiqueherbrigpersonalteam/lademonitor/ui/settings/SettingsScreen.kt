@@ -143,6 +143,11 @@ fun SettingsScreen(navController: NavController) {
             }
 
             SectionCard {
+                Header(stringResource(R.string.settings_section_display))
+                NavRow(stringResource(R.string.settings_nav_charge_bar)) { navController.navigate("settings/chargebar") }
+            }
+
+            SectionCard {
                 ActionText(stringResource(R.string.settings_reset_action), color = MaterialTheme.colorScheme.error) {
                     showReset = true
                 }

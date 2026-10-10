@@ -43,6 +43,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.dashboard.DashboardScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.map.MapScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.sessions.SessionsListScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.AccountSettingsScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ChargeBarSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ConnectionSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.FeesSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.LocationsSettingsScreen
@@ -191,6 +192,7 @@ private fun MainScaffold() {
             composable("settings/locations") { LocationsSettingsScreen(navController) }
             composable("settings/connection") { ConnectionSettingsScreen(navController) }
             composable("settings/account") { AccountSettingsScreen(navController) }
+            composable("settings/chargebar") { ChargeBarSettingsScreen(navController) }
         }
     }
 }
