@@ -28,9 +28,14 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireComparison
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireOverview
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSet
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSetPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Reminder
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReminderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireTreadMeasurement
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TreadMeasurementPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCost
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCostPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleOwnership
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
@@ -256,10 +261,30 @@ object ApiClient {
         send("/api/vehicles", type = listType(Vehicle::class.java))
 
     suspend fun createVehicle(payload: VehiclePayload): Vehicle =
-        send("/api/vehicles", "POST", encode(payload), type = Vehicle::class.java)
+        send("/api/vehicles", "POST", vehicleBody(payload), type = Vehicle::class.java)
 
     suspend fun updateVehicle(id: String, payload: VehiclePayload): Vehicle =
-        send("/api/vehicles/$id", "PATCH", encode(payload), type = Vehicle::class.java)
+        send("/api/vehicles/$id", "PATCH", vehicleBody(payload), type = Vehicle::class.java)
+
+    /**
+     * Die Fahrzeugfelder ohne null (null = unveraendert, ein geleerter Name waere ein Fehler),
+     * die Kauf-/Leasingangaben dagegen MIT null - sonst liesse sich z.B. ein fester Wertverlust
+     * nie wieder entfernen. Beides wird zu einem JSON-Objekt zusammengelegt. Ein Server vor
+     * 0.32.0 ignoriert die unbekannten Felder.
+     */
+    private fun vehicleBody(payload: VehiclePayload): String {
+        val ownership = payload.ownership ?: return encode(payload)
+        @Suppress("UNCHECKED_CAST")
+        val base = Json.moshi.adapter(VehiclePayload::class.java).toJsonValue(payload) as? Map<String, Any?>
+            ?: emptyMap()
+        @Suppress("UNCHECKED_CAST")
+        val extra = Json.moshi.adapter(VehicleOwnership::class.java).serializeNulls()
+            .toJsonValue(ownership) as? Map<String, Any?> ?: emptyMap()
+        val merged = LinkedHashMap<String, Any?>(base).apply { putAll(extra) }
+        return Json.moshi.adapter<Map<String, Any?>>(
+            Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java)
+        ).serializeNulls().toJson(merged)
+    }
 
     suspend fun deleteVehicle(id: String) = sendNoContent("/api/vehicles/$id", "DELETE")
 
@@ -334,6 +359,41 @@ object ApiClient {
         send("/api/provider-fees/$id", "PATCH", encodeKeepingNulls(payload), type = ProviderFee::class.java)
 
     suspend fun deleteProviderFee(id: String) = sendNoContent("/api/provider-fees/$id", "DELETE")
+
+    // MARK: - Fahrzeugkosten (Server ab 0.32.0)
+    //
+    // Wie bei den Grundgebuehren: ein aelterer Server antwortet mit 404, der SyncService laesst
+    // die Kosten dann lokal liegen.
+
+    suspend fun fetchVehicleCosts(): List<VehicleCost> =
+        send("/api/vehicle-costs", type = listType(VehicleCost::class.java))
+
+    /** `encodeKeepingNulls`: Enddatum, km-Stand, Bezeichnung und Notiz muessen sich leeren lassen. */
+    suspend fun createVehicleCost(payload: VehicleCostPayload): VehicleCost =
+        send("/api/vehicle-costs", "POST", encodeKeepingNulls(payload), type = VehicleCost::class.java)
+
+    suspend fun updateVehicleCost(id: String, payload: VehicleCostPayload): VehicleCost =
+        send("/api/vehicle-costs/$id", "PATCH", encodeKeepingNulls(payload), type = VehicleCost::class.java)
+
+    suspend fun deleteVehicleCost(id: String) = sendNoContent("/api/vehicle-costs/$id", "DELETE")
+
+    // MARK: - Erinnerungen (Server ab 0.33.0)
+    //
+    // Wie bei den Fahrzeugkosten: ein aelterer Server antwortet mit 404, der SyncService laesst
+    // die Erinnerungen dann lokal liegen. "Erledigt" rechnet die App selbst und schickt die neuen
+    // Werte per PATCH - `/complete` wird bewusst nicht benutzt, damit beide Modi gleich rechnen.
+
+    suspend fun fetchReminders(): List<Reminder> =
+        send("/api/reminders", type = listType(Reminder::class.java))
+
+    /** `encodeKeepingNulls`: Faelligkeit, Wiederholung, Bezeichnung und Notiz muessen sich leeren lassen. */
+    suspend fun createReminder(payload: ReminderPayload): Reminder =
+        send("/api/reminders", "POST", encodeKeepingNulls(payload), type = Reminder::class.java)
+
+    suspend fun updateReminder(id: String, payload: ReminderPayload): Reminder =
+        send("/api/reminders/$id", "PATCH", encodeKeepingNulls(payload), type = Reminder::class.java)
+
+    suspend fun deleteReminder(id: String) = sendNoContent("/api/reminders/$id", "DELETE")
 
     // MARK: - Locations
 

@@ -10,6 +10,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalProvider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalProviderFee
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalStore
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicle
+import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicleCost
+import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalReminder
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
@@ -17,6 +19,9 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReminderPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCostPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.net.NetworkMonitor
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
@@ -39,8 +44,8 @@ import kotlinx.coroutines.sync.withLock
  * Bidirectional sync between the Room buffer and the server — the port of the iOS `SyncService`.
  * Only active in server mode.
  *
- * Each pass PUSHes local changes/deletes first (in FK order Vehicles -> Providers -> Locations ->
- * Sessions), then PULLs the server state and merges. Conflict strategy: local-dirty wins. Because
+ * Each pass PUSHes local changes/deletes first (in FK order Vehicles -> Providers -> Fees ->
+ * Vehicle costs -> Reminders -> Locations -> Sessions), then PULLs the server state and merges. Conflict strategy: local-dirty wins. Because
  * every freshly created local row starts isDirty=true / serverId=null, the "upload everything on
  * switch to server" case is just the first normal sync pass — not a special case.
  */
@@ -100,12 +105,20 @@ object SyncService {
     private val locations get() = LocalStore.locations
     private val sessions get() = LocalStore.sessions
     private val fees get() = LocalStore.fees
+    private val vehicleCosts get() = LocalStore.vehicleCosts
+    private val reminders get() = LocalStore.reminders
 
     /**
      * Ob der Server Grundgebuehren kennt (ab 0.27.0). Wird in jedem Durchlauf neu ermittelt
      * ([pushFees]), damit ein Server-Update ohne App-Neustart greift.
      */
     private var serverSupportsFees = false
+
+    /** Ob der Server Fahrzeugkosten kennt (ab 0.32.0), je Durchlauf neu ([pushVehicleCosts]). */
+    private var serverSupportsVehicleCosts = false
+
+    /** Ob der Server Erinnerungen kennt (ab 0.33.0), je Durchlauf neu ([pushReminders]). */
+    private var serverSupportsReminders = false
 
     private class UnresolvedReferenceException(what: String) :
         Exception(LademonitorApp.appContext.getString(R.string.sync_error_unresolved_reference, what))
@@ -234,11 +247,15 @@ object SyncService {
             pushVehicles()
             pushProviders()
             pushFees()
+            pushVehicleCosts()
+            pushReminders()
             pushLocations()
             pushSessions()
             pullVehicles()
             pullProviders()
             pullFees()
+            pullVehicleCosts()
+            pullReminders()
             pullLocations()
             pullSessions()
             // Zum Schluss, nach den Pulls: die legen fehlende Zeilen an, und eine gerade erst
@@ -251,6 +268,8 @@ object SyncService {
             _lastSyncError.value = summary + (e.localizedMessage ?: e.toString())
         } finally {
             _isSyncing.value = false
+            // Ein Pull kann Erinnerungen oder km-Staende geaendert haben.
+            ReminderNotifier.rescheduleAsync()
         }
     }
 
@@ -267,6 +286,14 @@ object SyncService {
             for (f in fees.getAll()) {
                 localRef[f.providerId]?.let { f.providerId = it; fees.upsert(f) }
             }
+            // Dasselbe fuer die Fahrzeugkosten und ihr Fahrzeug.
+            val localVehicleRef = vehicles.getAll().mapNotNull { v -> v.serverId?.let { it to v.localId } }.toMap()
+            for (c in vehicleCosts.getAll()) {
+                localVehicleRef[c.vehicleId]?.let { c.vehicleId = it; vehicleCosts.upsert(c) }
+            }
+            for (r in reminders.getAll()) {
+                localVehicleRef[r.vehicleId]?.let { r.vehicleId = it; reminders.upsert(r) }
+            }
             for (v in vehicles.getAll()) resetRow(v.pendingDelete, { vehicles.delete(v) }, {
                 v.serverId = null; v.isDirty = true; vehicles.upsert(v)
             })
@@ -281,6 +308,12 @@ object SyncService {
             })
             for (f in fees.getAll()) resetRow(f.pendingDelete, { fees.delete(f) }, {
                 f.serverId = null; f.isDirty = true; fees.upsert(f)
+            })
+            for (c in vehicleCosts.getAll()) resetRow(c.pendingDelete, { vehicleCosts.delete(c) }, {
+                c.serverId = null; c.isDirty = true; vehicleCosts.upsert(c)
+            })
+            for (r in reminders.getAll()) resetRow(r.pendingDelete, { reminders.delete(r) }, {
+                r.serverId = null; r.isDirty = true; reminders.upsert(r)
             })
             // Grabsteine gelten pro Konto — ein Cursor aus Konto A sagt ueber Konto B nichts
             // aus. Zurueckgesetzt holt der naechste Abruf dessen vollstaendige Liste.
@@ -302,13 +335,18 @@ object SyncService {
                     vehicle.serverId?.let { runCatching { ApiClient.deleteVehicle(it) } }
                     val ref = vehicle.serverId ?: vehicle.localId
                     sessions.getByVehicleId(ref).forEach { sessions.delete(it) }
+                    val refs = setOfNotNull(vehicle.localId, vehicle.serverId)
+                    vehicleCosts.getAll().filter { it.vehicleId in refs }.forEach { vehicleCosts.delete(it) }
+                    reminders.getAll().filter { it.vehicleId in refs }.forEach { reminders.delete(it) }
                     vehicles.delete(vehicle)
                     continue
                 }
                 val payload = VehiclePayload(
                     externalId = if (vehicle.serverId == null) vehicle.externalId else null,
                     name = vehicle.name, brand = vehicle.brand, model = vehicle.model,
-                    batteryCapacityKwh = vehicle.batteryCapacityKwh, isActive = vehicle.isActive
+                    batteryCapacityKwh = vehicle.batteryCapacityKwh, isActive = vehicle.isActive,
+                    // Kauf/Leasing immer komplett (inkl. null), siehe ApiClient.vehicleBody().
+                    ownership = vehicle.ownershipFields()
                 )
                 if (vehicle.serverId != null) {
                     ApiClient.updateVehicle(vehicle.serverId!!, payload)
@@ -397,6 +435,98 @@ object SyncService {
                 itemErrors.add(
                     LademonitorApp.appContext.getString(
                         R.string.sync_error_item_fee, fee.label ?: String.format("%.2f €", fee.amount),
+                        e.localizedMessage.orEmpty()
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * Fahrzeugkosten nach den Fahrzeugen (sie haengen nur an ihnen), damit ein neuer Eintrag die
+     * serverId seines gerade erst hochgeladenen Fahrzeugs schon kennt. Gegen einen Server aelter
+     * als 0.32.0 (404 auf die Liste) bleibt alles lokal und dirty, wie bei den Grundgebuehren.
+     */
+    private suspend fun pushVehicleCosts() {
+        serverSupportsVehicleCosts = try {
+            ApiClient.fetchVehicleCosts()
+            true
+        } catch (e: ApiException.Server) {
+            if (e.statusCode == 404) false else throw e
+        }
+        if (!serverSupportsVehicleCosts) return
+        for (cost in vehicleCosts.getDirty()) {
+            try {
+                if (cost.pendingDelete) {
+                    cost.serverId?.let { runCatching { ApiClient.deleteVehicleCost(it) } }
+                    vehicleCosts.delete(cost)
+                    continue
+                }
+                val vehicleId = resolvedVehicleServerId(cost.vehicleId)
+                val payload = VehicleCostPayload(
+                    vehicleId = vehicleId, amount = cost.amount, category = cost.category,
+                    interval = cost.interval, startDate = cost.startDate, endDate = cost.endDate,
+                    odometerKm = cost.odometerKm, label = cost.label, notes = cost.notes
+                )
+                if (cost.serverId != null) {
+                    ApiClient.updateVehicleCost(cost.serverId!!, payload)
+                } else {
+                    cost.serverId = ApiClient.createVehicleCost(payload).id
+                }
+                cost.vehicleId = vehicleId
+                cost.isDirty = false
+                vehicleCosts.upsert(cost)
+            } catch (e: Exception) {
+                itemErrors.add(
+                    LademonitorApp.appContext.getString(
+                        R.string.sync_error_item_vehicle_cost, cost.label ?: String.format("%.2f €", cost.amount),
+                        e.localizedMessage.orEmpty()
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * Erinnerungen nach den Fahrzeugkosten (sie haengen ebenfalls nur am Fahrzeug). Gegen einen
+     * Server aelter als 0.33.0 (404 auf die Liste) bleibt alles lokal und dirty. Gesendet werden
+     * immer ALLE Felder inkl. null; "Erledigt" ist hier eine gewoehnliche Aenderung.
+     */
+    private suspend fun pushReminders() {
+        serverSupportsReminders = try {
+            ApiClient.fetchReminders()
+            true
+        } catch (e: ApiException.Server) {
+            if (e.statusCode == 404) false else throw e
+        }
+        if (!serverSupportsReminders) return
+        for (reminder in reminders.getDirty()) {
+            try {
+                if (reminder.pendingDelete) {
+                    reminder.serverId?.let { runCatching { ApiClient.deleteReminder(it) } }
+                    reminders.delete(reminder)
+                    continue
+                }
+                val vehicleId = resolvedVehicleServerId(reminder.vehicleId)
+                val payload = ReminderPayload(
+                    vehicleId = vehicleId, kind = reminder.kind, title = reminder.title,
+                    dueDate = reminder.dueDate, dueKm = reminder.dueKm,
+                    repeatMonths = reminder.repeatMonths, repeatKm = reminder.repeatKm,
+                    leadDays = reminder.leadDays, leadKm = reminder.leadKm, notes = reminder.notes,
+                    lastDoneDate = reminder.lastDoneDate, lastDoneKm = reminder.lastDoneKm
+                )
+                if (reminder.serverId != null) {
+                    ApiClient.updateReminder(reminder.serverId!!, payload)
+                } else {
+                    reminder.serverId = ApiClient.createReminder(payload).id
+                }
+                reminder.vehicleId = vehicleId
+                reminder.isDirty = false
+                reminders.upsert(reminder)
+            } catch (e: Exception) {
+                itemErrors.add(
+                    LademonitorApp.appContext.getString(
+                        R.string.sync_error_item_reminder, reminder.title ?: reminder.kind,
                         e.localizedMessage.orEmpty()
                     )
                 )
@@ -528,18 +658,28 @@ object SyncService {
                     existing.model = sv.model
                     existing.batteryCapacityKwh = sv.batteryCapacityKwh
                     existing.isActive = sv.isActive
+                    applyOwnership(sv, existing)
                     vehicles.upsert(existing)
                 }
             } else {
-                vehicles.upsert(
-                    LocalVehicle(
-                        serverId = sv.id, externalId = sv.externalId, name = sv.name, brand = sv.brand,
-                        model = sv.model, batteryCapacityKwh = sv.batteryCapacityKwh, isActive = sv.isActive,
-                        isDirty = false
-                    )
+                val row = LocalVehicle(
+                    serverId = sv.id, externalId = sv.externalId, name = sv.name, brand = sv.brand,
+                    model = sv.model, batteryCapacityKwh = sv.batteryCapacityKwh, isActive = sv.isActive,
+                    isDirty = false
                 )
+                applyOwnership(sv, row)
+                vehicles.upsert(row)
             }
         }
+    }
+
+    /**
+     * Ein Server vor 0.32.0 schickt kein `ownership` - dann bleiben die lokalen Kauf-/
+     * Leasingangaben stehen, statt beim naechsten Pull geleert zu werden.
+     */
+    private fun applyOwnership(dto: Vehicle, row: LocalVehicle) {
+        if (dto.ownership == null) return
+        row.applyOwnership(dto.ownershipFields)
     }
 
     private suspend fun pullProviders() {
@@ -592,6 +732,53 @@ object SyncService {
                         label = sf.label, notes = sf.notes, isDirty = false
                     )
                 )
+            }
+        }
+    }
+
+    private suspend fun pullVehicleCosts() {
+        if (!serverSupportsVehicleCosts) return
+        for (sc in ApiClient.fetchVehicleCosts()) {
+            val existing = vehicleCosts.findByServerId(sc.id)
+            if (existing != null) {
+                if (!existing.isDirty) {
+                    existing.vehicleId = sc.vehicleId
+                    existing.amount = sc.amount
+                    existing.category = sc.category
+                    existing.interval = sc.interval
+                    existing.startDate = sc.startDate
+                    existing.endDate = sc.endDate
+                    existing.odometerKm = sc.odometerKm
+                    existing.label = sc.label
+                    existing.notes = sc.notes
+                    vehicleCosts.upsert(existing)
+                }
+            } else {
+                vehicleCosts.upsert(
+                    LocalVehicleCost(
+                        serverId = sc.id, vehicleId = sc.vehicleId, amount = sc.amount,
+                        category = sc.category, interval = sc.interval, startDate = sc.startDate,
+                        endDate = sc.endDate, odometerKm = sc.odometerKm, label = sc.label,
+                        notes = sc.notes, isDirty = false
+                    )
+                )
+            }
+        }
+    }
+
+    private suspend fun pullReminders() {
+        if (!serverSupportsReminders) return
+        for (sr in ApiClient.fetchReminders()) {
+            val existing = reminders.findByServerId(sr.id)
+            if (existing != null) {
+                if (!existing.isDirty) {
+                    existing.applyFields(sr)
+                    reminders.upsert(existing)
+                }
+            } else {
+                val row = LocalReminder(serverId = sr.id, isDirty = false)
+                row.applyFields(sr)
+                reminders.upsert(row)
             }
         }
     }
@@ -708,7 +895,14 @@ object SyncService {
         }
         for (record in response.deletions) {
             when (record.entityType) {
-                "vehicle" -> vehicles.findByServerId(record.entityId)?.let { vehicles.delete(it) }
+                "vehicle" -> vehicles.findByServerId(record.entityId)?.let { row ->
+                    // Seine Kosten mit, wie die Gebuehren beim Anbieter: eine noch nie
+                    // hochgeladene haette sonst kein Fahrzeug mehr und scheiterte bei jedem Push.
+                    val refs = setOf(row.localId, record.entityId)
+                    vehicleCosts.getAll().filter { it.vehicleId in refs }.forEach { vehicleCosts.delete(it) }
+                    reminders.getAll().filter { it.vehicleId in refs }.forEach { reminders.delete(it) }
+                    vehicles.delete(row)
+                }
                 "provider" -> providers.findByServerId(record.entityId)?.let { row ->
                     // Seine Gebuehren mit: eine noch nie hochgeladene haette sonst keinen Anbieter
                     // mehr und scheiterte bei jedem Push erneut.
@@ -719,6 +913,8 @@ object SyncService {
                 "location" -> locations.findByServerId(record.entityId)?.let { locations.delete(it) }
                 "session" -> sessions.findByServerId(record.entityId)?.let { sessions.delete(it) }
                 "provider_fee" -> fees.findByServerId(record.entityId)?.let { fees.delete(it) }
+                "vehicle_cost" -> vehicleCosts.findByServerId(record.entityId)?.let { vehicleCosts.delete(it) }
+                "reminder" -> reminders.findByServerId(record.entityId)?.let { reminders.delete(it) }
                 // Unbekannter Typ aus einem neueren Server: ueberspringen statt zu raten —
                 // eine aeltere App soll an einem neueren Server nicht scheitern.
                 else -> Unit

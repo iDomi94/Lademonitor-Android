@@ -17,9 +17,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LocalProvider::class,
         LocalChargingLocation::class,
         LocalChargingSession::class,
-        LocalProviderFee::class
+        LocalProviderFee::class,
+        LocalVehicleCost::class,
+        LocalReminder::class
     ],
-    version = 6,
+    version = 8,
     exportSchema = false
 )
 abstract class LademonitorDatabase : RoomDatabase() {
@@ -28,6 +30,8 @@ abstract class LademonitorDatabase : RoomDatabase() {
     abstract fun locationDao(): LocationDao
     abstract fun sessionDao(): SessionDao
     abstract fun providerFeeDao(): ProviderFeeDao
+    abstract fun vehicleCostDao(): VehicleCostDao
+    abstract fun reminderDao(): ReminderDao
 }
 
 /**
@@ -125,6 +129,88 @@ val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
+/**
+ * 6 -> 7: Fahrzeugkosten (Server ab 0.32.0) - die Kauf-/Leasingfelder am Fahrzeug und die neue
+ * Tabelle `vehicle_costs`.
+ *
+ * Die Fahrzeugspalten sind alle nullable ohne Default (wie in 4 -> 5 und 5 -> 6): Bestandszeilen
+ * bekommen NULL, das heisst "keine Angabe". Typen wie Room sie aus den Kotlin-Typen ableitet:
+ * String -> TEXT, Double -> REAL, Long/Int -> INTEGER. Die neue Tabelle muss exakt
+ * [LocalVehicleCost] entsprechen, sonst bricht Rooms Schemapruefung ab (siehe 3 -> 4).
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN ownership TEXT")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN purchasePrice REAL")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN purchaseDate INTEGER")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN firstRegistration INTEGER")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN purchaseOdometerKm INTEGER")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN depreciationMonthlyOverride REAL")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN leasingRateMonthly REAL")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN leasingStart INTEGER")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN leasingEnd INTEGER")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN leasingDownPayment REAL")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `vehicle_costs` (
+                `localId` TEXT NOT NULL,
+                `serverId` TEXT,
+                `vehicleId` TEXT NOT NULL,
+                `amount` REAL NOT NULL,
+                `category` TEXT NOT NULL,
+                `interval` TEXT NOT NULL,
+                `startDate` INTEGER NOT NULL,
+                `endDate` INTEGER,
+                `odometerKm` INTEGER,
+                `label` TEXT,
+                `notes` TEXT,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                `isDirty` INTEGER NOT NULL,
+                `pendingDelete` INTEGER NOT NULL,
+                PRIMARY KEY(`localId`)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
+/**
+ * 7 -> 8: Erinnerungen (Server ab 0.33.0) - neue Tabelle `reminders`. Muss exakt
+ * [LocalReminder] entsprechen (Spaltennamen = Kotlin-Eigenschaften, String -> TEXT,
+ * Int/Long/Boolean -> INTEGER, nicht-nullable -> NOT NULL; Kotlin-Defaults sind keine
+ * SQL-Defaults und gehoeren deshalb nicht hierher), sonst bricht Rooms Schemapruefung ab.
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `reminders` (
+                `localId` TEXT NOT NULL,
+                `serverId` TEXT,
+                `vehicleId` TEXT NOT NULL,
+                `kind` TEXT NOT NULL,
+                `title` TEXT,
+                `dueDate` INTEGER,
+                `dueKm` INTEGER,
+                `repeatMonths` INTEGER,
+                `repeatKm` INTEGER,
+                `leadDays` INTEGER NOT NULL,
+                `leadKm` INTEGER NOT NULL,
+                `notes` TEXT,
+                `lastDoneDate` INTEGER,
+                `lastDoneKm` INTEGER,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                `isDirty` INTEGER NOT NULL,
+                `pendingDelete` INTEGER NOT NULL,
+                PRIMARY KEY(`localId`)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
 object LocalStore {
     lateinit var db: LademonitorDatabase
         private set
@@ -134,12 +220,14 @@ object LocalStore {
     val locations: LocationDao get() = db.locationDao()
     val sessions: SessionDao get() = db.sessionDao()
     val fees: ProviderFeeDao get() = db.providerFeeDao()
+    val vehicleCosts: VehicleCostDao get() = db.vehicleCostDao()
+    val reminders: ReminderDao get() = db.reminderDao()
 
     fun init(context: Context) {
         db = Room.databaseBuilder(
             context.applicationContext,
             LademonitorDatabase::class.java,
             "lademonitor.db"
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build()
     }
 }

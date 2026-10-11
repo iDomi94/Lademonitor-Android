@@ -62,6 +62,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
+import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.ChargeBarSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.EmptyState
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.ErrorState
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.Fmt
@@ -249,6 +250,7 @@ private fun SessionRow(
     onClick: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val chargeBarConfig by ChargeBarSettings.config.collectAsStateWithLifecycle()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -305,6 +307,18 @@ private fun SessionRow(
             }
             if (details.isNotEmpty()) {
                 Text(details, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            // Ladebalken nur bei vollstaendigem, plausiblem SoC-Verlauf.
+            val socStart = session.socStart
+            val socEnd = session.socEnd
+            if (socStart != null && socEnd != null && socEnd >= socStart) {
+                ChargeBar(
+                    socStart = socStart,
+                    socEnd = socEnd,
+                    lowerMarker = chargeBarConfig.lower,
+                    upperMarker = chargeBarConfig.upper,
+                    modifier = Modifier.padding(vertical = 3.dp)
+                )
             }
             val method = session.consumptionMethodValue
             if (session.consumptionKwhPer100km != null && method != null && method != com.dominiqueherbrigpersonalteam.lademonitor.data.model.ConsumptionMethod.UNAVAILABLE) {

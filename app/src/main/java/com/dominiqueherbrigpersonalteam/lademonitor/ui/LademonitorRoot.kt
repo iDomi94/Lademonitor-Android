@@ -43,12 +43,15 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.dashboard.DashboardScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.map.MapScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.sessions.SessionsListScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.AccountSettingsScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ChargeBarSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ConnectionSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.FeesSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.LocationsSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ProvidersSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.SettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.TiresSettingsScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehicleCostsScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehicleRemindersScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehiclesSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.BatteryHealthScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.CombustionComparisonScreen
@@ -173,7 +176,9 @@ private fun MainScaffold() {
             startDestination = Tab.DASHBOARD.route,
             modifier = Modifier.padding(padding)
         ) {
-            composable(Tab.DASHBOARD.route) { DashboardScreen() }
+            composable(Tab.DASHBOARD.route) {
+                DashboardScreen(onOpenReminders = { id -> navController.navigate("settings/vehicles/reminders/$id") })
+            }
             composable(Tab.SESSIONS.route) { SessionsListScreen() }
             composable(Tab.MAP.route) { MapScreen() }
             composable(Tab.TOOLS.route) { ToolsScreen(navController) }
@@ -185,12 +190,21 @@ private fun MainScaffold() {
             composable("tools/battery") { BatteryHealthScreen(navController) }
             composable(Tab.SETTINGS.route) { SettingsScreen(navController) }
             composable("settings/vehicles") { VehiclesSettingsScreen(navController) }
+            composable(
+                "settings/vehicles/costs/{vehicleId}",
+                arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
+            ) { entry -> VehicleCostsScreen(navController, entry.arguments?.getString("vehicleId") ?: "") }
+            composable(
+                "settings/vehicles/reminders/{vehicleId}",
+                arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
+            ) { entry -> VehicleRemindersScreen(navController, entry.arguments?.getString("vehicleId") ?: "") }
             composable("settings/providers") { ProvidersSettingsScreen(navController) }
             composable("settings/fees") { FeesSettingsScreen(navController) }
             composable("settings/tires") { TiresSettingsScreen(navController) }
             composable("settings/locations") { LocationsSettingsScreen(navController) }
             composable("settings/connection") { ConnectionSettingsScreen(navController) }
             composable("settings/account") { AccountSettingsScreen(navController) }
+            composable("settings/chargebar") { ChargeBarSettingsScreen(navController) }
         }
     }
 }

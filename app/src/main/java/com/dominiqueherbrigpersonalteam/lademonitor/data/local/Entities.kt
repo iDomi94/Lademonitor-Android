@@ -6,9 +6,13 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Ownership
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Reminder
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCost
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleOwnership
 import java.util.UUID
 
 /**
@@ -35,7 +39,22 @@ data class LocalVehicle(
     var createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis(),
     var isDirty: Boolean = true,
-    var pendingDelete: Boolean = false
+    var pendingDelete: Boolean = false,
+    /**
+     * Kauf/Leasing (Room 6 -> 7, Server ab 0.32.0), siehe Models.Ownership. Alle nullable ohne
+     * Default in der Tabelle; `ownership == null` gilt als keine Angabe. Datumsfelder sind wie
+     * bei den Grundgebuehren lokale Mitternacht in Epoch-Millis.
+     */
+    var ownership: String? = null,
+    var purchasePrice: Double? = null,
+    var purchaseDate: Long? = null,
+    var firstRegistration: Long? = null,
+    var purchaseOdometerKm: Int? = null,
+    var depreciationMonthlyOverride: Double? = null,
+    var leasingRateMonthly: Double? = null,
+    var leasingStart: Long? = null,
+    var leasingEnd: Long? = null,
+    var leasingDownPayment: Double? = null
 ) {
     fun asDTO() = Vehicle(
         id = serverId ?: localId,
@@ -44,8 +63,34 @@ data class LocalVehicle(
         brand = brand,
         model = model,
         batteryCapacityKwh = batteryCapacityKwh,
-        isActive = isActive
+        isActive = isActive,
+        ownership = Ownership.from(ownership).raw,
+        purchasePrice = purchasePrice,
+        purchaseDate = purchaseDate,
+        firstRegistration = firstRegistration,
+        purchaseOdometerKm = purchaseOdometerKm,
+        depreciationMonthlyOverride = depreciationMonthlyOverride,
+        leasingRateMonthly = leasingRateMonthly,
+        leasingStart = leasingStart,
+        leasingEnd = leasingEnd,
+        leasingDownPayment = leasingDownPayment
     )
+
+    /** Uebernimmt alle Kauf-/Leasingangaben (lokales Speichern wie Pull vom Server). */
+    fun applyOwnership(o: VehicleOwnership) {
+        ownership = Ownership.from(o.ownership).raw
+        purchasePrice = o.purchasePrice
+        purchaseDate = o.purchaseDate
+        firstRegistration = o.firstRegistration
+        purchaseOdometerKm = o.purchaseOdometerKm
+        depreciationMonthlyOverride = o.depreciationMonthlyOverride
+        leasingRateMonthly = o.leasingRateMonthly
+        leasingStart = o.leasingStart
+        leasingEnd = o.leasingEnd
+        leasingDownPayment = o.leasingDownPayment
+    }
+
+    fun ownershipFields() = asDTO().ownershipFields
 }
 
 @Entity(tableName = "providers")
@@ -210,4 +255,99 @@ data class LocalProviderFee(
         label = label,
         notes = notes
     )
+}
+
+/**
+ * Sonstige Kosten eines Fahrzeugs (Room 6 -> 7, Server ab 0.32.0). [vehicleId] zeigt wie bei den
+ * Ladevorgaengen auf `serverId ?: localId` des Fahrzeugs.
+ */
+@Entity(tableName = "vehicle_costs")
+data class LocalVehicleCost(
+    @PrimaryKey val localId: String = UUID.randomUUID().toString(),
+    var serverId: String? = null,
+    var vehicleId: String = "",
+    var amount: Double = 0.0,
+    var category: String = "other",
+    var interval: String = "once",
+    var startDate: Long = System.currentTimeMillis(),
+    var endDate: Long? = null,
+    var odometerKm: Int? = null,
+    var label: String? = null,
+    var notes: String? = null,
+    var createdAt: Long = System.currentTimeMillis(),
+    var updatedAt: Long = System.currentTimeMillis(),
+    var isDirty: Boolean = true,
+    var pendingDelete: Boolean = false
+) {
+    fun asDTO() = VehicleCost(
+        id = serverId ?: localId,
+        vehicleId = vehicleId,
+        amount = amount,
+        category = category,
+        interval = interval,
+        startDate = startDate,
+        endDate = endDate,
+        odometerKm = odometerKm,
+        label = label,
+        notes = notes
+    )
+}
+
+/**
+ * Erinnerung eines Fahrzeugs (Room 7 -> 8, Server ab 0.33.0). [vehicleId] zeigt wie bei den
+ * Fahrzeugkosten auf `serverId ?: localId` des Fahrzeugs. Datumsfelder sind lokale Mitternacht in
+ * Epoch-Millis. Status und Prognose werden nie gespeichert (LocalReminderCalculator).
+ */
+@Entity(tableName = "reminders")
+data class LocalReminder(
+    @PrimaryKey val localId: String = UUID.randomUUID().toString(),
+    var serverId: String? = null,
+    var vehicleId: String = "",
+    var kind: String = "custom",
+    var title: String? = null,
+    var dueDate: Long? = null,
+    var dueKm: Int? = null,
+    var repeatMonths: Int? = null,
+    var repeatKm: Int? = null,
+    var leadDays: Int = 30,
+    var leadKm: Int = 1000,
+    var notes: String? = null,
+    var lastDoneDate: Long? = null,
+    var lastDoneKm: Int? = null,
+    var createdAt: Long = System.currentTimeMillis(),
+    var updatedAt: Long = System.currentTimeMillis(),
+    var isDirty: Boolean = true,
+    var pendingDelete: Boolean = false
+) {
+    fun asDTO() = Reminder(
+        id = serverId ?: localId,
+        vehicleId = vehicleId,
+        kind = kind,
+        title = title,
+        dueDate = dueDate,
+        dueKm = dueKm,
+        repeatMonths = repeatMonths,
+        repeatKm = repeatKm,
+        leadDays = leadDays,
+        leadKm = leadKm,
+        notes = notes,
+        lastDoneDate = lastDoneDate,
+        lastDoneKm = lastDoneKm
+    )
+
+    /** Uebernimmt alle fachlichen Felder (lokales Speichern wie Pull vom Server). */
+    fun applyFields(r: Reminder) {
+        vehicleId = r.vehicleId
+        kind = r.kind
+        title = r.title
+        dueDate = r.dueDate
+        dueKm = r.dueKm
+        repeatMonths = r.repeatMonths
+        repeatKm = r.repeatKm
+        leadDays = r.leadDays
+        leadKm = r.leadKm
+        notes = r.notes
+        lastDoneDate = r.lastDoneDate
+        lastDoneKm = r.lastDoneKm
+    }
 }

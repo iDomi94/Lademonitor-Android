@@ -161,3 +161,63 @@ interface ProviderFeeDao {
     @Query("DELETE FROM provider_fees")
     suspend fun clear()
 }
+
+@Dao
+interface VehicleCostDao {
+    @Query("SELECT * FROM vehicle_costs WHERE pendingDelete = 0 ORDER BY startDate DESC")
+    suspend fun getAllUndeleted(): List<LocalVehicleCost>
+
+    @Query("SELECT * FROM vehicle_costs WHERE serverId = :id OR localId = :id LIMIT 1")
+    suspend fun find(id: String): LocalVehicleCost?
+
+    @Query("SELECT * FROM vehicle_costs WHERE serverId = :serverId LIMIT 1")
+    suspend fun findByServerId(serverId: String): LocalVehicleCost?
+
+    @Query("SELECT * FROM vehicle_costs")
+    suspend fun getAll(): List<LocalVehicleCost>
+
+    @Query("SELECT * FROM vehicle_costs WHERE isDirty = 1")
+    suspend fun getDirty(): List<LocalVehicleCost>
+
+    @Upsert
+    suspend fun upsert(cost: LocalVehicleCost)
+
+    @Delete
+    suspend fun delete(cost: LocalVehicleCost)
+
+    @Query("SELECT COUNT(*) FROM vehicle_costs")
+    suspend fun countAll(): Int
+
+    @Query("DELETE FROM vehicle_costs")
+    suspend fun clear()
+}
+
+@Dao
+interface ReminderDao {
+    @Query("SELECT * FROM reminders WHERE pendingDelete = 0")
+    suspend fun getAllUndeleted(): List<LocalReminder>
+
+    @Query("SELECT * FROM reminders WHERE serverId = :id OR localId = :id LIMIT 1")
+    suspend fun find(id: String): LocalReminder?
+
+    @Query("SELECT * FROM reminders WHERE serverId = :serverId LIMIT 1")
+    suspend fun findByServerId(serverId: String): LocalReminder?
+
+    @Query("SELECT * FROM reminders")
+    suspend fun getAll(): List<LocalReminder>
+
+    @Query("SELECT * FROM reminders WHERE isDirty = 1")
+    suspend fun getDirty(): List<LocalReminder>
+
+    @Upsert
+    suspend fun upsert(reminder: LocalReminder)
+
+    @Delete
+    suspend fun delete(reminder: LocalReminder)
+
+    @Query("SELECT COUNT(*) FROM reminders")
+    suspend fun countAll(): Int
+
+    @Query("DELETE FROM reminders")
+    suspend fun clear()
+}

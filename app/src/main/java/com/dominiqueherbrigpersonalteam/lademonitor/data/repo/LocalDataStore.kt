@@ -8,6 +8,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalProvider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalProviderFee
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalStore
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicle
+import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicleCost
+import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalReminder
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingType
@@ -20,6 +22,10 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayloa
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureSource
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCost
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCostPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Reminder
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReminderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
 
@@ -43,6 +49,8 @@ object LocalDataStore {
     private val locations get() = LocalStore.locations
     private val sessions get() = LocalStore.sessions
     private val fees get() = LocalStore.fees
+    private val vehicleCosts get() = LocalStore.vehicleCosts
+    private val reminders get() = LocalStore.reminders
 
     // MARK: - Reset
 
@@ -54,7 +62,8 @@ object LocalDataStore {
      */
     suspend fun hasAnyData(): Boolean =
         sessions.countAll() > 0 || vehicles.countAll() > 0 ||
-            providers.countAll() > 0 || locations.countAll() > 0 || fees.countAll() > 0
+            providers.countAll() > 0 || locations.countAll() > 0 || fees.countAll() > 0 ||
+            vehicleCosts.countAll() > 0 || reminders.countAll() > 0
 
     /** Short summary for the sign-in question ("3 vehicles, 128 charging sessions"). */
     suspend fun localDataSummary(): String {
@@ -70,17 +79,24 @@ object LocalDataStore {
                 ?.let { add(context.getString(R.string.local_data_summary_sessions, it)) }
             fees.countAll().takeIf { it > 0 }
                 ?.let { add(context.getString(R.string.local_data_summary_fees, it)) }
+            vehicleCosts.countAll().takeIf { it > 0 }
+                ?.let { add(context.getString(R.string.local_data_summary_vehicle_costs, it)) }
+            reminders.countAll().takeIf { it > 0 }
+                ?.let { add(context.getString(R.string.local_data_summary_reminders, it)) }
         }
         return parts.joinToString(", ")
     }
 
     /** Irreversibly deletes ALL local data. */
     suspend fun resetAllData() {
+        reminders.clear()
+        vehicleCosts.clear()
         fees.clear()
         sessions.clear()
         locations.clear()
         providers.clear()
         vehicles.clear()
+        ReminderNotifier.rescheduleAsync()
     }
 
     // MARK: - Vehicles
@@ -96,6 +112,7 @@ object LocalDataStore {
             batteryCapacityKwh = payload.batteryCapacityKwh,
             isActive = payload.isActive ?: true
         )
+        payload.ownership?.let { vehicle.applyOwnership(it) }
         vehicles.upsert(vehicle)
         return vehicle.asDTO()
     }
@@ -107,15 +124,24 @@ object LocalDataStore {
         payload.model?.let { vehicle.model = it }
         payload.batteryCapacityKwh?.let { vehicle.batteryCapacityKwh = it }
         payload.isActive?.let { vehicle.isActive = it }
+        // Kauf/Leasing immer als Ganzes: ein geleertes Feld soll auch geleert werden.
+        payload.ownership?.let { vehicle.applyOwnership(it) }
         vehicle.updatedAt = System.currentTimeMillis()
         vehicle.isDirty = true
         vehicles.upsert(vehicle)
         return vehicle.asDTO()
     }
 
-    /** Cascades to the vehicle's sessions, matching the server. */
+    /**
+     * Cascades to the vehicle's sessions, matching the server. Die Fahrzeugkosten gehen sofort und
+     * hart mit (wie die Grundgebuehren beim Anbieter): der Server loescht sie beim Loeschen des
+     * Fahrzeugs selbst, samt Grabsteinen. Dasselbe gilt fuer die Erinnerungen.
+     */
     suspend fun deleteVehicle(id: String) {
         val vehicle = vehicles.find(id) ?: throw LocalStoreException.notFound()
+        val refs = setOfNotNull(vehicle.localId, vehicle.serverId)
+        vehicleCosts.getAll().filter { it.vehicleId in refs }.forEach { vehicleCosts.delete(it) }
+        reminders.getAll().filter { it.vehicleId in refs }.forEach { reminders.delete(it) }
         val childSessions = sessions.getByVehicleId(id)
         if (vehicle.serverId != null) {
             vehicle.pendingDelete = true
@@ -300,6 +326,177 @@ object LocalDataStore {
         }
     }
 
+    // MARK: - Fahrzeugkosten
+
+    /** Wie [canonicalProviderIds], nur fuer Fahrzeuge (Kosten und Ladevorgaenge -> `Vehicle.id`). */
+    suspend fun canonicalVehicleIds(): Map<String, String> {
+        val map = HashMap<String, String>()
+        for (vehicle in vehicles.getAll()) {
+            val canonical = vehicle.serverId ?: vehicle.localId
+            map[vehicle.localId] = canonical
+            vehicle.serverId?.let { map[it] = canonical }
+        }
+        return map
+    }
+
+    /** Neueste zuerst; `vehicleId` in kanonischer Form ([canonicalVehicleIds]). */
+    suspend fun fetchVehicleCosts(vehicleId: String? = null): List<VehicleCost> {
+        val canonical = canonicalVehicleIds()
+        val list = vehicleCosts.getAllUndeleted().map { row ->
+            val dto = row.asDTO()
+            dto.copy(vehicleId = canonical[dto.vehicleId] ?: dto.vehicleId)
+        }
+        if (vehicleId == null) return list
+        val wanted = canonical[vehicleId] ?: vehicleId
+        return list.filter { it.vehicleId == wanted }
+    }
+
+    /**
+     * Alles, was [LocalVehicleCostCalculator] braucht, mit EINER Fahrzeug-ID-Form. Die
+     * Ladevorgaenge tragen schon den Grundgebuehr-Anteil ([fetchSessions]) - die Ladekosten je
+     * Jahr enthalten ihn wie auf dem Server.
+     */
+    suspend fun vehicleCostBasis(): VehicleCostBasis {
+        val canonical = canonicalVehicleIds()
+        return VehicleCostBasis(
+            vehicles = fetchVehicles(),
+            costs = fetchVehicleCosts(),
+            sessions = fetchSessions().map { s -> s.copy(vehicleId = canonical[s.vehicleId] ?: s.vehicleId) }
+        )
+    }
+
+    /** Ein leerer Eintrag ohne Enddatum bei "einmalig" - wie der Server (_validate). */
+    private fun normalizedEndDate(payload: VehicleCostPayload): Long? =
+        if (payload.interval == "monthly" || payload.interval == "yearly") payload.endDate else null
+
+    suspend fun createVehicleCost(payload: VehicleCostPayload): VehicleCost {
+        val cost = LocalVehicleCost(
+            vehicleId = payload.vehicleId,
+            amount = payload.amount,
+            category = payload.category,
+            interval = payload.interval,
+            startDate = payload.startDate,
+            endDate = normalizedEndDate(payload),
+            odometerKm = payload.odometerKm,
+            label = payload.label,
+            notes = payload.notes
+        )
+        vehicleCosts.upsert(cost)
+        return cost.asDTO()
+    }
+
+    /** Ersetzt alle Felder, wie bei den Grundgebuehren. */
+    suspend fun updateVehicleCost(id: String, payload: VehicleCostPayload): VehicleCost {
+        val cost = vehicleCosts.find(id) ?: throw LocalStoreException.notFound()
+        cost.vehicleId = payload.vehicleId
+        cost.amount = payload.amount
+        cost.category = payload.category
+        cost.interval = payload.interval
+        cost.startDate = payload.startDate
+        cost.endDate = normalizedEndDate(payload)
+        cost.odometerKm = payload.odometerKm
+        cost.label = payload.label
+        cost.notes = payload.notes
+        cost.updatedAt = System.currentTimeMillis()
+        cost.isDirty = true
+        vehicleCosts.upsert(cost)
+        return cost.asDTO()
+    }
+
+    suspend fun deleteVehicleCost(id: String) {
+        val cost = vehicleCosts.find(id) ?: throw LocalStoreException.notFound()
+        if (cost.serverId != null) {
+            cost.pendingDelete = true
+            cost.isDirty = true
+            vehicleCosts.upsert(cost)
+        } else {
+            vehicleCosts.delete(cost)
+        }
+    }
+
+    // MARK: - Erinnerungen
+
+    /** Alle Erinnerungen (ohne Reihenfolge); `vehicleId` in kanonischer Form ([canonicalVehicleIds]). */
+    suspend fun fetchReminders(vehicleId: String? = null): List<Reminder> {
+        val canonical = canonicalVehicleIds()
+        val list = reminders.getAllUndeleted().map { row ->
+            val dto = row.asDTO()
+            dto.copy(vehicleId = canonical[dto.vehicleId] ?: dto.vehicleId)
+        }
+        if (vehicleId == null) return list
+        val wanted = canonical[vehicleId] ?: vehicleId
+        return list.filter { it.vehicleId == wanted }
+    }
+
+    /**
+     * Alle Erinnerungen ausgewertet (Status, Prognose), dringendste zuerst - mit EINER
+     * Fahrzeug-ID-Form fuer Erinnerungen und Ladevorgaenge. Ohne Zeitraumfilter.
+     */
+    suspend fun evaluatedReminders(vehicleId: String? = null): List<LocalReminderCalculator.Evaluated> {
+        val canonical = canonicalVehicleIds()
+        val list = fetchReminders(vehicleId)
+        if (list.isEmpty()) return emptyList()
+        val wanted = list.map { it.vehicleId }.toSet()
+        val sessionsOfVehicles = sessions.getAllUndeleted()
+            .map { it.asDTO() }
+            .map { s -> s.copy(vehicleId = canonical[s.vehicleId] ?: s.vehicleId) }
+            .filter { it.vehicleId in wanted }
+        val names = fetchVehicles().associate { it.id to it.name }
+        return LocalReminderCalculator.evaluateAll(list, sessionsOfVehicles, names)
+    }
+
+    /** km-Stand und Fahrleistung eines Fahrzeugs (Vorschlag fuer "Erledigt" und neue km-Faelligkeiten). */
+    suspend fun vehicleMileage(vehicleId: String): LocalReminderCalculator.Mileage {
+        val canonical = canonicalVehicleIds()
+        val wanted = canonical[vehicleId] ?: vehicleId
+        val list = sessions.getAllUndeleted().map { it.asDTO() }
+            .filter { (canonical[it.vehicleId] ?: it.vehicleId) == wanted }
+        return LocalReminderCalculator.mileage(list)
+    }
+
+    private fun LocalReminder.applyPayload(payload: ReminderPayload) {
+        vehicleId = payload.vehicleId
+        kind = payload.kind
+        title = payload.title
+        dueDate = payload.dueDate
+        dueKm = payload.dueKm
+        repeatMonths = payload.repeatMonths
+        repeatKm = payload.repeatKm
+        leadDays = payload.leadDays
+        leadKm = payload.leadKm
+        notes = payload.notes
+        lastDoneDate = payload.lastDoneDate
+        lastDoneKm = payload.lastDoneKm
+    }
+
+    suspend fun createReminder(payload: ReminderPayload): Reminder {
+        val reminder = LocalReminder()
+        reminder.applyPayload(payload)
+        reminders.upsert(reminder)
+        return reminder.asDTO()
+    }
+
+    /** Ersetzt alle Felder, wie bei den Fahrzeugkosten. */
+    suspend fun updateReminder(id: String, payload: ReminderPayload): Reminder {
+        val reminder = reminders.find(id) ?: throw LocalStoreException.notFound()
+        reminder.applyPayload(payload)
+        reminder.updatedAt = System.currentTimeMillis()
+        reminder.isDirty = true
+        reminders.upsert(reminder)
+        return reminder.asDTO()
+    }
+
+    suspend fun deleteReminder(id: String) {
+        val reminder = reminders.find(id) ?: throw LocalStoreException.notFound()
+        if (reminder.serverId != null) {
+            reminder.pendingDelete = true
+            reminder.isDirty = true
+            reminders.upsert(reminder)
+        } else {
+            reminders.delete(reminder)
+        }
+    }
+
     // MARK: - Sessions
 
     suspend fun fetchSessions(
@@ -463,3 +660,10 @@ object LocalDataStore {
         }
     }
 }
+
+data class VehicleCostBasis(
+    val vehicles: List<Vehicle>,
+    val costs: List<VehicleCost>,
+    /** Alle Ladevorgaenge mit kanonischer Fahrzeug-ID und Grundgebuehr-Anteil. */
+    val sessions: List<ChargingSession>
+)

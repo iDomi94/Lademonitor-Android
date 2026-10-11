@@ -5,6 +5,10 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Lokale Mitteilungen fuer Erinnerungen (Android 13+ fragt danach) und deren Neuplanung
+         nach einem Neustart. Bewusst KEINE Berechtigung fuer exakte Alarme. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- osmdroid caches map tiles on the app's private storage -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29" />
@@ -42,6 +46,15 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/lademonitor_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".notifications.ReminderAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
         </receiver>
     </application>
 
