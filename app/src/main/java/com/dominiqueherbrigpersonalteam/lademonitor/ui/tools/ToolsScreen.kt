@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Euro
 import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -60,6 +61,10 @@ fun ToolsScreen(navController: NavController) {
                     ToolRow(Icons.Filled.BatteryChargingFull, R.string.tools_battery_title, R.string.tools_battery_subtitle) {
                         navController.navigate("tools/battery")
                     }
+                }
+                // In beiden Modi: im Local-Only-Modus rechnet er mit dem Jahresdurchschnitt.
+                ToolRow(Icons.Filled.Speed, R.string.tools_range_title, R.string.tools_range_subtitle) {
+                    navController.navigate("tools/range")
                 }
             }
         }

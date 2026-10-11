@@ -655,7 +655,44 @@ data class TemperatureStats(
     val trend: TempTrend? = null,
     /** Vorgaenge mit berechenbarem Verbrauch, aber ohne Temperatur. */
     @Json(name = "sessions_without_temp") val sessionsWithoutTemp: Int = 0,
-    @Json(name = "bucket_width_c") val bucketWidthC: Int = 5
+    @Json(name = "bucket_width_c") val bucketWidthC: Int = 5,
+    /**
+     * Reale Reichweite je Temperatur (Server ab 0.34.0, `range_estimate.py`). `null` bei einem
+     * aelteren Server, ohne Akkukapazitaet oder wenn nicht genau EIN Fahrzeug betrachtet wird.
+     */
+    val range: RangeEstimate? = null
+)
+
+/**
+ * Reichweite 100 -> 0 % = Nennkapazitaet / Verbrauch AB AKKU. Der Ladeverlust ist bereits
+ * herausgerechnet, wenn [lossPct] bekannt ist.
+ */
+@JsonClass(generateAdapter = true)
+data class RangeEstimate(
+    @Json(name = "vehicle_id") val vehicleId: String? = null,
+    @Json(name = "capacity_kwh") val capacityKwh: Double,
+    @Json(name = "loss_pct") val lossPct: Double? = null,
+    @Json(name = "measured_from_c") val measuredFromC: Double? = null,
+    @Json(name = "measured_to_c") val measuredToC: Double? = null,
+    /** 5-Grad-Schritte im gemessenen Bereich plus immer 0 und 20 Grad. */
+    val rows: List<RangeRow> = emptyList(),
+    /** Verbrauch ab Akku je ganzem Grad -20..40 (an den Raendern ggf. lueckenhaft). */
+    val curve: List<RangeCurvePoint> = emptyList()
+)
+
+@JsonClass(generateAdapter = true)
+data class RangeRow(
+    @Json(name = "temp_c") val tempC: Double,
+    @Json(name = "consumption_kwh_per_100km") val consumptionKwhPer100km: Double? = null,
+    @Json(name = "range_km") val rangeKm: Double? = null,
+    /** Ausserhalb der gemessenen Temperaturen - eine Hochrechnung. */
+    val extrapolated: Boolean = false
+)
+
+@JsonClass(generateAdapter = true)
+data class RangeCurvePoint(
+    @Json(name = "temp_c") val tempC: Double,
+    val consumption: Double
 )
 
 @JsonClass(generateAdapter = true)

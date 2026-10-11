@@ -26,6 +26,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +49,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.CostCategory
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PlaceStat
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.RangeEstimate
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCostSummary
@@ -75,7 +77,7 @@ import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(onOpenReminders: (String) -> Unit = {}) {
+fun DashboardScreen(onOpenReminders: (String) -> Unit = {}, onOpenRangeCalculator: (String?) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     val dateRange by SessionFilter.dateRange.collectAsStateWithLifecycle()
 
@@ -147,7 +149,7 @@ fun DashboardScreen(onOpenReminders: (String) -> Unit = {}) {
             when {
                 errorMessage != null && current == null ->
                     ErrorState(errorMessage!!, onRetry = { scope.launch { load() } })
-                current != null -> DashboardContent(current, temperature, dueReminders, onOpenReminders)
+                current != null -> DashboardContent(current, temperature, dueReminders, onOpenReminders, onOpenRangeCalculator)
                 isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -163,7 +165,8 @@ private fun DashboardContent(
     stats: StatsSummary,
     temperature: TemperatureStats?,
     dueReminders: List<LocalReminderCalculator.Evaluated>,
-    onOpenReminders: (String) -> Unit
+    onOpenReminders: (String) -> Unit,
+    onOpenRangeCalculator: (String?) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -272,7 +275,7 @@ private fun DashboardContent(
             }
         }
 
-        if (temperature != null) TemperatureSection(temperature)
+        if (temperature != null) TemperatureSection(temperature, onOpenRangeCalculator)
     }
 }
 
@@ -283,7 +286,7 @@ private fun DashboardContent(
  * (siehe [TemperatureStats]).
  */
 @Composable
-private fun TemperatureSection(stats: TemperatureStats) {
+private fun TemperatureSection(stats: TemperatureStats, onOpenRangeCalculator: (String?) -> Unit) {
     Column {
         SectionHeader(stringResource(R.string.dashboard_section_temperature))
         SectionCard {
@@ -388,6 +391,17 @@ private fun TemperatureSection(stats: TemperatureStats) {
             }
         }
 
+        stats.range?.let { range ->
+            if (range.rows.any { it.rangeKm != null }) {
+                Spacer(Modifier.height(20.dp))
+                SectionHeader(stringResource(R.string.dashboard_section_range))
+                SectionCard { RangeTile(range) }
+                TextButton(onClick = { onOpenRangeCalculator(range.vehicleId) }) {
+                    Text(stringResource(R.string.tools_range_title))
+                }
+            }
+        }
+
         if (stats.seasons.isNotEmpty()) {
             Spacer(Modifier.height(20.dp))
             SectionHeader(stringResource(R.string.dashboard_section_seasons))
@@ -402,6 +416,49 @@ private fun TemperatureSection(stats: TemperatureStats) {
                 )
             }
         }
+    }
+}
+
+/**
+ * Reale Reichweite 100 -> 0 % je Temperatur (Server ab 0.34.0, `range_estimate.py`) - ein Balken
+ * je Zeile. Hochgerechnete Temperaturen (ausserhalb der gemessenen) tragen ein Sternchen, damit
+ * eine Hochrechnung nicht wie eine Messung aussieht.
+ */
+@Composable
+private fun RangeTile(range: RangeEstimate) {
+    val rows = range.rows.filter { it.rangeKm != null }.sortedBy { it.tempC }
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        HorizontalBarChart(
+            rows.map { row ->
+                (Fmt.n("%.0f", row.tempC) + " °C" + if (row.extrapolated) "*" else "") to (row.rangeKm ?: 0.0)
+            },
+            TempPointColor,
+            " km"
+        )
+        if (rows.any { it.extrapolated }) {
+            Text(stringResource(R.string.dashboard_range_extrapolated), style = MaterialTheme.typography.labelSmall, color = secondary)
+        }
+        val from = range.measuredFromC
+        val to = range.measuredToC
+        Text(
+            if (from != null && to != null) {
+                stringResource(
+                    R.string.dashboard_range_basis,
+                    Fmt.n("%.0f", range.capacityKwh), Fmt.n("%.0f", from), Fmt.n("%.0f", to)
+                )
+            } else {
+                stringResource(R.string.dashboard_range_basis_no_span, Fmt.n("%.0f", range.capacityKwh))
+            },
+            style = MaterialTheme.typography.labelSmall,
+            color = secondary
+        )
+        Text(
+            range.lossPct?.let { stringResource(R.string.dashboard_range_loss, Fmt.n("%.1f", it)) }
+                ?: stringResource(R.string.dashboard_range_loss_unknown),
+            style = MaterialTheme.typography.labelSmall,
+            color = secondary
+        )
     }
 }
 

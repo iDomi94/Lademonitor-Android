@@ -827,4 +827,39 @@
     <string name="reminder_notification_lead">Due on %1$s</string>
     <string name="settings_reminder_notifications">Notifications for reminders</string>
     <string name="settings_reminder_notifications_hint">One notification when the lead time starts and one on the due day, each at 9 am – also without a server.</string>
+    <!-- Real-world range (dashboard) and range calculator (Tools) -->
+    <string name="dashboard_section_range">Real-world range (100 → 0 %)</string>
+    <string name="dashboard_range_extrapolated">* extrapolated, outside the measured temperatures</string>
+    <string name="dashboard_range_basis">%1$s kWh usable, measured between %2$s and %3$s °C</string>
+    <string name="dashboard_range_basis_no_span">%1$s kWh usable</string>
+    <string name="dashboard_range_loss">Charging loss of %1$s %% removed</string>
+    <string name="dashboard_range_loss_unknown">Charging loss unknown – range rather too low</string>
+    <string name="tools_range_title">Range calculator</string>
+    <string name="tools_range_subtitle" formatted="false">How far you get from X to Y % at a given outside temperature</string>
+    <string name="range_section_vehicle">Vehicle</string>
+    <string name="range_section_trip">Trip</string>
+    <string name="range_section_vehicle_data">Consumption and battery</string>
+    <string name="range_label_soc_start">State of charge at start</string>
+    <string name="range_label_soc_end">State of charge at end</string>
+    <string name="range_label_temp">Outside temperature</string>
+    <string name="range_label_consumption">Consumption</string>
+    <string name="range_label_capacity">Usable battery capacity</string>
+    <string name="range_caption_temp_unused">Without a temperature curve from the server, the temperature does not change the consumption.</string>
+    <string name="range_caption_consumption_curve_loss">Consumption from the battery at %1$s from your drives (charging loss of %2$s %% removed)</string>
+    <string name="range_caption_consumption_curve_no_loss">From your drives at %1$s; charging loss unknown – range rather too low</string>
+    <string name="range_caption_consumption_average">Average of the last year, without temperature (charged kWh incl. charging loss – range rather too low)</string>
+    <string name="range_caption_consumption_fallback">No data yet – example value</string>
+    <string name="range_caption_consumption_manual">Set by you; data value: %1$s</string>
+    <string name="range_back_to_data">Back to the data value</string>
+    <string name="range_capacity_from_vehicle">Battery capacity from the vehicle: %1$s</string>
+    <string name="range_capacity_missing">No battery capacity is stored for this vehicle – set it here or add it in the settings.</string>
+    <string name="range_footer">Range = usable capacity × (start − end) ÷ consumption. Driving style, route and heating or air conditioning shift the value.</string>
+    <string name="range_result_label">Range from %1$s to %2$s</string>
+    <string name="range_result_energy">Energy used: %1$s</string>
+    <string name="range_result_consumption">Consumption from the battery: %1$s</string>
+    <string name="range_edit_soc_start">State of charge at start (%)</string>
+    <string name="range_edit_soc_end">State of charge at end (%)</string>
+    <string name="range_edit_temp">Outside temperature (°C)</string>
+    <string name="range_edit_consumption">Consumption (kWh/100 km)</string>
+    <string name="range_edit_capacity">Usable battery capacity (kWh)</string>
 </resources>
