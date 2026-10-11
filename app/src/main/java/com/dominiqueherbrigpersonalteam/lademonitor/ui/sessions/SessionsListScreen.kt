@@ -63,6 +63,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.ChargeBarSettings
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.AppShortcuts
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.EmptyState
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.ErrorState
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.Fmt
@@ -90,6 +91,8 @@ fun SessionsListScreen() {
     var locations by remember { mutableStateOf<List<ChargingLocation>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var hasLoaded by remember { mutableStateOf(false) }
+    val openNewSession by AppShortcuts.openNewSession.collectAsStateWithLifecycle()
 
     var showAdd by remember { mutableStateOf(false) }
     var showFilter by remember { mutableStateOf(false) }
@@ -118,9 +121,18 @@ fun SessionsListScreen() {
             errorMessage = e.localizedMessage
         }
         isLoading = false
+        hasLoaded = true
     }
 
     LaunchedEffect(dateRange) { load() }
+
+    // Kurzbefehl "Ladevorgang erfassen": erst nach dem Laden, das Formular braucht die Fahrzeuge.
+    LaunchedEffect(openNewSession, hasLoaded) {
+        if (!openNewSession || !hasLoaded) return@LaunchedEffect
+        AppShortcuts.consumeNewSession()
+        if (errorMessage != null) return@LaunchedEffect
+        if (vehicles.isEmpty()) showNoVehicleAlert = true else showAdd = true
+    }
 
     fun confirm(session: ChargingSession) {
         scope.launch {

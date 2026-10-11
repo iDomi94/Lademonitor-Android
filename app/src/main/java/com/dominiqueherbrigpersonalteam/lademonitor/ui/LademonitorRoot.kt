@@ -150,6 +150,36 @@ private fun MainScaffold() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = backStackEntry?.destination
+    val shortcutTarget by AppShortcuts.pending.collectAsStateWithLifecycle()
+
+    fun navigateToTab(tab: Tab) {
+        navController.navigate(tab.route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
+    // Erst ein Eintrag im Back-Stack heisst: der NavHost hat seinen Graphen, navigate() geht.
+    val graphReady = backStackEntry != null
+
+    // Kurzbefehl vom App-Symbol: wie ein Tipp auf den Reiter, ggf. mit dem Ziel obendrauf.
+    LaunchedEffect(shortcutTarget, graphReady) {
+        val target = shortcutTarget ?: return@LaunchedEffect
+        if (!graphReady) return@LaunchedEffect
+        AppShortcuts.consumePending()
+        when (target) {
+            AppShortcuts.Target.NEW_SESSION -> {
+                AppShortcuts.requestNewSession()
+                navigateToTab(Tab.SESSIONS)
+            }
+            AppShortcuts.Target.DASHBOARD -> navigateToTab(Tab.DASHBOARD)
+            AppShortcuts.Target.REIMBURSEMENT -> {
+                navigateToTab(Tab.TOOLS)
+                navController.navigate("tools/reimbursement") { launchSingleTop = true }
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {

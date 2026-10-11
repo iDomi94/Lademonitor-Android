@@ -51,6 +51,9 @@ plus a **server mode with bidirectional synchronization**.
   mode only, exactly one vehicle).
 - **Home screen widget** with cost and kWh of the current month, from medium
   width also the last charging session.
+- **App shortcuts** (long-press on the app icon): "Add charging session" opens
+  the form directly, plus "Dashboard" and – as soon as a vehicle is marked as
+  company car – "Reimbursement report".
 - **Time-range filter** (presets + custom range), global across dashboard,
   charging sessions, and map.
 - **Sign in with username or e-mail address**; an address can optionally be
