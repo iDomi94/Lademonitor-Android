@@ -173,9 +173,36 @@ data class Vehicle(
     @Json(name = "leasing_rate_monthly") val leasingRateMonthly: Double? = null,
     @ServerDate @Json(name = "leasing_start") val leasingStart: Long? = null,
     @ServerDate @Json(name = "leasing_end") val leasingEnd: Long? = null,
-    @Json(name = "leasing_down_payment") val leasingDownPayment: Double? = null
+    @Json(name = "leasing_down_payment") val leasingDownPayment: Double? = null,
+    /**
+     * Dienstwagen und Erstattungsbericht (Server ab 0.35.0), siehe [VehicleReimbursement].
+     * Bewusst nullable: ein aelterer Server schickt die Felder nicht, und der Sync darf die lokalen
+     * Angaben dann nicht leeren - fehlt [isCompanyCar], gelten alle sieben als nicht geliefert
+     * (siehe SyncService.pullVehicles).
+     */
+    @Json(name = "is_company_car") val isCompanyCar: Boolean? = null,
+    @Json(name = "reimbursement_mode") val reimbursementMode: String? = null,
+    @Json(name = "reimbursement_include_fees") val reimbursementIncludeFees: Boolean? = null,
+    @Json(name = "employee_name") val employeeName: String? = null,
+    @Json(name = "employee_number") val employeeNumber: String? = null,
+    @Json(name = "license_plate") val licensePlate: String? = null,
+    @Json(name = "reimbursement_monthly_mail") val reimbursementMonthlyMail: Boolean? = null
 ) {
     val ownershipValue: Ownership get() = Ownership.from(ownership)
+
+    val reimbursementModeValue: ReimbursementMode get() = ReimbursementMode.from(reimbursementMode)
+
+    /** Die Dienstwagen-Angaben als eigenes Paket, z.B. zum Vorbefuellen der Einstellungen. */
+    val reimbursementFields: VehicleReimbursement
+        get() = VehicleReimbursement(
+            isCompanyCar = isCompanyCar ?: false,
+            reimbursementMode = reimbursementModeValue.raw,
+            reimbursementIncludeFees = reimbursementIncludeFees ?: false,
+            employeeName = employeeName,
+            employeeNumber = employeeNumber,
+            licensePlate = licensePlate,
+            reimbursementMonthlyMail = reimbursementMonthlyMail ?: false
+        )
 
     /** Die Kauf-/Leasingangaben als eigenes Paket, z.B. zum Vorbefuellen des Formulars. */
     val ownershipFields: VehicleOwnership
@@ -203,6 +230,34 @@ enum class Ownership(val raw: String, @param:StringRes val labelRes: Int) {
         fun from(raw: String?): Ownership = entries.firstOrNull { it.raw == raw } ?: NONE
     }
 }
+
+/** Erstattungsart eines Dienstwagens (Server ab 0.35.0). Fehlend oder unbekannt = pauschal. */
+enum class ReimbursementMode(val raw: String, @param:StringRes val labelRes: Int) {
+    FLAT("flat", R.string.reimbursement_mode_flat),
+    ACTUAL("actual", R.string.reimbursement_mode_actual);
+
+    companion object {
+        fun from(raw: String?): ReimbursementMode = entries.firstOrNull { it.raw == raw } ?: FLAT
+    }
+}
+
+/**
+ * Dienstwagen-Angaben eines Fahrzeugs (Server ab 0.35.0). Wie [VehicleOwnership] an
+ * [VehiclePayload] gehaengt und im ApiClient mit ALLEN Feldern inkl. `null` gesendet - so lassen
+ * sich Name, Personalnummer und Kennzeichen wieder leeren. Die Schalter und die Art sind nie null
+ * (null hiesse beim Server "unveraendert").
+ */
+@JsonClass(generateAdapter = true)
+data class VehicleReimbursement(
+    @Json(name = "is_company_car") val isCompanyCar: Boolean = false,
+    @Json(name = "reimbursement_mode") val reimbursementMode: String = ReimbursementMode.FLAT.raw,
+    @Json(name = "reimbursement_include_fees") val reimbursementIncludeFees: Boolean = false,
+    @Json(name = "employee_name") val employeeName: String? = null,
+    @Json(name = "employee_number") val employeeNumber: String? = null,
+    @Json(name = "license_plate") val licensePlate: String? = null,
+    /** Monatsmail mit dem Bericht des Vormonats - reine Serverfunktion. */
+    @Json(name = "reimbursement_monthly_mail") val reimbursementMonthlyMail: Boolean = false
+)
 
 /**
  * Kauf-/Leasingangaben eines Fahrzeugs. Wird an [VehiclePayload] gehaengt und im ApiClient mit
@@ -333,7 +388,9 @@ data class VehiclePayload(
      * ApiClient haengt es mit allen Feldern inkl. null an, waehrend die uebrigen Felder hier wie
      * bisher ohne null gesendet werden (null hiesse dort "unveraendert", nicht "leeren").
      */
-    @Transient val ownership: VehicleOwnership? = null
+    @Transient val ownership: VehicleOwnership? = null,
+    /** Dienstwagen-Angaben; null = unveraendert. Wie [ownership] vom ApiClient angehaengt. */
+    @Transient val reimbursement: VehicleReimbursement? = null
 )
 
 @JsonClass(generateAdapter = true)
@@ -1204,6 +1261,29 @@ data class YearCostStat(
     val kmDriven: Int?,
     val costPerKm: Double?,
     val byCategory: List<CostCategoryStat>
+)
+
+// ---------- Erstattung Dienstwagen (Server ab 0.35.0) ----------
+
+/**
+ * Erstattungssatz je kWh eines Dienstwagens, gueltig ab [validFrom] (reiner Kalendertag, lokale
+ * Mitternacht) bis zum naechsten Satz. Vor dem ersten Satz gilt keiner (siehe
+ * [com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalReimbursementCalculator]).
+ */
+@JsonClass(generateAdapter = true)
+data class ReimbursementRate(
+    val id: String,
+    @Json(name = "vehicle_id") val vehicleId: String,
+    @ServerDate @Json(name = "valid_from") val validFrom: Long,
+    @Json(name = "rate_per_kwh") val ratePerKwh: Double
+)
+
+/** Payload fuer POST/PATCH /api/reimbursement/rates - alle Felder sind Pflicht. */
+@JsonClass(generateAdapter = true)
+data class ReimbursementRatePayload(
+    @Json(name = "vehicle_id") val vehicleId: String,
+    @ServerDate @Json(name = "valid_from") val validFrom: Long,
+    @Json(name = "rate_per_kwh") val ratePerKwh: Double
 )
 
 // ---------- Erinnerungen (Server ab 0.33.0) ----------

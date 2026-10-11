@@ -21,6 +21,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.RegisterCredentials
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReimbursementRate
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReimbursementRatePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.BatteryStats
@@ -37,6 +39,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCost
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCostPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleOwnership
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleReimbursement
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.TokenStore
@@ -268,19 +271,29 @@ object ApiClient {
 
     /**
      * Die Fahrzeugfelder ohne null (null = unveraendert, ein geleerter Name waere ein Fehler),
-     * die Kauf-/Leasingangaben dagegen MIT null - sonst liesse sich z.B. ein fester Wertverlust
-     * nie wieder entfernen. Beides wird zu einem JSON-Objekt zusammengelegt. Ein Server vor
-     * 0.32.0 ignoriert die unbekannten Felder.
+     * die Kauf-/Leasingangaben und die Dienstwagen-Angaben dagegen MIT null - sonst liesse sich
+     * z.B. ein fester Wertverlust oder ein Kennzeichen nie wieder entfernen. Alles wird zu einem
+     * JSON-Objekt zusammengelegt. Ein Server vor 0.32.0 bzw. 0.35.0 ignoriert die unbekannten
+     * Felder.
      */
     private fun vehicleBody(payload: VehiclePayload): String {
-        val ownership = payload.ownership ?: return encode(payload)
+        if (payload.ownership == null && payload.reimbursement == null) return encode(payload)
         @Suppress("UNCHECKED_CAST")
         val base = Json.moshi.adapter(VehiclePayload::class.java).toJsonValue(payload) as? Map<String, Any?>
             ?: emptyMap()
-        @Suppress("UNCHECKED_CAST")
-        val extra = Json.moshi.adapter(VehicleOwnership::class.java).serializeNulls()
-            .toJsonValue(ownership) as? Map<String, Any?> ?: emptyMap()
-        val merged = LinkedHashMap<String, Any?>(base).apply { putAll(extra) }
+        val merged = LinkedHashMap<String, Any?>(base)
+        payload.ownership?.let { ownership ->
+            @Suppress("UNCHECKED_CAST")
+            val extra = Json.moshi.adapter(VehicleOwnership::class.java).serializeNulls()
+                .toJsonValue(ownership) as? Map<String, Any?> ?: emptyMap()
+            merged.putAll(extra)
+        }
+        payload.reimbursement?.let { reimbursement ->
+            @Suppress("UNCHECKED_CAST")
+            val extra = Json.moshi.adapter(VehicleReimbursement::class.java).serializeNulls()
+                .toJsonValue(reimbursement) as? Map<String, Any?> ?: emptyMap()
+            merged.putAll(extra)
+        }
         return Json.moshi.adapter<Map<String, Any?>>(
             Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java)
         ).serializeNulls().toJson(merged)
@@ -376,6 +389,23 @@ object ApiClient {
         send("/api/vehicle-costs/$id", "PATCH", encodeKeepingNulls(payload), type = VehicleCost::class.java)
 
     suspend fun deleteVehicleCost(id: String) = sendNoContent("/api/vehicle-costs/$id", "DELETE")
+
+    // MARK: - Erstattungssaetze Dienstwagen (Server ab 0.35.0)
+    //
+    // Wie bei den Fahrzeugkosten: ein aelterer Server antwortet mit 404, der SyncService laesst
+    // die Saetze dann lokal liegen. Den Bericht selbst (`/api/reimbursement/report`) rechnet die
+    // App immer lokal, damit beide Modi gleich aussehen.
+
+    suspend fun fetchReimbursementRates(): List<ReimbursementRate> =
+        send("/api/reimbursement/rates", type = listType(ReimbursementRate::class.java))
+
+    suspend fun createReimbursementRate(payload: ReimbursementRatePayload): ReimbursementRate =
+        send("/api/reimbursement/rates", "POST", encode(payload), type = ReimbursementRate::class.java)
+
+    suspend fun updateReimbursementRate(id: String, payload: ReimbursementRatePayload): ReimbursementRate =
+        send("/api/reimbursement/rates/$id", "PATCH", encode(payload), type = ReimbursementRate::class.java)
+
+    suspend fun deleteReimbursementRate(id: String) = sendNoContent("/api/reimbursement/rates/$id", "DELETE")
 
     // MARK: - Erinnerungen (Server ab 0.33.0)
     //

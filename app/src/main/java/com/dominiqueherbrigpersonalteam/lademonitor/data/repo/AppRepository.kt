@@ -10,6 +10,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReimbursementRate
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReimbursementRatePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Reminder
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReminderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
@@ -272,6 +274,27 @@ object AppRepository {
 
     suspend fun deleteVehicleCost(id: String) {
         LocalDataStore.deleteVehicleCost(id)
+        syncAfterWrite()
+    }
+
+    // MARK: - Erstattung Dienstwagen
+    //
+    // In beiden Modi gleich: der Bericht entsteht immer lokal (LocalReimbursementCalculator), auch
+    // im Server-Modus - `/api/reimbursement/report` wird bewusst nicht benutzt.
+
+    suspend fun reimbursementBasis(): ReimbursementBasis {
+        syncBeforeRead()
+        return LocalDataStore.reimbursementBasis()
+    }
+
+    suspend fun createReimbursementRate(payload: ReimbursementRatePayload): ReimbursementRate =
+        LocalDataStore.createReimbursementRate(payload).also { syncAfterWrite() }
+
+    suspend fun updateReimbursementRate(id: String, payload: ReimbursementRatePayload): ReimbursementRate =
+        LocalDataStore.updateReimbursementRate(id, payload).also { syncAfterWrite() }
+
+    suspend fun deleteReimbursementRate(id: String) {
+        LocalDataStore.deleteReimbursementRate(id)
         syncAfterWrite()
     }
 

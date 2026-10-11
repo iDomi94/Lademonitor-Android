@@ -221,3 +221,33 @@ interface ReminderDao {
     @Query("DELETE FROM reminders")
     suspend fun clear()
 }
+
+@Dao
+interface ReimbursementRateDao {
+    @Query("SELECT * FROM reimbursement_rates WHERE pendingDelete = 0 ORDER BY validFrom DESC")
+    suspend fun getAllUndeleted(): List<LocalReimbursementRate>
+
+    @Query("SELECT * FROM reimbursement_rates WHERE serverId = :id OR localId = :id LIMIT 1")
+    suspend fun find(id: String): LocalReimbursementRate?
+
+    @Query("SELECT * FROM reimbursement_rates WHERE serverId = :serverId LIMIT 1")
+    suspend fun findByServerId(serverId: String): LocalReimbursementRate?
+
+    @Query("SELECT * FROM reimbursement_rates")
+    suspend fun getAll(): List<LocalReimbursementRate>
+
+    @Query("SELECT * FROM reimbursement_rates WHERE isDirty = 1")
+    suspend fun getDirty(): List<LocalReimbursementRate>
+
+    @Upsert
+    suspend fun upsert(rate: LocalReimbursementRate)
+
+    @Delete
+    suspend fun delete(rate: LocalReimbursementRate)
+
+    @Query("SELECT COUNT(*) FROM reimbursement_rates")
+    suspend fun countAll(): Int
+
+    @Query("DELETE FROM reimbursement_rates")
+    suspend fun clear()
+}

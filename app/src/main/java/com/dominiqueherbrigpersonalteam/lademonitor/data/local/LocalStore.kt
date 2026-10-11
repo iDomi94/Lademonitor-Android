@@ -19,9 +19,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LocalChargingSession::class,
         LocalProviderFee::class,
         LocalVehicleCost::class,
-        LocalReminder::class
+        LocalReminder::class,
+        LocalReimbursementRate::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class LademonitorDatabase : RoomDatabase() {
@@ -32,6 +33,7 @@ abstract class LademonitorDatabase : RoomDatabase() {
     abstract fun providerFeeDao(): ProviderFeeDao
     abstract fun vehicleCostDao(): VehicleCostDao
     abstract fun reminderDao(): ReminderDao
+    abstract fun reimbursementRateDao(): ReimbursementRateDao
 }
 
 /**
@@ -211,6 +213,43 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
     }
 }
 
+/**
+ * 8 -> 9: Erstattungsbericht Dienstwagen (Server ab 0.35.0) - die Dienstwagen-Felder am Fahrzeug
+ * und die neue Tabelle `reimbursement_rates`.
+ *
+ * Die Fahrzeugspalten sind wie in 6 -> 7 alle nullable ohne Default (Boolean? -> INTEGER,
+ * String? -> TEXT): Bestandszeilen bekommen NULL, das heisst "kein Dienstwagen" bzw. pauschal.
+ * Die neue Tabelle muss exakt [LocalReimbursementRate] entsprechen (Double -> REAL, Long/Boolean
+ * -> INTEGER, nicht-nullable -> NOT NULL, keine SQL-Defaults), sonst bricht Rooms Schemapruefung ab.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN isCompanyCar INTEGER")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN reimbursementMode TEXT")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN reimbursementIncludeFees INTEGER")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN employeeName TEXT")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN employeeNumber TEXT")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN licensePlate TEXT")
+        db.execSQL("ALTER TABLE vehicles ADD COLUMN reimbursementMonthlyMail INTEGER")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `reimbursement_rates` (
+                `localId` TEXT NOT NULL,
+                `serverId` TEXT,
+                `vehicleId` TEXT NOT NULL,
+                `validFrom` INTEGER NOT NULL,
+                `ratePerKwh` REAL NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                `isDirty` INTEGER NOT NULL,
+                `pendingDelete` INTEGER NOT NULL,
+                PRIMARY KEY(`localId`)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
 object LocalStore {
     lateinit var db: LademonitorDatabase
         private set
@@ -222,12 +261,13 @@ object LocalStore {
     val fees: ProviderFeeDao get() = db.providerFeeDao()
     val vehicleCosts: VehicleCostDao get() = db.vehicleCostDao()
     val reminders: ReminderDao get() = db.reminderDao()
+    val reimbursementRates: ReimbursementRateDao get() = db.reimbursementRateDao()
 
     fun init(context: Context) {
         db = Room.databaseBuilder(
             context.applicationContext,
             LademonitorDatabase::class.java,
             "lademonitor.db"
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9).build()
     }
 }
