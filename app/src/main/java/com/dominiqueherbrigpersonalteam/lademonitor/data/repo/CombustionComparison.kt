@@ -170,7 +170,11 @@ object CombustionComparison {
     }
 }
 
-/** Zuletzt eingestellte Werte des Verbrenner-Vergleichs, nur auf diesem Geraet. */
+/**
+ * Zuletzt eingestellte Werte des Verbrenner-Vergleichs, nur auf diesem Geraet. Kraftstoff,
+ * Verbrauch, Preis und Strommix kommen seit dem Rueckblick aus dem Vergleichsfahrzeug
+ * ([ComparisonVehicleStore]).
+ */
 object CombustionComparisonSettings {
     private const val PREFS = "combustion_comparison"
     private val prefs
@@ -179,20 +183,6 @@ object CombustionComparisonSettings {
     var lastYearOnly: Boolean
         get() = prefs.getBoolean("lastYearOnly", true)
         set(value) { prefs.edit().putBoolean("lastYearOnly", value).apply() }
-
-    var fuel: CombustionComparison.Fuel
-        get() = CombustionComparison.Fuel.from(prefs.getString("fuel", null))
-        set(value) { prefs.edit().putString("fuel", value.raw).apply() }
-
-    fun consumption(fuel: CombustionComparison.Fuel): Double =
-        prefs.getFloat("consumption", fuel.defaultConsumption.toFloat()).toDouble()
-
-    fun price(fuel: CombustionComparison.Fuel): Double =
-        prefs.getFloat("price", fuel.defaultPrice.toFloat()).toDouble()
-
-    var gridCo2: Double
-        get() = prefs.getFloat("gridCo2", CombustionComparison.DEFAULT_GRID_CO2_KG_PER_KWH.toFloat()).toDouble()
-        set(value) { prefs.edit().putFloat("gridCo2", value.toFloat()).apply() }
 
     /** "total" | "per100km" | "lifecycle" */
     var mode: String
@@ -213,8 +203,4 @@ object CombustionComparisonSettings {
         set(value) {
             prefs.edit().apply { if (value == null) remove("batteryKwh") else putFloat("batteryKwh", value.toFloat()) }.apply()
         }
-
-    fun save(consumption: Double, price: Double) {
-        prefs.edit().putFloat("consumption", consumption.toFloat()).putFloat("price", price.toFloat()).apply()
-    }
 }

@@ -235,6 +235,22 @@ object AppRepository {
         if (changed) syncAfterWrite()
     }
 
+    // MARK: - Vergleichsfahrzeug
+
+    /** Speichert das Vergleichsfahrzeug lokal (dirty) und stoesst im Server-Modus den Sync an. */
+    fun saveComparisonVehicle(fuel: CombustionComparison.Fuel, consumption: Double, price: Double, gridCo2: Double) {
+        ComparisonVehicleStore.save(fuel, consumption, price, gridCo2)
+        syncAfterWrite()
+    }
+
+    // MARK: - Rueckblick
+
+    /** Alles fuer [LocalReviewCalculator], mit EINER Fahrzeug-, Anbieter- und Ladeort-ID-Form. */
+    suspend fun reviewBasis(): ReviewBasis {
+        syncBeforeRead()
+        return LocalDataStore.reviewBasis()
+    }
+
     // MARK: - Grundgebuehren
 
     suspend fun fetchFees(providerId: String? = null): List<ProviderFee> {

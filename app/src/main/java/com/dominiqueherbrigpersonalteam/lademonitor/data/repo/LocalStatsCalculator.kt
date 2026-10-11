@@ -192,7 +192,7 @@ object LocalStatsCalculator {
      * ohne (bekannten) Anbieter zaehlen als unterwegs; Perioden ohne Ladevorgang kommen erst
      * dazu, wenn es ueberhaupt eine Aufteilung gibt.
      */
-    private fun buildByPlace(
+    internal fun buildByPlace(
         sessions: List<ChargingSession>,
         providers: List<Provider>,
         unallocatedFees: List<LocalFeeAllocator.Period>,

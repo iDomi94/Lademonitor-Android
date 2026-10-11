@@ -462,6 +462,35 @@ object LocalDataStore {
         )
     }
 
+    /**
+     * Alles, was [LocalReviewCalculator] braucht: Ladevorgaenge mit kanonischer Fahrzeug-,
+     * Anbieter- und Ladeort-ID und Grundgebuehr-Anteil (umgelegt ueber ALLE Vorgaenge), dazu die
+     * nicht umgelegten Gebuehrenperioden (ungefiltert - der Rechner filtert nach Zeitraum).
+     */
+    suspend fun reviewBasis(): ReviewBasis {
+        val canonicalVehicles = canonicalVehicleIds()
+        val canonicalProviders = canonicalProviderIds()
+        val canonicalLocations = HashMap<String, String>()
+        for (location in locations.getAll()) {
+            val canonical = location.serverId ?: location.localId
+            canonicalLocations[location.localId] = canonical
+            location.serverId?.let { canonicalLocations[it] = canonical }
+        }
+        return ReviewBasis(
+            vehicles = fetchVehicles(),
+            providers = fetchProviders(),
+            locations = fetchLocations(),
+            sessions = fetchSessions().map { s ->
+                s.copy(
+                    vehicleId = canonicalVehicles[s.vehicleId] ?: s.vehicleId,
+                    providerId = s.providerId?.let { canonicalProviders[it] ?: it },
+                    locationId = s.locationId?.let { canonicalLocations[it] ?: it }
+                )
+            },
+            unallocatedFees = feeAllocation().unallocated
+        )
+    }
+
     suspend fun createReimbursementRate(payload: ReimbursementRatePayload): ReimbursementRate {
         val rate = LocalReimbursementRate(
             vehicleId = payload.vehicleId,
@@ -754,4 +783,14 @@ data class ReimbursementBasis(
     val rates: List<ReimbursementRate>,
     /** Alle Ladevorgaenge mit kanonischer Fahrzeug- und Anbieter-ID und Grundgebuehr-Anteil. */
     val sessions: List<ChargingSession>
+)
+
+data class ReviewBasis(
+    val vehicles: List<Vehicle>,
+    val providers: List<Provider>,
+    val locations: List<ChargingLocation>,
+    /** Alle Ladevorgaenge mit kanonischen IDs und Grundgebuehr-Anteil. */
+    val sessions: List<ChargingSession>,
+    /** Perioden ohne Ladevorgang, kanonische Anbieter-ID, noch ungefiltert. */
+    val unallocatedFees: List<LocalFeeAllocator.Period>
 )

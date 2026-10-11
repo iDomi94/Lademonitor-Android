@@ -9,6 +9,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.AuthUser
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.CombustionVehicleOut
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.CombustionVehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.DeletionsResponse
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EmailUpdatePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.GeocodeResult
@@ -406,6 +408,17 @@ object ApiClient {
         send("/api/reimbursement/rates/$id", "PATCH", encode(payload), type = ReimbursementRate::class.java)
 
     suspend fun deleteReimbursementRate(id: String) = sendNoContent("/api/reimbursement/rates/$id", "DELETE")
+
+    // MARK: - Vergleichsfahrzeug (Server ab 0.36.0)
+    //
+    // Ein aelterer Server antwortet mit 404 - der SyncService ueberspringt den Abgleich dann still
+    // und laesst den lokalen Stand dirty.
+
+    suspend fun fetchCombustionVehicle(): CombustionVehicleOut =
+        send("/api/combustion-vehicle", type = CombustionVehicleOut::class.java)
+
+    suspend fun updateCombustionVehicle(payload: CombustionVehiclePayload): CombustionVehicleOut =
+        send("/api/combustion-vehicle", "PUT", encode(payload), type = CombustionVehicleOut::class.java)
 
     // MARK: - Erinnerungen (Server ab 0.33.0)
     //

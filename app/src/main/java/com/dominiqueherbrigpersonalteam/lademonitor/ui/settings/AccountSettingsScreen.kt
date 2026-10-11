@@ -309,6 +309,7 @@ private fun NotificationsSection(user: AuthUser) {
     var backupFailed by remember(user) { mutableStateOf(user.notifyBackupFailed ?: true) }
     var myskodaError by remember(user) { mutableStateOf(user.notifyMyskodaError ?: true) }
     var monthlyReport by remember(user) { mutableStateOf(user.notifyMonthlyReport ?: false) }
+    var yearlyReview by remember(user) { mutableStateOf(user.notifyYearlyReview ?: true) }
     var newRegistration by remember(user) { mutableStateOf(user.notifyNewRegistration ?: true) }
     var reviewDigest by remember(user) {
         mutableStateOf(user.reviewDigest ?: ReviewDigestFrequency.OFF)
@@ -324,6 +325,7 @@ private fun NotificationsSection(user: AuthUser) {
         AccountToggleRow(stringResource(R.string.account_notify_backup_failed), backupFailed) { backupFailed = it }
         AccountToggleRow(stringResource(R.string.account_notify_myskoda_error), myskodaError) { myskodaError = it }
         AccountToggleRow(stringResource(R.string.account_notify_monthly_report), monthlyReport) { monthlyReport = it }
+        AccountToggleRow(stringResource(R.string.account_notify_yearly_review), yearlyReview) { yearlyReview = it }
         if (user.isAdmin) {
             AccountToggleRow(stringResource(R.string.account_notify_new_registration), newRegistration) {
                 newRegistration = it
@@ -368,7 +370,8 @@ private fun NotificationsSection(user: AuthUser) {
                                 notifyMyskodaError = myskodaError,
                                 notifyMonthlyReport = monthlyReport,
                                 notifyNewRegistration = newRegistration,
-                                reviewDigest = reviewDigest
+                                reviewDigest = reviewDigest,
+                                notifyYearlyReview = yearlyReview
                             )
                         )
                         SessionManager.applyUpdatedUser(updated)
