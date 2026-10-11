@@ -109,6 +109,11 @@ fun AddEditSessionScreen(
     var chargingType by remember { mutableStateOf(session?.chargingTypeValue ?: ChargingType.AC) }
     var socEnabled by remember { mutableStateOf(session?.socStart != null || session?.socEnd != null) }
     var socStart by remember { mutableStateOf((session?.socStart ?: 20).toFloat()) }
+    // false, solange ein bestehender Vorgang (z.B. Spritmonitor-Import) nur einen
+    // End-SoC hat: der Regler steht dann zwar auf 20, gespeichert wird aber nichts,
+    // bis er tatsaechlich bewegt wird - sonst landet ein erfundener Start-SoC in
+    // Verbrauch und Ladeverlusten.
+    var socStartKnown by remember { mutableStateOf(session == null || session.socStart != null) }
     var socEnd by remember { mutableStateOf((session?.socEnd ?: 80).toFloat()) }
     var energyKwh by remember { mutableStateOf(session?.energyKwh?.let { Fmt.n("%.2f", it) } ?: "") }
     var pricePerKwh by remember { mutableStateOf(session?.pricePerKwh?.let { Fmt.n("%.4f", it) } ?: "") }
@@ -203,7 +208,7 @@ fun AddEditSessionScreen(
                 locationId = locationId,
                 startTime = startTime,
                 chargingType = chargingType.raw,
-                socStart = if (socEnabled) socStart.toInt() else null,
+                socStart = if (socEnabled && socStartKnown) socStart.toInt() else null,
                 socEnd = if (socEnabled) socEnd.toInt() else null,
                 energyKwh = energyKwh.replace(",", ".").toDoubleOrNull(),
                 pricePerKwh = pricePerKwh.replace(",", ".").toDoubleOrNull(),
@@ -305,7 +310,10 @@ fun AddEditSessionScreen(
                     Switch(checked = socEnabled, onCheckedChange = { socEnabled = it })
                 }
                 if (socEnabled) {
-                    SoCSlider(stringResource(R.string.session_detail_label_start), socStart, Orange) { socStart = it }
+                    SoCSlider(
+                        stringResource(R.string.session_detail_label_start), socStart, Orange,
+                        unknown = !socStartKnown,
+                    ) { socStart = it; socStartKnown = true }
                     SoCSlider(stringResource(R.string.add_session_soc_end_label), socEnd, Green) { socEnd = it }
                 }
             }
@@ -511,11 +519,19 @@ private fun DecimalField(label: String, value: String, placeholder: String, onVa
 }
 
 @Composable
-private fun SoCSlider(title: String, value: Float, tint: androidx.compose.ui.graphics.Color, onValue: (Float) -> Unit) {
+private fun SoCSlider(
+    title: String,
+    value: Float,
+    tint: androidx.compose.ui.graphics.Color,
+    unknown: Boolean = false,
+    onValue: (Float) -> Unit,
+) {
     Column(Modifier.padding(top = 8.dp)) {
         Row(Modifier.fillMaxWidth()) {
             Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-            Text("${value.toInt()} %", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                if (unknown) stringResource(R.string.add_session_soc_unknown) else "${value.toInt()} %",
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Slider(
             value = value, onValueChange = onValue, valueRange = 0f..100f, steps = 99,
