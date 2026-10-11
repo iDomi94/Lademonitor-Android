@@ -38,6 +38,13 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   der Herstellungs-Rucksack eingeholt ist). Rechnet auf dem Gerät.
 - **Akku und Ladeverluste** (Tools, nur im Server-Modus, Server ab 0.28.0):
   Akku-Index je Quartal und Mehrbedarf beim Laden nach AC/DC und Anbieter.
+- **Reichweitenrechner** (Tools): wie weit man von X auf Y % bei einer
+  bestimmten Außentemperatur kommt. Ladestand, Temperatur, Verbrauch und (falls
+  beim Fahrzeug nicht hinterlegt) Akkukapazität sind Schieberegler. Im
+  Server-Modus (Server ab 0.34.0) folgt der Verbrauch der Temperaturkurve aus
+  den eigenen Fahrten (ab Akku, Ladeverlust herausgerechnet), sonst dem
+  Jahresdurchschnitt. Dazu auf dem Dashboard die Kachel **„Reale Reichweite
+  (100 → 0 %)“** je Temperatur (nur Server-Modus, genau ein Fahrzeug).
 - **Homescreen-Widget** mit Kosten und kWh des laufenden Monats, ab mittlerer
   Breite zusätzlich mit dem letzten Ladevorgang.
 - **Zeitraum-Filter** (Presets + eigener Zeitraum), global für Dashboard,

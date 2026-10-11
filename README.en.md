@@ -42,6 +42,13 @@ plus a **server mode with bidirectional synchronization**.
 - **Battery and charging losses** (Tools, server mode only, server 0.28.0+):
   battery index per quarter and extra energy while charging by AC/DC and
   provider.
+- **Range calculator** (Tools): how far you get from X to Y % at a given
+  outside temperature. State of charge, temperature, consumption and (if not
+  stored for the vehicle) battery capacity are sliders. In server mode (server
+  0.34.0+) the consumption follows the temperature curve from your own drives
+  (from the battery, charging loss removed), otherwise the yearly average. Plus
+  the dashboard tile **"Real-world range (100 → 0 %)"** per temperature (server
+  mode only, exactly one vehicle).
 - **Home screen widget** with cost and kWh of the current month, from medium
   width also the last charging session.
 - **Time-range filter** (presets + custom range), global across dashboard,

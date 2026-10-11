@@ -828,4 +828,39 @@
     <string name="reminder_notification_lead">Fällig am %1$s</string>
     <string name="settings_reminder_notifications">Mitteilungen für Erinnerungen</string>
     <string name="settings_reminder_notifications_hint">Eine Mitteilung zu Beginn des Vorlaufs und eine am Fälligkeitstag, jeweils um 9 Uhr – auch ohne Server.</string>
+    <!-- Reale Reichweite (Dashboard) und Reichweitenrechner (Tools) -->
+    <string name="dashboard_section_range">Reale Reichweite (100 → 0 %)</string>
+    <string name="dashboard_range_extrapolated">* hochgerechnet, außerhalb der gemessenen Temperaturen</string>
+    <string name="dashboard_range_basis">%1$s kWh nutzbar, gemessen zwischen %2$s und %3$s °C</string>
+    <string name="dashboard_range_basis_no_span">%1$s kWh nutzbar</string>
+    <string name="dashboard_range_loss">Ladeverlust von %1$s %% herausgerechnet</string>
+    <string name="dashboard_range_loss_unknown">Ladeverlust unbekannt – Reichweite eher zu niedrig</string>
+    <string name="tools_range_title">Reichweitenrechner</string>
+    <string name="tools_range_subtitle" formatted="false">Wie weit du von X auf Y % bei einer bestimmten Außentemperatur kommst</string>
+    <string name="range_section_vehicle">Fahrzeug</string>
+    <string name="range_section_trip">Fahrt</string>
+    <string name="range_section_vehicle_data">Verbrauch und Akku</string>
+    <string name="range_label_soc_start">Ladestand Start</string>
+    <string name="range_label_soc_end">Ladestand Ende</string>
+    <string name="range_label_temp">Außentemperatur</string>
+    <string name="range_label_consumption">Verbrauch</string>
+    <string name="range_label_capacity">Nutzbare Akkukapazität</string>
+    <string name="range_caption_temp_unused">Ohne Temperaturkurve vom Server ändert die Temperatur den Verbrauch nicht.</string>
+    <string name="range_caption_consumption_curve_loss">Verbrauch ab Akku bei %1$s aus deinen Fahrten (Ladeverlust %2$s %% herausgerechnet)</string>
+    <string name="range_caption_consumption_curve_no_loss">Aus deinen Fahrten bei %1$s; Ladeverlust unbekannt – Reichweite eher zu niedrig</string>
+    <string name="range_caption_consumption_average">Durchschnitt des letzten Jahres, ohne Temperatur (geladene kWh inkl. Ladeverlust – Reichweite eher zu niedrig)</string>
+    <string name="range_caption_consumption_fallback">Noch keine Daten – Beispielwert</string>
+    <string name="range_caption_consumption_manual">Selbst eingestellt; Datenwert: %1$s</string>
+    <string name="range_back_to_data">Zurück zum Datenwert</string>
+    <string name="range_capacity_from_vehicle">Akkukapazität aus dem Fahrzeug: %1$s</string>
+    <string name="range_capacity_missing">Beim Fahrzeug ist keine Akkukapazität hinterlegt – stell sie hier ein oder trag sie in den Einstellungen nach.</string>
+    <string name="range_footer">Reichweite = nutzbare Kapazität × (Start − Ende) ÷ Verbrauch. Fahrweise, Strecke und Heizung bzw. Klimaanlage verschieben den Wert.</string>
+    <string name="range_result_label">Reichweite von %1$s auf %2$s</string>
+    <string name="range_result_energy">Entnommene Energie: %1$s</string>
+    <string name="range_result_consumption">Verbrauch ab Akku: %1$s</string>
+    <string name="range_edit_soc_start">Ladestand Start (%)</string>
+    <string name="range_edit_soc_end">Ladestand Ende (%)</string>
+    <string name="range_edit_temp">Außentemperatur (°C)</string>
+    <string name="range_edit_consumption">Verbrauch (kWh/100 km)</string>
+    <string name="range_edit_capacity">Nutzbare Akkukapazität (kWh)</string>
 </resources>

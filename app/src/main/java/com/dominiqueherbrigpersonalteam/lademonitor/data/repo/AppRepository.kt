@@ -170,6 +170,18 @@ object AppRepository {
         return stats.copy(vehicleCosts = vehicleCosts)
     }
 
+    // MARK: - Reichweitenrechner
+
+    /** Fahrzeuge und Ladevorgaenge mit EINER Fahrzeug-ID-Form (= `Vehicle.id`). */
+    suspend fun rangeBasis(): RangeBasis {
+        syncBeforeRead()
+        val canonical = LocalDataStore.canonicalVehicleIds()
+        val sessions = LocalDataStore.fetchSessions(null, null, null).map { s ->
+            s.copy(vehicleId = canonical[s.vehicleId] ?: s.vehicleId)
+        }
+        return RangeBasis(vehicles = LocalDataStore.fetchVehicles(), sessions = sessions)
+    }
+
     // MARK: - Tarifrechner
 
     /**

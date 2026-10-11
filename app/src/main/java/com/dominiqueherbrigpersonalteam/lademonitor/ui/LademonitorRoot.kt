@@ -55,6 +55,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehicleReminders
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehiclesSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.BatteryHealthScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.CombustionComparisonScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.RangeCalculatorScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.TariffCalculatorScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.ToolsScreen
 import kotlinx.coroutines.launch
@@ -177,7 +178,19 @@ private fun MainScaffold() {
             modifier = Modifier.padding(padding)
         ) {
             composable(Tab.DASHBOARD.route) {
-                DashboardScreen(onOpenReminders = { id -> navController.navigate("settings/vehicles/reminders/$id") })
+                DashboardScreen(
+                    onOpenReminders = { id -> navController.navigate("settings/vehicles/reminders/$id") },
+                    // Erst in den Tools-Reiter wechseln (wie ein Tipp auf den Reiter), dann das
+                    // Tool darauf legen - so fuehrt "Zurueck" in die Tools-Liste.
+                    onOpenRangeCalculator = { vehicleId ->
+                        navController.navigate(Tab.TOOLS.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                        navController.navigate("tools/range" + (vehicleId?.let { "?vehicleId=$it" } ?: ""))
+                    }
+                )
             }
             composable(Tab.SESSIONS.route) { SessionsListScreen() }
             composable(Tab.MAP.route) { MapScreen() }
@@ -188,6 +201,10 @@ private fun MainScaffold() {
             ) { entry -> TariffCalculatorScreen(navController, entry.arguments?.getString("providerId")) }
             composable("tools/combustion") { CombustionComparisonScreen(navController) }
             composable("tools/battery") { BatteryHealthScreen(navController) }
+            composable(
+                "tools/range?vehicleId={vehicleId}",
+                arguments = listOf(navArgument("vehicleId") { type = NavType.StringType; nullable = true; defaultValue = null })
+            ) { entry -> RangeCalculatorScreen(navController, entry.arguments?.getString("vehicleId")) }
             composable(Tab.SETTINGS.route) { SettingsScreen(navController) }
             composable("settings/vehicles") { VehiclesSettingsScreen(navController) }
             composable(
