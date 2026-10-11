@@ -288,6 +288,7 @@
     <string name="add_session_section_provider_type">Provider &amp; type</string>
     <string name="add_session_soc_toggle_label">Enter SoC values</string>
     <string name="add_session_soc_end_label">End</string>
+    <string name="add_session_soc_unknown">unknown</string>
     <string name="add_session_section_energy_price">Energy &amp; price</string>
     <string name="add_session_energy_meter_label">kWh read at</string>
     <string name="energy_meter_charger">Charger</string>
