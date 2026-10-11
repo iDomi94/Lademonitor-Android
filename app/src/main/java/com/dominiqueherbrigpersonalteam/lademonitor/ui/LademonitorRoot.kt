@@ -56,6 +56,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehiclesSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.BatteryHealthScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.CombustionComparisonScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.RangeCalculatorScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.ReimbursementScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.TariffCalculatorScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.ToolsScreen
 import kotlinx.coroutines.launch
@@ -205,6 +206,7 @@ private fun MainScaffold() {
                 "tools/range?vehicleId={vehicleId}",
                 arguments = listOf(navArgument("vehicleId") { type = NavType.StringType; nullable = true; defaultValue = null })
             ) { entry -> RangeCalculatorScreen(navController, entry.arguments?.getString("vehicleId")) }
+            composable("tools/reimbursement") { ReimbursementScreen(navController) }
             composable(Tab.SETTINGS.route) { SettingsScreen(navController) }
             composable("settings/vehicles") { VehiclesSettingsScreen(navController) }
             composable(

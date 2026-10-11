@@ -9,10 +9,13 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EnergyMeter
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Ownership
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFee
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReimbursementMode
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReimbursementRate
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Reminder
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCost
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleOwnership
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleReimbursement
 import java.util.UUID
 
 /**
@@ -54,7 +57,19 @@ data class LocalVehicle(
     var leasingRateMonthly: Double? = null,
     var leasingStart: Long? = null,
     var leasingEnd: Long? = null,
-    var leasingDownPayment: Double? = null
+    var leasingDownPayment: Double? = null,
+    /**
+     * Dienstwagen und Erstattungsbericht (Room 8 -> 9, Server ab 0.35.0), siehe
+     * Models.VehicleReimbursement. Wie die Kauf-/Leasingfelder alle nullable ohne Default in der
+     * Tabelle; `null` gilt als aus bzw. pauschal.
+     */
+    var isCompanyCar: Boolean? = null,
+    var reimbursementMode: String? = null,
+    var reimbursementIncludeFees: Boolean? = null,
+    var employeeName: String? = null,
+    var employeeNumber: String? = null,
+    var licensePlate: String? = null,
+    var reimbursementMonthlyMail: Boolean? = null
 ) {
     fun asDTO() = Vehicle(
         id = serverId ?: localId,
@@ -73,8 +88,28 @@ data class LocalVehicle(
         leasingRateMonthly = leasingRateMonthly,
         leasingStart = leasingStart,
         leasingEnd = leasingEnd,
-        leasingDownPayment = leasingDownPayment
+        leasingDownPayment = leasingDownPayment,
+        isCompanyCar = isCompanyCar ?: false,
+        reimbursementMode = ReimbursementMode.from(reimbursementMode).raw,
+        reimbursementIncludeFees = reimbursementIncludeFees ?: false,
+        employeeName = employeeName,
+        employeeNumber = employeeNumber,
+        licensePlate = licensePlate,
+        reimbursementMonthlyMail = reimbursementMonthlyMail ?: false
     )
+
+    /** Uebernimmt alle Dienstwagen-Angaben (lokales Speichern wie Pull vom Server). */
+    fun applyReimbursement(r: VehicleReimbursement) {
+        isCompanyCar = r.isCompanyCar
+        reimbursementMode = ReimbursementMode.from(r.reimbursementMode).raw
+        reimbursementIncludeFees = r.reimbursementIncludeFees
+        employeeName = r.employeeName
+        employeeNumber = r.employeeNumber
+        licensePlate = r.licensePlate
+        reimbursementMonthlyMail = r.reimbursementMonthlyMail
+    }
+
+    fun reimbursementFields() = asDTO().reimbursementFields
 
     /** Uebernimmt alle Kauf-/Leasingangaben (lokales Speichern wie Pull vom Server). */
     fun applyOwnership(o: VehicleOwnership) {
@@ -350,4 +385,29 @@ data class LocalReminder(
         lastDoneDate = r.lastDoneDate
         lastDoneKm = r.lastDoneKm
     }
+}
+
+/**
+ * Erstattungssatz eines Dienstwagens (Room 8 -> 9, Server ab 0.35.0). [vehicleId] zeigt wie bei
+ * den Fahrzeugkosten auf `serverId ?: localId` des Fahrzeugs, [validFrom] ist lokale Mitternacht
+ * in Epoch-Millis.
+ */
+@Entity(tableName = "reimbursement_rates")
+data class LocalReimbursementRate(
+    @PrimaryKey val localId: String = UUID.randomUUID().toString(),
+    var serverId: String? = null,
+    var vehicleId: String = "",
+    var validFrom: Long = System.currentTimeMillis(),
+    var ratePerKwh: Double = 0.0,
+    var createdAt: Long = System.currentTimeMillis(),
+    var updatedAt: Long = System.currentTimeMillis(),
+    var isDirty: Boolean = true,
+    var pendingDelete: Boolean = false
+) {
+    fun asDTO() = ReimbursementRate(
+        id = serverId ?: localId,
+        vehicleId = vehicleId,
+        validFrom = validFrom,
+        ratePerKwh = ratePerKwh
+    )
 }

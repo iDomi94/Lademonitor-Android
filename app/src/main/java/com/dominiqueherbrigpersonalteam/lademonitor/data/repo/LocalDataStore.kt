@@ -10,6 +10,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalStore
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalVehicleCost
 import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalReminder
+import com.dominiqueherbrigpersonalteam.lademonitor.data.local.LocalReimbursementRate
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingType
@@ -24,6 +25,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureSource
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCost
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCostPayload
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReimbursementRate
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReimbursementRatePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Reminder
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReminderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehiclePayload
@@ -51,6 +54,7 @@ object LocalDataStore {
     private val fees get() = LocalStore.fees
     private val vehicleCosts get() = LocalStore.vehicleCosts
     private val reminders get() = LocalStore.reminders
+    private val reimbursementRates get() = LocalStore.reimbursementRates
 
     // MARK: - Reset
 
@@ -63,7 +67,8 @@ object LocalDataStore {
     suspend fun hasAnyData(): Boolean =
         sessions.countAll() > 0 || vehicles.countAll() > 0 ||
             providers.countAll() > 0 || locations.countAll() > 0 || fees.countAll() > 0 ||
-            vehicleCosts.countAll() > 0 || reminders.countAll() > 0
+            vehicleCosts.countAll() > 0 || reminders.countAll() > 0 ||
+            reimbursementRates.countAll() > 0
 
     /** Short summary for the sign-in question ("3 vehicles, 128 charging sessions"). */
     suspend fun localDataSummary(): String {
@@ -83,12 +88,15 @@ object LocalDataStore {
                 ?.let { add(context.getString(R.string.local_data_summary_vehicle_costs, it)) }
             reminders.countAll().takeIf { it > 0 }
                 ?.let { add(context.getString(R.string.local_data_summary_reminders, it)) }
+            reimbursementRates.countAll().takeIf { it > 0 }
+                ?.let { add(context.getString(R.string.local_data_summary_reimbursement_rates, it)) }
         }
         return parts.joinToString(", ")
     }
 
     /** Irreversibly deletes ALL local data. */
     suspend fun resetAllData() {
+        reimbursementRates.clear()
         reminders.clear()
         vehicleCosts.clear()
         fees.clear()
@@ -113,6 +121,7 @@ object LocalDataStore {
             isActive = payload.isActive ?: true
         )
         payload.ownership?.let { vehicle.applyOwnership(it) }
+        payload.reimbursement?.let { vehicle.applyReimbursement(it) }
         vehicles.upsert(vehicle)
         return vehicle.asDTO()
     }
@@ -126,6 +135,8 @@ object LocalDataStore {
         payload.isActive?.let { vehicle.isActive = it }
         // Kauf/Leasing immer als Ganzes: ein geleertes Feld soll auch geleert werden.
         payload.ownership?.let { vehicle.applyOwnership(it) }
+        // Dienstwagen-Angaben ebenso als Ganzes (null = unveraendert, z.B. aus dem Fahrzeugformular).
+        payload.reimbursement?.let { vehicle.applyReimbursement(it) }
         vehicle.updatedAt = System.currentTimeMillis()
         vehicle.isDirty = true
         vehicles.upsert(vehicle)
@@ -135,13 +146,15 @@ object LocalDataStore {
     /**
      * Cascades to the vehicle's sessions, matching the server. Die Fahrzeugkosten gehen sofort und
      * hart mit (wie die Grundgebuehren beim Anbieter): der Server loescht sie beim Loeschen des
-     * Fahrzeugs selbst, samt Grabsteinen. Dasselbe gilt fuer die Erinnerungen.
+     * Fahrzeugs selbst, samt Grabsteinen. Dasselbe gilt fuer die Erinnerungen und die
+     * Erstattungssaetze.
      */
     suspend fun deleteVehicle(id: String) {
         val vehicle = vehicles.find(id) ?: throw LocalStoreException.notFound()
         val refs = setOfNotNull(vehicle.localId, vehicle.serverId)
         vehicleCosts.getAll().filter { it.vehicleId in refs }.forEach { vehicleCosts.delete(it) }
         reminders.getAll().filter { it.vehicleId in refs }.forEach { reminders.delete(it) }
+        reimbursementRates.getAll().filter { it.vehicleId in refs }.forEach { reimbursementRates.delete(it) }
         val childSessions = sessions.getByVehicleId(id)
         if (vehicle.serverId != null) {
             vehicle.pendingDelete = true
@@ -414,6 +427,73 @@ object LocalDataStore {
         }
     }
 
+    // MARK: - Erstattung Dienstwagen
+
+    /** Neueste zuerst; `vehicleId` in kanonischer Form ([canonicalVehicleIds]). */
+    suspend fun fetchReimbursementRates(vehicleId: String? = null): List<ReimbursementRate> {
+        val canonical = canonicalVehicleIds()
+        val list = reimbursementRates.getAllUndeleted().map { row ->
+            val dto = row.asDTO()
+            dto.copy(vehicleId = canonical[dto.vehicleId] ?: dto.vehicleId)
+        }
+        if (vehicleId == null) return list
+        val wanted = canonical[vehicleId] ?: vehicleId
+        return list.filter { it.vehicleId == wanted }
+    }
+
+    /**
+     * Alles, was [LocalReimbursementCalculator] braucht, mit EINER Fahrzeug- und Anbieter-ID-Form.
+     * Die Ladevorgaenge tragen schon den Grundgebuehr-Anteil ([fetchSessions]), umgelegt ueber
+     * ALLE Vorgaenge wie auf dem Server.
+     */
+    suspend fun reimbursementBasis(): ReimbursementBasis {
+        val canonicalVehicles = canonicalVehicleIds()
+        val canonicalProviders = canonicalProviderIds()
+        return ReimbursementBasis(
+            vehicles = fetchVehicles(),
+            providers = fetchProviders(),
+            rates = fetchReimbursementRates(),
+            sessions = fetchSessions().map { s ->
+                s.copy(
+                    vehicleId = canonicalVehicles[s.vehicleId] ?: s.vehicleId,
+                    providerId = s.providerId?.let { canonicalProviders[it] ?: it }
+                )
+            }
+        )
+    }
+
+    suspend fun createReimbursementRate(payload: ReimbursementRatePayload): ReimbursementRate {
+        val rate = LocalReimbursementRate(
+            vehicleId = payload.vehicleId,
+            validFrom = payload.validFrom,
+            ratePerKwh = payload.ratePerKwh
+        )
+        reimbursementRates.upsert(rate)
+        return rate.asDTO()
+    }
+
+    suspend fun updateReimbursementRate(id: String, payload: ReimbursementRatePayload): ReimbursementRate {
+        val rate = reimbursementRates.find(id) ?: throw LocalStoreException.notFound()
+        rate.vehicleId = payload.vehicleId
+        rate.validFrom = payload.validFrom
+        rate.ratePerKwh = payload.ratePerKwh
+        rate.updatedAt = System.currentTimeMillis()
+        rate.isDirty = true
+        reimbursementRates.upsert(rate)
+        return rate.asDTO()
+    }
+
+    suspend fun deleteReimbursementRate(id: String) {
+        val rate = reimbursementRates.find(id) ?: throw LocalStoreException.notFound()
+        if (rate.serverId != null) {
+            rate.pendingDelete = true
+            rate.isDirty = true
+            reimbursementRates.upsert(rate)
+        } else {
+            reimbursementRates.delete(rate)
+        }
+    }
+
     // MARK: - Erinnerungen
 
     /** Alle Erinnerungen (ohne Reihenfolge); `vehicleId` in kanonischer Form ([canonicalVehicleIds]). */
@@ -665,5 +745,13 @@ data class VehicleCostBasis(
     val vehicles: List<Vehicle>,
     val costs: List<VehicleCost>,
     /** Alle Ladevorgaenge mit kanonischer Fahrzeug-ID und Grundgebuehr-Anteil. */
+    val sessions: List<ChargingSession>
+)
+
+data class ReimbursementBasis(
+    val vehicles: List<Vehicle>,
+    val providers: List<Provider>,
+    val rates: List<ReimbursementRate>,
+    /** Alle Ladevorgaenge mit kanonischer Fahrzeug- und Anbieter-ID und Grundgebuehr-Anteil. */
     val sessions: List<ChargingSession>
 )

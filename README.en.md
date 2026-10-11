@@ -94,6 +94,14 @@ plus a **server mode with bidirectional synchronization**.
   date and offers to record the cost right away. Anything due soon appears at
   the top of the dashboard, plus local notifications (can be switched off).
   Works in both modes; with server 0.33.0 or newer everything syncs.
+- **Company car reimbursement report** (Tools → Reimbursement report): mark a
+  vehicle as a company car, choose the reimbursement type (flat rate per kWh
+  with "valid from" rates, or actual cost, optionally including base fees) and
+  store name, employee number and licence plate. The report lists all home
+  charges (providers set to "Home") per month or custom period with kWh, kWh
+  source (wallbox, vehicle or estimated), amount and monthly totals – shareable
+  as PDF or CSV. Calculated locally in both modes; with server 0.35.0 or newer
+  settings and rates sync, and a monthly e-mail is available there.
 - **Server-side deletions arrive**: charging sessions, vehicles, providers and
   charging locations deleted on the server also disappear from the app on the
   next sync, instead of lingering as "ghost rows". Requires

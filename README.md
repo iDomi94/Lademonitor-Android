@@ -93,6 +93,15 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   die nächste Fälligkeit fort und bietet an, die Kosten gleich einzutragen.
   Bald Fälliges steht oben im Dashboard, dazu lokale Mitteilungen (abschaltbar).
   Funktioniert in beiden Modi; mit Server ab 0.33.0 wird alles synchronisiert.
+- **Erstattungsbericht Dienstwagen** (Tools → Erstattungsbericht): ein Fahrzeug
+  als Dienstwagen markieren, Erstattungsart wählen (pauschal je kWh mit Sätzen
+  „gültig ab“ oder tatsächliche Kosten, optional inkl. Grundgebühr) und Name,
+  Personalnummer und Kennzeichen hinterlegen. Der Bericht listet je Monat oder
+  frei gewähltem Zeitraum alle Heimladungen (Anbieter „Zuhause“) mit kWh,
+  Herkunft der kWh (Wallbox, Fahrzeug oder geschätzt), Betrag und
+  Monatssummen – teilbar als PDF oder CSV. Rechnet in beiden Modi lokal; mit
+  Server ab 0.35.0 werden Einstellungen und Sätze synchronisiert, dort ist
+  auch eine Monatsmail möglich.
 - **Serverseitige Löschungen kommen an**: auf dem Server gelöschte Ladevorgänge,
   Fahrzeuge, Anbieter und Ladeorte verschwinden beim nächsten Abgleich auch aus
   der App, statt als „Geisterzeilen" stehenzubleiben. Braucht Lademonitor-Server
