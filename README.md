@@ -47,6 +47,9 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   (100 → 0 %)“** je Temperatur (nur Server-Modus, genau ein Fahrzeug).
 - **Homescreen-Widget** mit Kosten und kWh des laufenden Monats, ab mittlerer
   Breite zusätzlich mit dem letzten Ladevorgang.
+- **Kurzbefehle** (langes Drücken aufs App-Symbol): „Ladevorgang erfassen“
+  öffnet direkt das Formular, dazu „Dashboard“ und – sobald ein Fahrzeug als
+  Dienstwagen markiert ist – „Erstattungsbericht“.
 - **Zeitraum-Filter** (Presets + eigener Zeitraum), global für Dashboard,
   Ladevorgänge und Karte.
 - **Anmelden mit Nutzername oder E-Mail-Adresse**; bei der Registrierung kann

@@ -943,4 +943,12 @@
     <string name="reimbursement_csv_estimated_kwh">davon geschätzt kWh</string>
     <string name="reimbursement_csv_total">Summe</string>
     <string name="reimbursement_csv_missing">Ladungen ohne Betrag: %1$d (kein Satz bzw. kein Preis)</string>
+
+    <!-- Kurzbefehle (langes Druecken aufs App-Symbol); Kurzform hoechstens ~10 Zeichen -->
+    <string name="shortcut_new_session_short">Erfassen</string>
+    <string name="shortcut_new_session_long">Ladevorgang erfassen</string>
+    <string name="shortcut_dashboard_short">Dashboard</string>
+    <string name="shortcut_dashboard_long">Dashboard öffnen</string>
+    <string name="shortcut_reimbursement_short">Erstattung</string>
+    <string name="shortcut_reimbursement_long">Erstattungsbericht</string>
 </resources>

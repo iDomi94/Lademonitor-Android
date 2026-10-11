@@ -942,4 +942,12 @@
     <string name="reimbursement_csv_estimated_kwh">of which estimated kWh</string>
     <string name="reimbursement_csv_total">Total</string>
     <string name="reimbursement_csv_missing">Charges without an amount: %1$d (no rate or no price)</string>
+
+    <!-- App shortcuts (long-press on the app icon) -->
+    <string name="shortcut_new_session_short">Add</string>
+    <string name="shortcut_new_session_long">Add charging session</string>
+    <string name="shortcut_dashboard_short">Dashboard</string>
+    <string name="shortcut_dashboard_long">Open dashboard</string>
+    <string name="shortcut_reimbursement_short">Report</string>
+    <string name="shortcut_reimbursement_long">Reimbursement report</string>
 </resources>

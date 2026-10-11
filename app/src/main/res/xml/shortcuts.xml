@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Statische Kurzbefehle (langes Druecken aufs App-Symbol). Die Adresse wertet AppShortcuts aus;
+     targetPackage muss der applicationId entsprechen. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new-session"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add_session"
+        android:shortcutShortLabel="@string/shortcut_new_session_short"
+        android:shortcutLongLabel="@string/shortcut_new_session_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="lademonitor://shortcut/new-session"
+            android:targetPackage="com.dominiqueherbrigpersonalteam.lademonitor"
+            android:targetClass="com.dominiqueherbrigpersonalteam.lademonitor.MainActivity" />
+    </shortcut>
+</shortcuts>
