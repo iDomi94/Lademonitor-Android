@@ -484,7 +484,9 @@ data class AuthUser(
     @Json(name = "notify_myskoda_error") val notifyMyskodaError: Boolean? = null,
     @Json(name = "notify_monthly_report") val notifyMonthlyReport: Boolean? = null,
     @Json(name = "notify_new_registration") val notifyNewRegistration: Boolean? = null,
-    @Json(name = "review_digest") val reviewDigest: ReviewDigestFrequency? = null
+    @Json(name = "review_digest") val reviewDigest: ReviewDigestFrequency? = null,
+    // Server 0.36.0 und neuer (Jahresrueckblick per Mail, Standard an).
+    @Json(name = "notify_yearly_review") val notifyYearlyReview: Boolean? = null
 ) {
     /** Whether the stored address is confirmed. Only a confirmed one can reset a password. */
     val isEmailVerified: Boolean get() = emailVerifiedAt != null
@@ -557,7 +559,32 @@ data class NotificationSettingsPayload(
     @Json(name = "notify_myskoda_error") val notifyMyskodaError: Boolean,
     @Json(name = "notify_monthly_report") val notifyMonthlyReport: Boolean,
     @Json(name = "notify_new_registration") val notifyNewRegistration: Boolean,
-    @Json(name = "review_digest") val reviewDigest: ReviewDigestFrequency
+    @Json(name = "review_digest") val reviewDigest: ReviewDigestFrequency,
+    /** Ab Server 0.36.0; ein aelterer Server ignoriert das Feld. */
+    @Json(name = "notify_yearly_review") val notifyYearlyReview: Boolean = true
+)
+
+/**
+ * Vergleichsfahrzeug fuer die Ersparnis im Rueckblick (`GET /api/combustion-vehicle`, Server ab
+ * 0.36.0). `configured == false` heisst: Standardwerte, nie gespeichert. `updated_at` braucht die
+ * App nicht.
+ */
+@JsonClass(generateAdapter = true)
+data class CombustionVehicleOut(
+    @Json(name = "fuel_type") val fuelType: String = "petrol",
+    @Json(name = "consumption_l_per_100km") val consumptionLPer100km: Double,
+    @Json(name = "fuel_price_per_l") val fuelPricePerL: Double,
+    @Json(name = "grid_co2_kg_per_kwh") val gridCo2KgPerKwh: Double,
+    val configured: Boolean = false
+)
+
+/** Body fuer `PUT /api/combustion-vehicle` - der Server erwartet alle vier Felder. */
+@JsonClass(generateAdapter = true)
+data class CombustionVehiclePayload(
+    @Json(name = "fuel_type") val fuelType: String,
+    @Json(name = "consumption_l_per_100km") val consumptionLPer100km: Double,
+    @Json(name = "fuel_price_per_l") val fuelPricePerL: Double,
+    @Json(name = "grid_co2_kg_per_kwh") val gridCo2KgPerKwh: Double
 )
 
 /** Body for `POST /api/auth/password-reset/request`. Username OR address. */

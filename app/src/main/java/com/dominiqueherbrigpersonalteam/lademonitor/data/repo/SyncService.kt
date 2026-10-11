@@ -269,6 +269,9 @@ object SyncService {
             // Zum Schluss, nach den Pulls: die legen fehlende Zeilen an, und eine gerade erst
             // angelegte Zeile darf ein Grabstein aus demselben Durchlauf gleich wieder entfernen.
             applyServerDeletions()
+            // Eigener Abgleich ohne Einfluss auf den Rest: ein Fehler hier laesst den Sync nicht
+            // scheitern, der lokale Stand bleibt dann einfach dirty fuer den naechsten Versuch.
+            syncComparisonVehicle()
             _lastSyncDate.value = System.currentTimeMillis()
             _lastSyncError.value = if (itemErrors.isEmpty()) null else itemErrors.joinToString(" · ")
         } catch (e: Exception) {
@@ -960,6 +963,27 @@ object SyncService {
     // Server-side deletions arrive through applyServerDeletions() instead: an explicit "this id is
     // gone" from the server, which an incomplete response cannot invent. The "ghost rows" this app
     // had to live with until then are therefore history.
+
+    // MARK: - Vergleichsfahrzeug
+
+    /**
+     * Ein einzelner Datensatz in SharedPreferences ([ComparisonVehicleStore]), kein Room: lokal
+     * geaendert -> PUT und danach das Dirty-Flag weg, sonst GET und uebernehmen. Gegen einen
+     * Server aelter als 0.36.0 (404) wird still uebersprungen, dirty bleibt. Wirft nie.
+     */
+    private suspend fun syncComparisonVehicle() {
+        try {
+            if (ComparisonVehicleStore.isDirty) {
+                val pushed = ComparisonVehicleStore.values.value
+                ApiClient.updateCombustionVehicle(ComparisonVehicleStore.payload(pushed))
+                ComparisonVehicleStore.markPushed(pushed)
+            } else {
+                ComparisonVehicleStore.applyFromServer(ApiClient.fetchCombustionVehicle())
+            }
+        } catch (e: Exception) {
+            // 404 (aelterer Server), Netz, 422 - nichts davon darf den Sync scheitern lassen.
+        }
+    }
 
     // MARK: - Server-side deletions
 

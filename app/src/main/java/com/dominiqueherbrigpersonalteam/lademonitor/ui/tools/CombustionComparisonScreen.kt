@@ -24,6 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -35,6 +36,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +55,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.CombustionComparison
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.CombustionComparisonSettings
+import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.ComparisonVehicleStore
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.Fmt
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.SectionCard
@@ -96,10 +99,13 @@ fun CombustionComparisonScreen(navController: NavController) {
     var sessions by remember { mutableStateOf<List<ChargingSession>>(emptyList()) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var lastYearOnly by remember { mutableStateOf(CombustionComparisonSettings.lastYearOnly) }
-    var fuel by remember { mutableStateOf(CombustionComparisonSettings.fuel) }
-    var consumption by remember { mutableStateOf(CombustionComparisonSettings.consumption(fuel)) }
-    var price by remember { mutableStateOf(CombustionComparisonSettings.price(fuel)) }
-    var gridCo2 by remember { mutableStateOf(CombustionComparisonSettings.gridCo2) }
+    // Startet mit dem Vergleichsfahrzeug aus den Einstellungen; Aenderungen hier gelten nur fuer
+    // diesen Aufruf, bis man sie ausdruecklich als Vergleichsfahrzeug speichert.
+    val comparisonVehicle by ComparisonVehicleStore.values.collectAsState()
+    var fuel by remember { mutableStateOf(comparisonVehicle.fuel) }
+    var consumption by remember { mutableStateOf(comparisonVehicle.consumption) }
+    var price by remember { mutableStateOf(comparisonVehicle.price) }
+    var gridCo2 by remember { mutableStateOf(comparisonVehicle.gridCo2) }
     var mode by remember { mutableStateOf(CombustionMode.from(CombustionComparisonSettings.mode)) }
     var lifetimeKm by remember { mutableStateOf(CombustionComparisonSettings.lifetimeKm) }
     var batteryKwhOverride by remember { mutableStateOf(CombustionComparisonSettings.batteryKwh) }
@@ -120,7 +126,10 @@ fun CombustionComparisonScreen(navController: NavController) {
         }
     }
 
-    fun persist() = CombustionComparisonSettings.save(consumption, price)
+    val differsFromComparison = !comparisonVehicle.configured ||
+        !comparisonVehicle.sameNumbers(
+            ComparisonVehicleStore.Values(fuel, consumption, price, gridCo2, configured = true)
+        )
 
     val basis = remember(sessions, lastYearOnly) {
         CombustionComparison.basis(sessions, if (lastYearOnly) System.currentTimeMillis() - YEAR_MS else null)
@@ -194,10 +203,8 @@ fun CombustionComparisonScreen(navController: NavController) {
                                 selected = fuel == f,
                                 onClick = {
                                     fuel = f
-                                    CombustionComparisonSettings.fuel = f
                                     consumption = f.defaultConsumption
                                     price = f.defaultPrice
-                                    persist()
                                 },
                                 shape = SegmentedButtonDefaults.itemShape(index, CombustionComparison.Fuel.entries.size)
                             ) {
@@ -210,24 +217,24 @@ fun CombustionComparisonScreen(navController: NavController) {
                         title = stringResource(R.string.combustion_consumption),
                         valueText = Fmt.n("%.1f", consumption) + " l/100 km",
                         value = consumption,
-                        onValueChange = { consumption = it; persist() },
+                        onValueChange = { consumption = it },
                         range = CONSUMPTION_RANGE,
                         step = 0.1,
                         marker = fuel.defaultConsumption,
                         caption = null,
-                        onReset = resetTo(consumption, fuel.defaultConsumption) { consumption = it; persist() },
+                        onReset = resetTo(consumption, fuel.defaultConsumption) { consumption = it },
                         onEdit = { editText = Fmt.n("%.1f", consumption); editing = CombustionField.CONSUMPTION }
                     )
                     SliderRow(
                         title = stringResource(R.string.combustion_price),
                         valueText = money(price),
                         value = price,
-                        onValueChange = { price = it; persist() },
+                        onValueChange = { price = it },
                         range = FUEL_PRICE_RANGE,
                         step = 0.01,
                         marker = fuel.defaultPrice,
                         caption = null,
-                        onReset = resetTo(price, fuel.defaultPrice) { price = it; persist() },
+                        onReset = resetTo(price, fuel.defaultPrice) { price = it },
                         onEdit = { editText = Fmt.n("%.2f", price); editing = CombustionField.PRICE }
                     )
                     Footnote(stringResource(R.string.combustion_vehicle_footer))
@@ -239,17 +246,26 @@ fun CombustionComparisonScreen(navController: NavController) {
                         title = stringResource(R.string.combustion_grid),
                         valueText = Fmt.n("%.0f", gridCo2 * 1000) + " g",
                         value = gridCo2,
-                        onValueChange = { gridCo2 = it; CombustionComparisonSettings.gridCo2 = it },
+                        onValueChange = { gridCo2 = it },
                         range = GRID_RANGE,
                         step = 0.01,
                         marker = CombustionComparison.DEFAULT_GRID_CO2_KG_PER_KWH,
                         caption = null,
-                        onReset = resetTo(gridCo2, CombustionComparison.DEFAULT_GRID_CO2_KG_PER_KWH) {
-                            gridCo2 = it; CombustionComparisonSettings.gridCo2 = it
-                        },
+                        onReset = resetTo(gridCo2, CombustionComparison.DEFAULT_GRID_CO2_KG_PER_KWH) { gridCo2 = it },
                         onEdit = { editText = Fmt.n("%.0f", gridCo2 * 1000); editing = CombustionField.GRID }
                     )
                     Footnote(stringResource(R.string.combustion_co2_footer, Fmt.n("%.2f", fuel.co2KgPerLiter)))
+                }
+
+                // Kraftstoff, Verbrauch, Preis und Strommix als Vergleichsfahrzeug uebernehmen - die
+                // Werte, mit denen der Rueckblick (und im Server-Modus Web und Jahresmail) rechnet.
+                if (differsFromComparison) {
+                    OutlinedButton(
+                        onClick = { AppRepository.saveComparisonVehicle(fuel, consumption, price, gridCo2) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(stringResource(R.string.combustion_save_as_comparison)) }
+                } else {
+                    Footnote(stringResource(R.string.combustion_is_comparison))
                 }
 
                 if (mode == CombustionMode.LIFECYCLE) {
@@ -329,9 +345,9 @@ fun CombustionComparisonScreen(navController: NavController) {
                 TextButton(onClick = {
                     editText.trim().replace(",", ".").toDoubleOrNull()?.takeIf { it >= 0 }?.let { v ->
                         when (field) {
-                            CombustionField.CONSUMPTION -> { consumption = v; persist() }
-                            CombustionField.PRICE -> { price = v; persist() }
-                            CombustionField.GRID -> { gridCo2 = v / 1000; CombustionComparisonSettings.gridCo2 = v / 1000 }
+                            CombustionField.CONSUMPTION -> { consumption = v }
+                            CombustionField.PRICE -> { price = v }
+                            CombustionField.GRID -> { gridCo2 = v / 1000 }
                             CombustionField.LIFETIME -> { lifetimeKm = v; CombustionComparisonSettings.lifetimeKm = v }
                             CombustionField.BATTERY_KWH -> { batteryKwhOverride = v; CombustionComparisonSettings.batteryKwh = v }
                             CombustionField.BATTERY_CO2 -> { batteryCo2 = v; CombustionComparisonSettings.batteryCo2 = v }

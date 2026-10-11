@@ -105,6 +105,19 @@ plus a **server mode with bidirectional synchronization**.
   source (wallbox, vehicle or estimated), amount and monthly totals – shareable
   as PDF or CSV. Calculated locally in both modes; with server 0.35.0 or newer
   settings and rates sync, and a monthly e-mail is available there.
+- **Yearly and monthly review** (Tools → Review): a calendar year or month at a
+  glance – kWh, cost (incl. base fees), km, sessions, average price and average
+  consumption with ± % versus the previous period, savings in euros and CO₂
+  compared with a combustion car, records (cheapest/most expensive and biggest
+  charge, longest distance, coldest/warmest charging day, most used location
+  and provider, month with the lowest/highest consumption), the home/work/public
+  and AC/DC split and kWh per month. Vehicle filter as on the dashboard.
+  Calculated locally using the same rules as the server, so it also works in
+  local-only mode.
+- **Comparison vehicle** (Settings): fuel type, consumption, price and grid mix
+  for the savings in the review; the combustion comparison tool starts with
+  these values and can save its own as the comparison vehicle. Syncs with
+  server 0.36.0 or newer, which also offers the "Yearly review by e-mail" switch.
 - **Server-side deletions arrive**: charging sessions, vehicles, providers and
   charging locations deleted on the server also disappear from the app on the
   next sync, instead of lingering as "ghost rows". Requires

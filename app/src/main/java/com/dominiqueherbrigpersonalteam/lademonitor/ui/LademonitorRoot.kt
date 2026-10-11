@@ -44,6 +44,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.map.MapScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.sessions.SessionsListScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.AccountSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ChargeBarSettingsScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ComparisonVehicleSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ConnectionSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.FeesSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.LocationsSettingsScreen
@@ -57,6 +58,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.BatteryHealthScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.CombustionComparisonScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.RangeCalculatorScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.ReimbursementScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.ReviewScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.TariffCalculatorScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.ToolsScreen
 import kotlinx.coroutines.launch
@@ -237,6 +239,7 @@ private fun MainScaffold() {
                 arguments = listOf(navArgument("vehicleId") { type = NavType.StringType; nullable = true; defaultValue = null })
             ) { entry -> RangeCalculatorScreen(navController, entry.arguments?.getString("vehicleId")) }
             composable("tools/reimbursement") { ReimbursementScreen(navController) }
+            composable("tools/review") { ReviewScreen(navController) }
             composable(Tab.SETTINGS.route) { SettingsScreen(navController) }
             composable("settings/vehicles") { VehiclesSettingsScreen(navController) }
             composable(
@@ -254,6 +257,7 @@ private fun MainScaffold() {
             composable("settings/connection") { ConnectionSettingsScreen(navController) }
             composable("settings/account") { AccountSettingsScreen(navController) }
             composable("settings/chargebar") { ChargeBarSettingsScreen(navController) }
+            composable("settings/comparison-vehicle") { ComparisonVehicleSettingsScreen(navController) }
         }
     }
 }

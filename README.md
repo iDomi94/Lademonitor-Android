@@ -105,6 +105,19 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   Monatssummen – teilbar als PDF oder CSV. Rechnet in beiden Modi lokal; mit
   Server ab 0.35.0 werden Einstellungen und Sätze synchronisiert, dort ist
   auch eine Monatsmail möglich.
+- **Jahres- und Monatsrückblick** (Tools → Rückblick): ein Kalenderjahr oder
+  -monat auf einen Blick – kWh, Kosten (inkl. Grundgebühren), km,
+  Ladevorgänge, Ø Preis und Ø Verbrauch mit ± % zur Vorperiode, die Ersparnis
+  in Euro und CO₂ gegenüber einem Verbrenner, Rekorde (günstigste/teuerste und
+  größte Ladung, längste Strecke, kältester/wärmster Ladetag, meistgenutzter
+  Ladeort und Anbieter, Monat mit dem geringsten/höchsten Verbrauch),
+  Verteilung Zuhause/Arbeit/unterwegs und AC/DC sowie kWh je Monat.
+  Fahrzeugfilter wie im Dashboard. Rechnet lokal nach denselben Regeln wie der
+  Server, also auch im Local-Only-Modus.
+- **Vergleichsfahrzeug** (Einstellungen): Kraftstoff, Verbrauch, Preis und
+  Strommix für die Ersparnis im Rückblick; das Verbrenner-Tool startet damit und
+  kann seine Werte als Vergleichsfahrzeug speichern. Mit Server ab 0.36.0 wird
+  es synchronisiert, dort gibt es auch den Schalter „Jahresrückblick per Mail“.
 - **Serverseitige Löschungen kommen an**: auf dem Server gelöschte Ladevorgänge,
   Fahrzeuge, Anbieter und Ladeorte verschwinden beim nächsten Abgleich auch aus
   der App, statt als „Geisterzeilen" stehenzubleiben. Braucht Lademonitor-Server
