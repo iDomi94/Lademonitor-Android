@@ -15,6 +15,8 @@ Angleichung an die iOS-App:
   „Server & Verbindung“ und sind auch im lokalen Modus erreichbar.
 - **Fällige Erinnerungen** im Dashboard öffnen die Liste aller Fahrzeuge statt
   nur des einen; neue Erinnerungen fragen dort zuerst nach dem Fahrzeug.
+- **Kurzbefehl „Fällige Erinnerungen“** am App-Symbol (sobald es Erinnerungen
+  gibt) – Gegenstück zum gleichnamigen Siri-Kurzbefehl der iOS-App.
 - Der Code wird jetzt bei jedem Pull Request auf GitHub gebaut.
 
 ## 1.1 (2026-10-11)

@@ -19,8 +19,10 @@ import kotlinx.coroutines.launch
 
 /**
  * Kurzbefehle (langes Druecken aufs App-Symbol). "Ladevorgang erfassen" ist statisch
- * (res/xml/shortcuts.xml), "Dashboard" und "Erstattungsbericht" sind dynamisch - Letzterer nur,
- * wenn ein Fahrzeug als Dienstwagen markiert ist.
+ * (res/xml/shortcuts.xml), "Dashboard", "Erinnerungen" und "Erstattungsbericht" sind dynamisch -
+ * "Erinnerungen" nur, wenn es welche gibt (Gegenstueck zum Siri-Kurzbefehl "Faellige
+ * Erinnerungen" der iOS-App), "Erstattungsbericht" nur, wenn ein Fahrzeug als Dienstwagen
+ * markiert ist.
  *
  * Alle drei oeffnen MainActivity mit einer `lademonitor://shortcut/<ziel>`-Adresse; das Ziel
  * landet in [pending] und wird vom MainScaffold abgeholt, sobald es angezeigt wird (also auch
@@ -30,7 +32,8 @@ object AppShortcuts {
     enum class Target(val path: String) {
         NEW_SESSION("new-session"),
         DASHBOARD("dashboard"),
-        REIMBURSEMENT("reimbursement")
+        REIMBURSEMENT("reimbursement"),
+        REMINDERS("reminders")
     }
 
     private const val SCHEME = "lademonitor"
@@ -84,13 +87,22 @@ object AppShortcuts {
                     .setRank(0)
                     .build()
             )
+            if (LocalDataStore.fetchReminders().isNotEmpty()) {
+                shortcuts += ShortcutInfoCompat.Builder(context, Target.REMINDERS.path)
+                    .setShortLabel(context.getString(R.string.shortcut_reminders_short))
+                    .setLongLabel(context.getString(R.string.shortcut_reminders_long))
+                    .setIcon(IconCompat.createWithResource(context, R.drawable.ic_shortcut_reminders))
+                    .setIntent(intentFor(context, Target.REMINDERS))
+                    .setRank(1)
+                    .build()
+            }
             if (hasCompanyCar) {
                 shortcuts += ShortcutInfoCompat.Builder(context, Target.REIMBURSEMENT.path)
                     .setShortLabel(context.getString(R.string.shortcut_reimbursement_short))
                     .setLongLabel(context.getString(R.string.shortcut_reimbursement_long))
                     .setIcon(IconCompat.createWithResource(context, R.drawable.ic_shortcut_reimbursement))
                     .setIntent(intentFor(context, Target.REIMBURSEMENT))
-                    .setRank(1)
+                    .setRank(2)
                     .build()
             }
             ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts)

@@ -1022,4 +1022,6 @@
         <item quantity="one">%d Ladevorgang</item>
         <item quantity="other">%d Ladevorgänge</item>
     </plurals>
+    <string name="shortcut_reminders_short">Fällig</string>
+    <string name="shortcut_reminders_long">Fällige Erinnerungen</string>
 </resources>

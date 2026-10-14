@@ -1021,4 +1021,6 @@
         <item quantity="one">%d charging session</item>
         <item quantity="other">%d charging sessions</item>
     </plurals>
+    <string name="shortcut_reminders_short">Due</string>
+    <string name="shortcut_reminders_long">Due reminders</string>
 </resources>

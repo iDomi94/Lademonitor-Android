@@ -177,6 +177,10 @@ private fun MainScaffold() {
                 navigateToTab(Tab.SESSIONS)
             }
             AppShortcuts.Target.DASHBOARD -> navigateToTab(Tab.DASHBOARD)
+            AppShortcuts.Target.REMINDERS -> {
+                navigateToTab(Tab.SETTINGS)
+                navController.navigate("settings/reminders") { launchSingleTop = true }
+            }
             AppShortcuts.Target.REIMBURSEMENT -> {
                 navigateToTab(Tab.TOOLS)
                 navController.navigate("tools/reimbursement") { launchSingleTop = true }
