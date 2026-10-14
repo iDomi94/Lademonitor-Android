@@ -1005,4 +1005,20 @@
     <string name="comparison_vehicle_hint_defaults">Not saved yet – the default values apply until then.</string>
     <string name="combustion_save_as_comparison">Save as comparison vehicle</string>
     <string name="combustion_is_comparison">Matches the saved comparison vehicle.</string>
+
+    <!-- Parity with the iOS app: settings and map -->
+    <string name="settings_nav_costs">Costs</string>
+    <string name="settings_nav_reminders">Reminders</string>
+    <string name="settings_section_server">Server</string>
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_sync_hint">Changes are uploaded automatically, even after a brief loss of connection. “Sync now” triggers it manually.</string>
+    <string name="vehicle_picker_title">Choose vehicle</string>
+    <string name="vehicle_scoped_empty_title">No vehicle yet</string>
+    <string name="vehicle_scoped_empty_message">Add one first under Settings → Vehicles.</string>
+    <string name="map_locate_me">Zoom to current location</string>
+    <string name="map_location_error_title">Location</string>
+    <plurals name="map_cluster_sessions">
+        <item quantity="one">%d charging session</item>
+        <item quantity="other">%d charging sessions</item>
+    </plurals>
 </resources>

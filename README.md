@@ -21,7 +21,10 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   löschen (Wischgeste). Verbrauchsanzeige (kWh/100km) mit derselben
   Fallback-Kette wie die iOS-App.
 - **Karte** (OpenStreetMap via osmdroid, kein API-Key nötig) mit allen Ladeorten
-  (inkl. Matching-Radius) und Ladevorgängen; Antippen öffnet Detail/Bearbeiten.
+  (inkl. Matching-Radius) und Ladevorgängen, je nach Zoom zu Zahlen-Clustern
+  zusammengefasst (zu prüfende orange); Antippen öffnet Detail/Bearbeiten bzw.
+  zoomt hinein oder listet die Vorgänge am selben Punkt. Knopf „Auf aktuellen
+  Standort zoomen“.
 - **Fahrzeuge, Anbieter, Ladeorte** verwalten; Adresssuche (im lokalen Modus per
   OSM-Nominatim, im Server-Modus über den Server-Proxy) und „Aktueller Standort“.
 - **Tools**-Reiter mit dem Rechner **„Lohnt sich der Tarif?“**: effektiver
@@ -231,8 +234,7 @@ abzuschneiden.
 ## Unterschiede zur iOS-App (bewusst)
 
 - **Karte:** OpenStreetMap (osmdroid) statt Apple Maps – kein API-Key nötig.
-  Ladevorgänge werden als Einzel-Marker gezeigt; das Karten-Clustering der
-  iOS-App ist (noch) nicht portiert.
+  Ladevorgänge werden wie in der iOS-App je nach Zoom geclustert.
 - **Lokale Adresssuche:** statt Apple `MKLocalSearch` wird im lokalen Modus
   direkt OSM-Nominatim angefragt (dieselbe Quelle, die der Server proxied).
 - **Token-Speicher:** Android `EncryptedSharedPreferences` statt iOS-Keychain.

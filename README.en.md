@@ -21,8 +21,10 @@ plus a **server mode with bidirectional synchronization**.
   delete (swipe gesture). Consumption display (kWh/100km) using the same
   fallback chain as the iOS app.
 - **Map** (OpenStreetMap via osmdroid, no API key needed) with all charging
-  locations (incl. matching radius) and charging sessions; tapping opens
-  detail/edit.
+  locations (incl. matching radius) and charging sessions, grouped into
+  numbered clusters by zoom level (orange when one needs review); tapping opens
+  detail/edit, zooms in, or lists the sessions at the same spot. "Zoom to
+  current location" button.
 - **Vehicles, providers, charging locations** management; address search
   (in local mode via OSM Nominatim, in server mode via the server proxy)
   and "current location".
@@ -229,8 +231,7 @@ station on the left without cutting off the car's nose.
 ## Differences from the iOS app (intentional)
 
 - **Map:** OpenStreetMap (osmdroid) instead of Apple Maps – no API key
-  needed. Charging sessions are shown as individual markers; the iOS app's
-  map clustering is not (yet) ported.
+  needed. Charging sessions are clustered by zoom level, as in the iOS app.
 - **Local address search:** instead of Apple `MKLocalSearch`, local mode
   queries OSM Nominatim directly (the same source the server proxies).
 - **Token storage:** Android `EncryptedSharedPreferences` instead of the

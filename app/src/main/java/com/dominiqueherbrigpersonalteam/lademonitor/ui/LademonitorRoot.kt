@@ -53,6 +53,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.SettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.TiresSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehicleCostsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehicleRemindersScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehiclePickerScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.VehiclesSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.BatteryHealthScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.tools.CombustionComparisonScreen
@@ -212,7 +213,8 @@ private fun MainScaffold() {
         ) {
             composable(Tab.DASHBOARD.route) {
                 DashboardScreen(
-                    onOpenReminders = { id -> navController.navigate("settings/vehicles/reminders/$id") },
+                    // Wie in iOS: die Liste ALLER Erinnerungen, nicht nur die des einen Fahrzeugs.
+                    onOpenReminders = { navController.navigate("settings/reminders") },
                     // Erst in den Tools-Reiter wechseln (wie ein Tipp auf den Reiter), dann das
                     // Tool darauf legen - so fuehrt "Zurueck" in die Tools-Liste.
                     onOpenRangeCalculator = { vehicleId ->
@@ -250,6 +252,11 @@ private fun MainScaffold() {
                 "settings/vehicles/reminders/{vehicleId}",
                 arguments = listOf(navArgument("vehicleId") { type = NavType.StringType })
             ) { entry -> VehicleRemindersScreen(navController, entry.arguments?.getString("vehicleId") ?: "") }
+            composable("settings/reminders") { VehicleRemindersScreen(navController, null) }
+            composable(
+                "settings/pick-vehicle/{target}",
+                arguments = listOf(navArgument("target") { type = NavType.StringType })
+            ) { entry -> VehiclePickerScreen(navController, entry.arguments?.getString("target") ?: "costs") }
             composable("settings/providers") { ProvidersSettingsScreen(navController) }
             composable("settings/fees") { FeesSettingsScreen(navController) }
             composable("settings/tires") { TiresSettingsScreen(navController) }
