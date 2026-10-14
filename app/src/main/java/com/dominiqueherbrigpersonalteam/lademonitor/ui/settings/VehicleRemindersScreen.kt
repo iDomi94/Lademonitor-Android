@@ -98,6 +98,7 @@ fun VehicleRemindersScreen(navController: NavController, vehicleId: String?) {
     var addVehicleId by remember { mutableStateOf<String?>(null) }
     var pickingVehicle by remember { mutableStateOf(false) }
     var costVehicleId by remember { mutableStateOf<String?>(null) }
+    var addKm by remember { mutableStateOf<Int?>(null) }
     var entries by remember { mutableStateOf<List<LocalReminderCalculator.Evaluated>>(emptyList()) }
     var mileage by remember { mutableStateOf(LocalReminderCalculator.Mileage(null, null)) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -129,6 +130,16 @@ fun VehicleRemindersScreen(navController: NavController, vehicleId: String?) {
     }
     LaunchedEffect(vehicleId) { load() }
 
+    /** Neue Erinnerung fuer ein Fahrzeug - mit dessen km-Stand als Vorschlag fuer km-Faelligkeiten. */
+    fun startAdd(id: String) {
+        scope.launch {
+            addKm = if (id == vehicleId) mileage.currentKm
+            else runCatching { AppRepository.vehicleMileage(id).currentKm }.getOrNull()
+            addVehicleId = id
+            showAdd = true
+        }
+    }
+
     /** Beim ersten Speichern einer Erinnerung nach der Mitteilungs-Berechtigung fragen (Android 13+). */
     fun afterSave() {
         if (ReminderNotifier.shouldRequestPermission(context)) {
@@ -148,8 +159,8 @@ fun VehicleRemindersScreen(navController: NavController, vehicleId: String?) {
                 IconButton(
                     onClick = {
                         when {
-                            vehicleId != null -> { addVehicleId = vehicleId; showAdd = true }
-                            vehicles.size == 1 -> { addVehicleId = vehicles.first().id; showAdd = true }
+                            vehicleId != null -> startAdd(vehicleId)
+                            vehicles.size == 1 -> startAdd(vehicles.first().id)
                             else -> pickingVehicle = true
                         }
                     },
@@ -211,7 +222,7 @@ fun VehicleRemindersScreen(navController: NavController, vehicleId: String?) {
                         Text(
                             v.name,
                             Modifier.fillMaxWidth().clickable {
-                                pickingVehicle = false; addVehicleId = v.id; showAdd = true
+                                pickingVehicle = false; startAdd(v.id)
                             }.padding(vertical = 12.dp),
                             style = MaterialTheme.typography.bodyLarge
                         )
@@ -225,10 +236,7 @@ fun VehicleRemindersScreen(navController: NavController, vehicleId: String?) {
 
     val addTarget = addVehicleId
     if (showAdd && addTarget != null) {
-        // km-Vorschlag nur, wenn die Liste ein Fahrzeug zeigt; sonst aus einer Erinnerung desselben Fahrzeugs.
-        val km = if (vehicleId != null) mileage.currentKm
-        else entries.firstOrNull { it.reminder.vehicleId == addTarget }?.mileage?.currentKm
-        AddEditReminderModal(null, addTarget, km, onDismiss = { showAdd = false }) { showAdd = false; afterSave() }
+        AddEditReminderModal(null, addTarget, addKm, onDismiss = { showAdd = false }) { showAdd = false; afterSave() }
     }
     editing?.let { r ->
         val km = if (vehicleId != null) mileage.currentKm
