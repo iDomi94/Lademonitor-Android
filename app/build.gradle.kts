@@ -13,13 +13,30 @@ android {
         applicationId = "com.dominiqueherbrigpersonalteam.lademonitor"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2"
+        // Der Release-Workflow ueberschreibt beides (-PversionCode/-PversionName),
+        // siehe docs/RELEASE.md.
+        versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 3
+        versionName = (project.findProperty("versionName") as String?) ?: "1.2"
         vectorDrawables { useSupportLibrary = true }
+    }
+
+    // Release-Signatur nur, wenn der Schluessel per Umgebung kommt (GitHub-Secrets
+    // im Release-Workflow). Ohne ihn entsteht eine unsignierte Release-APK.
+    val releaseKeystore = System.getenv("ANDROID_KEYSTORE_PATH")?.let { file(it) }
+    signingConfigs {
+        if (releaseKeystore != null && releaseKeystore.exists()) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
