@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.3 (unveröffentlicht)
+
+- **Sonnenanteil beim Laden zuhause**: neues optionales Feld „Davon aus dem
+  Netz (kWh)“ beim Ladevorgang (`grid_energy_kwh`), der Rest der geladenen
+  Energie kam kostenlos von PV-Anlage oder Hausakku. Die Detailansicht zeigt
+  die Aufteilung („☀ Sonne/Hausakku 78 % (12,4 kWh) · Netz 22 % (3,5 kWh)“),
+  die Liste ein kleines „☀ 78 %“ neben AC/DC, das Dashboard den Sonnenanteil
+  des Zeitraums unter „Gesamt kWh“. Der Netzbezug darf nicht größer als die
+  geladene Energie sein.
+- Automatisch gefüllt wird das Feld von Home Assistant (Integration ab 0.7.0)
+  über Lademonitor-Server ab 0.41.0; `price_total` sind dann die gemessenen
+  Kosten des Netzanteils. Im Server-Modus wird der Wert in beide Richtungen
+  synchronisiert, im „Nur lokal"-Modus lokal gespeichert (Room 9 → 10, neue
+  Spalte per Migration, keine Daten gehen verloren).
+
 ## 1.2 (2026-10-14)
 
 Angleichung an die iOS-App:

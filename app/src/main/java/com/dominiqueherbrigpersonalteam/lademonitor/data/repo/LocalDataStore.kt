@@ -638,6 +638,7 @@ object LocalDataStore {
             socStart = payload.socStart,
             socEnd = payload.socEnd,
             energyKwh = payload.energyKwh,
+            gridEnergyKwh = payload.gridEnergyKwh,
             odometerKm = payload.odometerKm,
             outsideTempC = payload.outsideTempC,
             // Im Local-Only-Modus gibt es nur eine Quelle: den Menschen, der sie eintippt.
@@ -680,6 +681,7 @@ object LocalDataStore {
             }
             session.energyKwh = it
         }
+        payload.gridEnergyKwh?.let { session.gridEnergyKwh = it }
         payload.pricePerKwh?.let { session.pricePerKwh = it }
         payload.priceTotal?.let { session.priceTotal = it }
         payload.odometerKm?.let { session.odometerKm = it }

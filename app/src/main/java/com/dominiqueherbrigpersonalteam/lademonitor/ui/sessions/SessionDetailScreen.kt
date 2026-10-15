@@ -143,6 +143,19 @@ fun SessionDetailScreen(
                                 stringResource(R.string.session_detail_vehicle_measured_suffix) else "")
                     )
                 }
+                session.solarShare?.let { share ->
+                    // Sonnenanteil beim Laden zuhause (Server ab 0.41.0): der Netzanteil ist das,
+                    // was tatsaechlich bezahlt wurde, der Rest kam von PV-Anlage/Hausakku.
+                    Text(
+                        stringResource(
+                            R.string.session_detail_solar_share_format,
+                            share.solarPercent, Fmt.n("%.1f kWh", share.solarKwh),
+                            share.gridPercent, Fmt.n("%.1f kWh", share.gridKwh)
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
                 session.odometerKm?.let { LabeledRow(stringResource(R.string.session_detail_label_odometer), Fmt.km(it)) }
                 session.outsideTempC?.let {
                     // Herkunft direkt hinter dem Wert, wie das "(geschätzt)" bei den kWh

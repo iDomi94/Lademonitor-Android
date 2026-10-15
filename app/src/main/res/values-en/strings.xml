@@ -495,6 +495,13 @@
     <string name="session_detail_fee_hint">The provider’s base fee is split by kWh across all of its charging sessions in each period.</string>
     <string name="sessions_fee_share">+ %1$s base fee</string>
     <string name="dashboard_total_cost_fees">incl. %1$s base fees</string>
+    <!-- Solar share of home charging (server 0.41.0+, grid_energy_kwh) -->
+    <string name="add_session_field_grid_energy">Of which from the grid (kWh)</string>
+    <string name="add_session_grid_energy_hint">When charging at home with solar panels or a home battery: the rest came for free from sun/home battery. Home Assistant fills this in automatically.</string>
+    <string name="add_session_grid_energy_invalid">“Of which from the grid” must be between 0 and the energy charged.</string>
+    <string name="session_detail_solar_share_format">☀ Sun/home battery %1$d %% (%2$s) · Grid %3$d %% (%4$s)</string>
+    <string name="sessions_solar_share_badge">☀ %1$d %%</string>
+    <string name="dashboard_total_kwh_solar">☀ %1$d %% sun/home battery (%2$s)</string>
 
     <!-- Tools: Tarifrechner -->
     <string name="tab_tools">Tools</string>

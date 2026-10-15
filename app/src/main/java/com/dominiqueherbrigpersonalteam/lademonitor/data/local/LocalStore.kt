@@ -22,7 +22,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LocalReminder::class,
         LocalReimbursementRate::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = false
 )
 abstract class LademonitorDatabase : RoomDatabase() {
@@ -250,6 +250,19 @@ val MIGRATION_8_9 = object : Migration(8, 9) {
     }
 }
 
+/**
+ * 9 -> 10: Sonnenanteil beim Laden zuhause (Server ab 0.41.0) - `sessions.gridEnergyKwh`, die
+ * davon aus dem Netz bezogenen kWh.
+ *
+ * Nullable ohne Default wie in 1 -> 2: Bestandszeilen bekommen NULL, das heisst "unbekannt" -
+ * ein geratener Netzanteil waere schlimmer als gar keiner.
+ */
+val MIGRATION_9_10 = object : Migration(9, 10) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE sessions ADD COLUMN gridEnergyKwh REAL")
+    }
+}
+
 object LocalStore {
     lateinit var db: LademonitorDatabase
         private set
@@ -268,6 +281,6 @@ object LocalStore {
             context.applicationContext,
             LademonitorDatabase::class.java,
             "lademonitor.db"
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10).build()
     }
 }

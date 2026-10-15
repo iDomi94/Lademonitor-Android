@@ -9,6 +9,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.MonthlyStat
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PlaceStat
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Provider
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderStat
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.SolarShare
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import java.time.Instant
@@ -63,6 +64,14 @@ object LocalStatsCalculator {
         val typedKwh = acKwh + dcKwh
         val acShare = if (typedKwh > 0) round1(acKwh / typedKwh * 100) else null
         val dcShare = if (typedKwh > 0) round1(dcKwh / typedKwh * 100) else null
+
+        // Sonnenanteil nur ueber die Vorgaenge mit bekanntem Netzbezug (Server ab 0.41.0 bzw.
+        // Home Assistant) - Vorgaenge ohne Angabe wuerden den Anteil sonst kuenstlich druecken.
+        val shares = sorted.mapNotNull { it.solarShare }
+        val solarShare = if (shares.isEmpty()) null else SolarShare(
+            solarKwh = round2(shares.sumOf { it.solarKwh }),
+            gridKwh = round2(shares.sumOf { it.gridKwh })
+        )
 
         val withOdo = sorted.filter { it.odometerKm != null }
         var consumption: Double? = null
@@ -182,7 +191,8 @@ object LocalStatsCalculator {
             monthly = monthly,
             totalFees = round2(totalFees),
             unallocatedFees = round2(unallocatedSum),
-            byPlace = byPlace
+            byPlace = byPlace,
+            solarShare = solarShare
         )
     }
 
