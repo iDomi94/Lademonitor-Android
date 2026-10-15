@@ -175,6 +175,10 @@ with `sdk.dir=` is created automatically by Android Studio):
 
 The resulting APK is then located under `app/build/outputs/apk/debug/`.
 
+GitHub builds signed release APKs for installing on a phone on every tag
+`vX.Y` – setup (signing key, secrets) and installation (German):
+[docs/RELEASE.md](docs/RELEASE.md).
+
 ## Project structure
 
 ```

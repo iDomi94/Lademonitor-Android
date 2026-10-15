@@ -18,3 +18,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Debug-APK bauen
         run: ./gradlew --no-daemon assembleDebug
+      # Unsigniert, nur damit Fehler im Release-Build (lintVital) schon im
+      # Pull Request auffallen und nicht erst beim Release-Tag.
+      - name: Release-Build pruefen
+        run: ./gradlew --no-daemon assembleRelease
+      # Zum schnellen Ausprobieren: Actions -> Lauf -> Artifacts. Jeder Lauf
+      # signiert mit einem anderen Debug-Schluessel, ein Update ueber eine
+      # vorher installierte Version klappt damit nicht (siehe docs/RELEASE.md).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lademonitor-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 14

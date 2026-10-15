@@ -177,6 +177,10 @@ mit `sdk.dir=` wird von Android Studio automatisch angelegt):
 
 Die fertige APK liegt danach unter `app/build/outputs/apk/debug/`.
 
+Signierte Release-APKs zum Installieren auf dem Handy baut GitHub bei jedem
+Tag `vX.Y` – Einrichtung (Signaturschlüssel, Secrets) und Installation:
+[docs/RELEASE.md](docs/RELEASE.md).
+
 ## Projektstruktur
 
 ```
