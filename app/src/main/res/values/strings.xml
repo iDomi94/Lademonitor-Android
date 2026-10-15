@@ -496,6 +496,13 @@
     <string name="session_detail_fee_hint">Die Grundgebühr des Anbieters wird nach kWh auf alle seine Ladevorgänge im jeweiligen Zeitraum umgelegt.</string>
     <string name="sessions_fee_share">+ %1$s Grundgebühr</string>
     <string name="dashboard_total_cost_fees">davon %1$s Grundgebühren</string>
+    <!-- Sonnenanteil beim Laden zuhause (Server ab 0.41.0, grid_energy_kwh) -->
+    <string name="add_session_field_grid_energy">Davon aus dem Netz (kWh)</string>
+    <string name="add_session_grid_energy_hint">Beim Laden zuhause mit PV-Anlage oder Hausakku: der Rest kam kostenlos von Sonne/Hausakku. Home Assistant trägt den Wert automatisch ein.</string>
+    <string name="add_session_grid_energy_invalid">„Davon aus dem Netz“ muss zwischen 0 und der geladenen Energie liegen.</string>
+    <string name="session_detail_solar_share_format">☀ Sonne/Hausakku %1$d %% (%2$s) · Netz %3$d %% (%4$s)</string>
+    <string name="sessions_solar_share_badge">☀ %1$d %%</string>
+    <string name="dashboard_total_kwh_solar">☀ %1$d %% Sonne/Hausakku (%2$s)</string>
 
     <!-- Tools: Tarifrechner -->
     <string name="tab_tools">Tools</string>

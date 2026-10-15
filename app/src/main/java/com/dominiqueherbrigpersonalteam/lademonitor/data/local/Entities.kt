@@ -227,7 +227,12 @@ data class LocalChargingSession(
      * Uebersteuerung des Messorts der kWh (Room 4 -> 5), roh wie vom Server: `null` = folgt dem
      * Anbieter (siehe Models.EnergyMeter).
      */
-    var energyMeter: String? = null
+    var energyMeter: String? = null,
+    /**
+     * Davon aus dem Netz bezogene kWh (Room 9 -> 10), siehe Models.ChargingSession.gridEnergyKwh.
+     * `null` = unbekannt.
+     */
+    var gridEnergyKwh: Double? = null
 ) {
     /** Consumption fields are decorated later by the LocalConsumptionCalculator, hence null here. */
     fun asDTO() = ChargingSession(
@@ -242,6 +247,7 @@ data class LocalChargingSession(
         socEnd = socEnd,
         energyKwh = energyKwh,
         energyIsEstimated = energyIsEstimated,
+        gridEnergyKwh = gridEnergyKwh,
         odometerKm = odometerKm,
         outsideTempC = outsideTempC,
         outsideTempSource = outsideTempSource,

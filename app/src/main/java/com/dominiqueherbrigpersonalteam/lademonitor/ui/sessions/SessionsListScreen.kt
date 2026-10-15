@@ -282,6 +282,10 @@ private fun SessionRow(
                     Spacer(Modifier.width(6.dp))
                     ChargingTypeBadge(it)
                 }
+                session.solarShare?.let {
+                    Spacer(Modifier.width(6.dp))
+                    SolarShareBadge(it.solarPercent)
+                }
                 if (session.needsReview) {
                     Spacer(Modifier.width(6.dp))
                     Icon(
@@ -355,6 +359,19 @@ private fun SessionRow(
                 }
             }
         }
+    }
+}
+
+/** Sonnenanteil im Stil des AC/DC-Badges daneben, z.B. "☀ 78 %". */
+@Composable
+private fun SolarShareBadge(percent: Int) {
+    Box(
+        Modifier.clip(RoundedCornerShape(50)).background(Green.copy(alpha = 0.15f)).padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Text(
+            stringResource(R.string.sessions_solar_share_badge, percent),
+            style = MaterialTheme.typography.labelSmall, color = Green, fontWeight = FontWeight.Bold
+        )
     }
 }
 
