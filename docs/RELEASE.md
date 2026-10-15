@@ -64,9 +64,10 @@ veröffentlichen. Achtung: dann legt GitHub das Release schon selbst an, der
 Workflow hängt die APK nur noch daran.
 
 Der Workflow (Actions → „Release“) setzt die Versionsnummer aus dem Tag
-(`v1.2` → 1.2), zählt den internen `versionCode` selbst hoch, übernimmt den
-passenden Abschnitt aus `CHANGELOG.md` als Release-Text und hängt
-`lademonitor-1.2.apk` an. Fehlt ein Secret, bricht er mit einer klaren Meldung
+(`v1.2` → 1.2, interner `versionCode` 10200), übernimmt den passenden
+Abschnitt aus `CHANGELOG.md` plus die Liste der gemergten Pull Requests als
+Release-Text und hängt `lademonitor-1.2.apk` an (dazu `lademonitor-1.2.aab`
+für einen späteren Weg über Google Play). Fehlt ein Secret, bricht er mit einer klaren Meldung
 ab.
 
 ## 4. Auf dem Handy installieren
@@ -110,8 +111,7 @@ Nicht eingerichtet, nur falls es einmal über den eigenen Gebrauch hinausgehen
 soll:
 
 - Google-Play-Developer-Konto (einmalig 25 $), App in der Play Console anlegen.
-- Erstes Paket von Hand hochladen (`./gradlew bundleRelease`, ein AAB statt
-  APK) und „Play App Signing“ aktivieren; der Schlüssel aus Schritt 1 wird
+- Erstes Paket von Hand hochladen (das `.aab` aus dem GitHub-Release) und „Play App Signing“ aktivieren; der Schlüssel aus Schritt 1 wird
   dann zum Upload-Schlüssel.
 - Für die automatische Übergabe ein Dienstkonto in der Google Cloud mit
   Zugriff auf die Play Console, dessen JSON-Schlüssel als weiteres Secret.

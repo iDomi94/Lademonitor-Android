@@ -7,8 +7,13 @@
 # (Actions -> "Release" -> Run workflow, dann ohne GitHub-Release, nur als
 # Artifact).
 #
-# Version: versionName = Tag ohne "v", versionCode = 100 + Laufnummer (steigt
-# immer, sonst verweigert Android das Update).
+# Version: versionName = Tag ohne "v", versionCode aus der Versionsnummer
+# (1.2 -> 10200, 1.2.3 -> 10203). Steigt mit jeder Version, sonst verweigert
+# Android das Update, und ein erneuter Lauf desselben Tags ergibt dieselbe
+# Nummer.
+#
+# Neben der APK entsteht das AAB fuer einen spaeteren Weg ueber Google Play
+# (docs/RELEASE.md); es haengt mit am Release.
 #
 # Benoetigte Repository-Secrets (Settings -> Secrets and variables -> Actions):
 #   ANDROID_KEYSTORE_BASE64    Keystore-Datei (.jks), base64-kodiert
@@ -44,8 +49,13 @@ jobs:
           else
             name=$(sed -n 's/.*versionName = .*?: "\(.*\)".*/\1/p' app/build.gradle.kts)
           fi
+          IFS=. read -r major minor patch <<< "$name"
+          if ! [[ "$major" =~ ^[0-9]+$ && "${minor:-0}" =~ ^[0-9]+$ && "${patch:-0}" =~ ^[0-9]+$ ]]; then
+            echo "::error::Version '$name' ist nicht X.Y oder X.Y.Z"
+            exit 1
+          fi
           echo "name=$name" >> "$GITHUB_OUTPUT"
-          echo "code=$((100 + GITHUB_RUN_NUMBER))" >> "$GITHUB_OUTPUT"
+          echo "code=$((major * 10000 + ${minor:-0} * 100 + ${patch:-0}))" >> "$GITHUB_OUTPUT"
 
       - name: Keystore aus den Secrets holen
         env:
@@ -64,7 +74,7 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          ./gradlew --no-daemon assembleRelease \
+          ./gradlew --no-daemon assembleRelease bundleRelease \
             -PversionName="${{ steps.version.outputs.name }}" \
             -PversionCode="${{ steps.version.outputs.code }}"
           apk=app/build/outputs/apk/release/app-release.apk
@@ -74,6 +84,11 @@ jobs:
             exit 1
           fi
           cp "$apk" "lademonitor-${{ steps.version.outputs.name }}.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "lademonitor-${{ steps.version.outputs.name }}.aab"
+
+      - name: Keystore entfernen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
 
       - name: Changelog-Abschnitt holen
         run: |
@@ -94,7 +109,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: lademonitor-${{ steps.version.outputs.name }}
-          path: lademonitor-*.apk
+          path: |
+            lademonitor-*.apk
+            lademonitor-*.aab
 
       - name: GitHub-Release anlegen
         if: github.ref_type == 'tag'
@@ -102,4 +119,8 @@ jobs:
         with:
           name: Lademonitor ${{ steps.version.outputs.name }}
           body_path: release-notes.md
-          files: lademonitor-*.apk
+          # Haengt GitHubs Liste der gemergten Pull Requests an den Changelog-Text.
+          generate_release_notes: true
+          files: |
+            lademonitor-*.apk
+            lademonitor-*.aab
