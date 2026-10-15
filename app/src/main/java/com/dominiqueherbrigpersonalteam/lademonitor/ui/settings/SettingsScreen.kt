@@ -37,7 +37,6 @@ import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalDataStore
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.ReminderNotifier
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.SyncService
-import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.Fmt
@@ -50,13 +49,10 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
     val appMode by AppSettings.appMode.collectAsStateWithLifecycle()
-    val user by SessionManager.currentUser.collectAsStateWithLifecycle()
     val isSyncing by SyncService.isSyncing.collectAsStateWithLifecycle()
     val lastSyncDate by SyncService.lastSyncDate.collectAsStateWithLifecycle()
     val lastSyncError by SyncService.lastSyncError.collectAsStateWithLifecycle()
 
-    var isLoggingOut by remember { mutableStateOf(false) }
-    var showServerSwitch by remember { mutableStateOf(false) }
     var showReset by remember { mutableStateOf(false) }
     var resetError by remember { mutableStateOf<String?>(null) }
 
@@ -65,95 +61,43 @@ fun SettingsScreen(navController: NavController) {
             Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Mode
+            // Reihenfolge wie in der iOS-App: Verwaltung zuerst, Modus/Konto/Adresse gebuendelt
+            // unter "Server & Verbindung".
             SectionCard {
-                Header(stringResource(R.string.settings_section_mode))
-                LabeledRow(
-                    stringResource(R.string.settings_label_current),
-                    if (appMode == AppMode.LOCAL_ONLY) stringResource(R.string.settings_mode_local) else stringResource(R.string.settings_mode_server)
-                )
-                if (appMode == AppMode.LOCAL_ONLY) {
-                    ActionText(stringResource(R.string.settings_switch_to_server_action)) { showServerSwitch = true }
-                    Text(
-                        stringResource(R.string.settings_mode_local_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    ActionText(stringResource(R.string.settings_switch_to_local_action)) { AppSettings.setAppMode(AppMode.LOCAL_ONLY) }
-                }
-            }
-
-            if (appMode == AppMode.SERVER) {
-                SectionCard {
-                    Header(stringResource(R.string.settings_section_account))
-                    user?.let { LabeledRow(stringResource(R.string.settings_label_logged_in_as), it.username) }
-                    HorizontalDivider()
-                    NavRow(stringResource(R.string.settings_nav_account)) { navController.navigate("settings/account") }
-                    HorizontalDivider()
-                    if (isLoggingOut) {
-                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            Text(stringResource(R.string.settings_logging_out), color = MaterialTheme.colorScheme.error)
-                            CircularProgressIndicator(Modifier.padding(start = 8.dp).height(18.dp), strokeWidth = 2.dp)
-                        }
-                    } else {
-                        ActionText(stringResource(R.string.settings_logout_action), color = MaterialTheme.colorScheme.error) {
-                            scope.launch { isLoggingOut = true; SessionManager.logout(); isLoggingOut = false }
-                        }
-                    }
-                }
-
-                SectionCard {
-                    Header(stringResource(R.string.settings_section_connection))
-                    NavRow(stringResource(R.string.settings_nav_connection)) { navController.navigate("settings/connection") }
-                }
-
-                SectionCard {
-                    Header(stringResource(R.string.settings_section_sync))
-                    if (lastSyncDate != null) LabeledRow(stringResource(R.string.settings_label_last_synced), Fmt.relative(lastSyncDate!!))
-                    else Text(stringResource(R.string.settings_not_synced_yet), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    lastSyncError?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
-                    }
-                    if (isSyncing) {
-                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            Text(stringResource(R.string.settings_syncing))
-                            CircularProgressIndicator(Modifier.padding(start = 8.dp).height(18.dp), strokeWidth = 2.dp)
-                        }
-                    } else {
-                        ActionText(stringResource(R.string.settings_sync_now_action)) { scope.launch { SyncService.syncNow() } }
-                    }
-                }
-            }
-
-            SectionCard {
-                Header(stringResource(R.string.settings_section_management))
-                NavRow(stringResource(R.string.map_legend_locations)) { navController.navigate("settings/locations") }
+                SettingsHeader(stringResource(R.string.settings_section_management))
+                SettingsNavRow(stringResource(R.string.map_legend_locations)) { navController.navigate("settings/locations") }
                 HorizontalDivider()
-                NavRow(stringResource(R.string.settings_nav_vehicles)) { navController.navigate("settings/vehicles") }
+                SettingsNavRow(stringResource(R.string.settings_nav_vehicles)) { navController.navigate("settings/vehicles") }
                 HorizontalDivider()
-                NavRow(stringResource(R.string.settings_nav_providers)) { navController.navigate("settings/providers") }
+                SettingsNavRow(stringResource(R.string.settings_nav_providers)) { navController.navigate("settings/providers") }
                 HorizontalDivider()
-                NavRow(stringResource(R.string.settings_nav_fees)) { navController.navigate("settings/fees") }
+                SettingsNavRow(stringResource(R.string.settings_nav_fees)) { navController.navigate("settings/fees") }
+                HorizontalDivider()
+                // Kosten und Erinnerungen hingen frueher nur im Fahrzeug-Formular - dort waren sie zu
+                // versteckt. Mit einem Fahrzeug direkt hinein, mit mehreren erst die Auswahl.
+                SettingsNavRow(stringResource(R.string.settings_nav_costs)) { navController.navigate("settings/pick-vehicle/costs") }
+                HorizontalDivider()
+                SettingsNavRow(stringResource(R.string.settings_nav_reminders)) { navController.navigate("settings/pick-vehicle/reminders") }
                 HorizontalDivider()
                 // In beiden Modi: im Server-Modus synchronisiert, sonst nur auf diesem Geraet.
-                NavRow(stringResource(R.string.settings_nav_comparison_vehicle)) { navController.navigate("settings/comparison-vehicle") }
+                SettingsNavRow(stringResource(R.string.settings_nav_comparison_vehicle)) { navController.navigate("settings/comparison-vehicle") }
                 // Reifen gibt es bewusst nur im Server-Modus: die Zuordnung der
                 // Fahrten und der temperaturbereinigte Vergleich liegen komplett
                 // auf dem Server (siehe Models.kt, Abschnitt "Reifen").
                 if (appMode == AppMode.SERVER) {
                     HorizontalDivider()
-                    NavRow(stringResource(R.string.settings_nav_tires)) { navController.navigate("settings/tires") }
+                    SettingsNavRow(stringResource(R.string.settings_nav_tires)) { navController.navigate("settings/tires") }
                 }
             }
 
             SectionCard {
-                Header(stringResource(R.string.settings_section_display))
-                NavRow(stringResource(R.string.settings_nav_charge_bar)) { navController.navigate("settings/chargebar") }
+                SettingsHeader(stringResource(R.string.settings_section_display))
+                SettingsNavRow(stringResource(R.string.settings_nav_charge_bar)) { navController.navigate("settings/chargebar") }
             }
 
             // Lokale Mitteilungen fuer Erinnerungen - in beiden Modi, Standard an.
             SectionCard {
+                SettingsHeader(stringResource(R.string.settings_section_notifications))
                 val remindersEnabled by ReminderNotifier.enabled.collectAsStateWithLifecycle()
                 Row(
                     Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -170,7 +114,36 @@ fun SettingsScreen(navController: NavController) {
             }
 
             SectionCard {
-                ActionText(stringResource(R.string.settings_reset_action), color = MaterialTheme.colorScheme.error) {
+                SettingsHeader(stringResource(R.string.settings_section_server))
+                SettingsNavRow(stringResource(R.string.settings_nav_connection)) { navController.navigate("settings/connection") }
+            }
+
+            if (appMode == AppMode.SERVER) {
+                SectionCard {
+                    SettingsHeader(stringResource(R.string.settings_section_sync))
+                    if (lastSyncDate != null) SettingsLabeledRow(stringResource(R.string.settings_label_last_synced), Fmt.relative(lastSyncDate!!))
+                    else Text(stringResource(R.string.settings_not_synced_yet), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    lastSyncError?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.tertiary)
+                    }
+                    if (isSyncing) {
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Text(stringResource(R.string.settings_syncing))
+                            CircularProgressIndicator(Modifier.padding(start = 8.dp).height(18.dp), strokeWidth = 2.dp)
+                        }
+                    } else {
+                        SettingsActionText(stringResource(R.string.settings_sync_now_action)) { scope.launch { SyncService.syncNow() } }
+                    }
+                    Text(
+                        stringResource(R.string.settings_sync_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            SectionCard {
+                SettingsActionText(stringResource(R.string.settings_reset_action), color = MaterialTheme.colorScheme.error) {
                     showReset = true
                 }
                 resetError?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
@@ -185,16 +158,6 @@ fun SettingsScreen(navController: NavController) {
                 )
             }
         }
-    }
-
-    if (showServerSwitch) {
-        AlertDialog(
-            onDismissRequest = { showServerSwitch = false },
-            title = { Text(stringResource(R.string.settings_switch_to_server_title)) },
-            text = { Text(stringResource(R.string.settings_switch_to_server_message)) },
-            confirmButton = { TextButton(onClick = { showServerSwitch = false; AppSettings.setAppMode(AppMode.SERVER) }) { Text(stringResource(R.string.settings_switch_action)) } },
-            dismissButton = { TextButton(onClick = { showServerSwitch = false }) { Text(stringResource(R.string.action_cancel)) } }
-        )
     }
 
     if (showReset) {
@@ -220,13 +183,13 @@ fun SettingsScreen(navController: NavController) {
 }
 
 @Composable
-private fun Header(text: String) {
+internal fun SettingsHeader(text: String) {
     Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 8.dp))
 }
 
 @Composable
-private fun LabeledRow(label: String, value: String) {
+internal fun SettingsLabeledRow(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, style = MaterialTheme.typography.bodyMedium)
         Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -234,7 +197,7 @@ private fun LabeledRow(label: String, value: String) {
 }
 
 @Composable
-private fun ActionText(text: String, color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary, onClick: () -> Unit) {
+internal fun SettingsActionText(text: String, color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary, onClick: () -> Unit) {
     Text(
         text, color = color,
         style = MaterialTheme.typography.bodyLarge,
@@ -243,7 +206,7 @@ private fun ActionText(text: String, color: androidx.compose.ui.graphics.Color =
 }
 
 @Composable
-private fun NavRow(text: String, onClick: () -> Unit) {
+internal fun SettingsNavRow(text: String, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,

@@ -1006,4 +1006,22 @@
     <string name="comparison_vehicle_hint_defaults">Noch nicht gespeichert – bis dahin gelten die Standardwerte.</string>
     <string name="combustion_save_as_comparison">Als Vergleichsfahrzeug speichern</string>
     <string name="combustion_is_comparison">Entspricht dem gespeicherten Vergleichsfahrzeug.</string>
+
+    <!-- Angleichung an die iOS-App: Einstellungen und Karte -->
+    <string name="settings_nav_costs">Kosten</string>
+    <string name="settings_nav_reminders">Erinnerungen</string>
+    <string name="settings_section_server">Server</string>
+    <string name="settings_section_notifications">Mitteilungen</string>
+    <string name="settings_sync_hint">Änderungen werden automatisch hochgeladen, auch nach kurzzeitigem Verbindungsverlust. „Jetzt synchronisieren“ stößt das manuell an.</string>
+    <string name="vehicle_picker_title">Fahrzeug wählen</string>
+    <string name="vehicle_scoped_empty_title">Noch kein Fahrzeug</string>
+    <string name="vehicle_scoped_empty_message">Lege zuerst unter Einstellungen → Fahrzeuge eines an.</string>
+    <string name="map_locate_me">Auf aktuellen Standort zoomen</string>
+    <string name="map_location_error_title">Standort</string>
+    <plurals name="map_cluster_sessions">
+        <item quantity="one">%d Ladevorgang</item>
+        <item quantity="other">%d Ladevorgänge</item>
+    </plurals>
+    <string name="shortcut_reminders_short">Fällig</string>
+    <string name="shortcut_reminders_long">Fällige Erinnerungen</string>
 </resources>

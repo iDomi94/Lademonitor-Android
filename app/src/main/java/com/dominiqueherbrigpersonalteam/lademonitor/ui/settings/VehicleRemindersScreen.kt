@@ -65,6 +65,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Reminder
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReminderKind
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReminderPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReminderStatus
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalReminderCalculator
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.ReminderNotifier
@@ -88,10 +89,16 @@ import kotlin.math.abs
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VehicleRemindersScreen(navController: NavController, vehicleId: String) {
+fun VehicleRemindersScreen(navController: NavController, vehicleId: String?) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var vehicleName by remember { mutableStateOf<String?>(null) }
+    // Ohne vehicleId (Einstieg vom Dashboard) zeigt die Liste alle Fahrzeuge - wie RemindersView(vehicle: nil) in iOS.
+    var vehicles by remember { mutableStateOf<List<Vehicle>>(emptyList()) }
+    var addVehicleId by remember { mutableStateOf<String?>(null) }
+    var pickingVehicle by remember { mutableStateOf(false) }
+    var costVehicleId by remember { mutableStateOf<String?>(null) }
+    var addKm by remember { mutableStateOf<Int?>(null) }
     var entries by remember { mutableStateOf<List<LocalReminderCalculator.Evaluated>>(emptyList()) }
     var mileage by remember { mutableStateOf(LocalReminderCalculator.Mileage(null, null)) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -114,13 +121,24 @@ fun VehicleRemindersScreen(navController: NavController, vehicleId: String) {
         if (!AppSettings.isReadyForDataAccess) { errorMessage = serverAddressRequiredMessage; return }
         try {
             entries = AppRepository.fetchEvaluatedReminders(vehicleId)
-            vehicleName = AppRepository.fetchVehicles().firstOrNull { it.id == vehicleId }?.name
-            mileage = AppRepository.vehicleMileage(vehicleId)
+            vehicles = AppRepository.fetchVehicles()
+            vehicleName = vehicleId?.let { id -> vehicles.firstOrNull { it.id == id }?.name }
+            mileage = vehicleId?.let { AppRepository.vehicleMileage(it) } ?: LocalReminderCalculator.Mileage(null, null)
             errorMessage = null
         } catch (e: Exception) { if (entries.isEmpty()) errorMessage = e.localizedMessage }
         loaded = true
     }
     LaunchedEffect(vehicleId) { load() }
+
+    /** Neue Erinnerung fuer ein Fahrzeug - mit dessen km-Stand als Vorschlag fuer km-Faelligkeiten. */
+    fun startAdd(id: String) {
+        scope.launch {
+            addKm = if (id == vehicleId) mileage.currentKm
+            else runCatching { AppRepository.vehicleMileage(id).currentKm }.getOrNull()
+            addVehicleId = id
+            showAdd = true
+        }
+    }
 
     /** Beim ersten Speichern einer Erinnerung nach der Mitteilungs-Berechtigung fragen (Android 13+). */
     fun afterSave() {
@@ -138,7 +156,16 @@ fun VehicleRemindersScreen(navController: NavController, vehicleId: String) {
             },
             navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.action_back)) } },
             actions = {
-                IconButton(onClick = { showAdd = true }, enabled = loaded && vehicleName != null) {
+                IconButton(
+                    onClick = {
+                        when {
+                            vehicleId != null -> startAdd(vehicleId)
+                            vehicles.size == 1 -> startAdd(vehicles.first().id)
+                            else -> pickingVehicle = true
+                        }
+                    },
+                    enabled = loaded && (if (vehicleId != null) vehicleName != null else vehicles.isNotEmpty())
+                ) {
                     Icon(Icons.Filled.Add, stringResource(R.string.reminders_add_title))
                 }
             }
@@ -164,7 +191,7 @@ fun VehicleRemindersScreen(navController: NavController, vehicleId: String) {
                     Modifier.fillMaxWidth().clickable { editing = item.reminder }.padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ReminderRow(item, Modifier.weight(1f))
+                    ReminderRow(item, Modifier.weight(1f), showVehicle = vehicleId == null && vehicles.size > 1)
                     Column(horizontalAlignment = Alignment.End) {
                         TextButton(onClick = { completing = item }) { Text(stringResource(R.string.reminder_action_done)) }
                         IconButton(onClick = { pendingDelete = item.reminder }) {
@@ -185,11 +212,36 @@ fun VehicleRemindersScreen(navController: NavController, vehicleId: String) {
         }
     }
 
-    if (showAdd) {
-        AddEditReminderModal(null, vehicleId, mileage.currentKm, onDismiss = { showAdd = false }) { showAdd = false; afterSave() }
+    if (pickingVehicle) {
+        AlertDialog(
+            onDismissRequest = { pickingVehicle = false },
+            title = { Text(stringResource(R.string.vehicle_picker_title)) },
+            text = {
+                Column {
+                    vehicles.forEach { v ->
+                        Text(
+                            v.name,
+                            Modifier.fillMaxWidth().clickable {
+                                pickingVehicle = false; startAdd(v.id)
+                            }.padding(vertical = 12.dp),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { pickingVehicle = false }) { Text(stringResource(R.string.action_cancel)) } }
+        )
+    }
+
+    val addTarget = addVehicleId
+    if (showAdd && addTarget != null) {
+        AddEditReminderModal(null, addTarget, addKm, onDismiss = { showAdd = false }) { showAdd = false; afterSave() }
     }
     editing?.let { r ->
-        AddEditReminderModal(r, vehicleId, mileage.currentKm, onDismiss = { editing = null }) { editing = null; afterSave() }
+        val km = if (vehicleId != null) mileage.currentKm
+        else entries.firstOrNull { it.reminder.id == r.id }?.mileage?.currentKm
+        AddEditReminderModal(r, r.vehicleId, km, onDismiss = { editing = null }) { editing = null; afterSave() }
     }
 
     completing?.let { item ->
@@ -202,6 +254,7 @@ fun VehicleRemindersScreen(navController: NavController, vehicleId: String) {
                     try {
                         AppRepository.completeReminder(item.reminder, day, km)
                         item.reminder.kindValue.costCategory?.let { category ->
+                            costVehicleId = item.reminder.vehicleId
                             costOffer = VehicleCostPrefill(category, day, km, item.reminder.displayTitle)
                         }
                     } catch (e: Exception) { errorMessage = e.localizedMessage }
@@ -223,7 +276,7 @@ fun VehicleRemindersScreen(navController: NavController, vehicleId: String) {
         )
     }
     costForm?.let { prefill ->
-        AddEditVehicleCostModal(null, vehicleId, prefill = prefill, onDismiss = { costForm = null }) { costForm = null }
+        AddEditVehicleCostModal(null, costVehicleId ?: vehicleId ?: "", prefill = prefill, onDismiss = { costForm = null }) { costForm = null }
     }
 
     pendingDelete?.let { r ->
@@ -315,12 +368,17 @@ private fun reminderRepeatText(r: Reminder): String? {
 }
 
 @Composable
-private fun ReminderRow(item: LocalReminderCalculator.Evaluated, modifier: Modifier = Modifier) {
+private fun ReminderRow(item: LocalReminderCalculator.Evaluated, modifier: Modifier = Modifier, showVehicle: Boolean = false) {
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
     val r = item.reminder
     Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(r.displayTitle, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                if (showVehicle && item.vehicleName != null) "${r.displayTitle} · ${item.vehicleName}" else r.displayTitle,
+                Modifier.weight(1f, fill = false),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
             Spacer(Modifier.width(8.dp))
             ReminderStatusChip(item.state.status)
         }
