@@ -321,6 +321,13 @@ data class ChargingSession(
     @Json(name = "soc_end") val socEnd: Int? = null,
     @Json(name = "energy_kwh") val energyKwh: Double? = null,
     @Json(name = "energy_is_estimated") val energyIsEstimated: Boolean = false,
+    /**
+     * Davon aus dem Netz bezogene kWh (Server ab 0.41.0), der Rest von [energyKwh] kam von der
+     * eigenen PV-Anlage bzw. dem Hausakku. `null` = unbekannt (kein Anteil ausweisen). Home
+     * Assistant (Integration ab 0.7.0) fuellt es selbst; [priceTotal] sind dann die gemessenen
+     * Kosten des Netzanteils.
+     */
+    @Json(name = "grid_energy_kwh") val gridEnergyKwh: Double? = null,
     @Json(name = "odometer_km") val odometerKm: Int? = null,
     /**
      * Aussentemperatur in Grad Celsius BEIM LADEBEGINN (Server ab 0.23.0). Der Zeitpunkt ist
@@ -373,9 +380,34 @@ data class ChargingSession(
     val effectiveTotal: Double?
         get() = if (priceTotal == null && feeShare == null) null else (priceTotal ?: 0.0) + (feeShare ?: 0.0)
 
+    /**
+     * Sonnen-/Hausakku-Anteil, sobald Energie und Netzbezug bekannt sind; sonst `null`.
+     * Ein Netzbezug ueber der Energiemenge (Messungenauigkeit) zaehlt als 0 % Sonne.
+     */
+    val solarShare: SolarShare?
+        get() {
+            val energy = energyKwh ?: return null
+            val grid = gridEnergyKwh ?: return null
+            if (energy <= 0.0 || grid < 0.0) return null
+            val gridClamped = grid.coerceAtMost(energy)
+            return SolarShare(solarKwh = energy - gridClamped, gridKwh = gridClamped)
+        }
+
     val chargingTypeValue: ChargingType? get() = ChargingType.from(chargingType)
     val sourceValue: SessionSource get() = SessionSource.from(source)
     val consumptionMethodValue: ConsumptionMethod? get() = ConsumptionMethod.from(consumptionMethod)
+}
+
+/** Aufteilung der geladenen Energie in Sonne/Hausakku und Netz (siehe [ChargingSession.solarShare]). */
+data class SolarShare(val solarKwh: Double, val gridKwh: Double) {
+    val totalKwh: Double get() = solarKwh + gridKwh
+
+    /** Sonnenanteil 0..1 (0 bei 0 kWh). */
+    val solarFraction: Double get() = if (totalKwh > 0.0) solarKwh / totalKwh else 0.0
+
+    /** Sonnenanteil in ganzen Prozent; der Netzanteil ist der Rest, damit beide 100 ergeben. */
+    val solarPercent: Int get() = kotlin.math.round(solarFraction * 100).toInt().coerceIn(0, 100)
+    val gridPercent: Int get() = 100 - solarPercent
 }
 
 // MARK: - Payloads (create/update). Null fields are omitted by Moshi, matching the iOS
@@ -435,6 +467,8 @@ data class ChargingSessionPayload(
     @Json(name = "soc_start") val socStart: Int? = null,
     @Json(name = "soc_end") val socEnd: Int? = null,
     @Json(name = "energy_kwh") val energyKwh: Double? = null,
+    /** Davon aus dem Netz (kWh, Server ab 0.41.0); null wird nicht gesendet = unveraendert. */
+    @Json(name = "grid_energy_kwh") val gridEnergyKwh: Double? = null,
     @Json(name = "price_per_kwh") val pricePerKwh: Double? = null,
     @Json(name = "price_total") val priceTotal: Double? = null,
     @Json(name = "odometer_km") val odometerKm: Int? = null,
@@ -698,7 +732,14 @@ data class StatsSummary(
      * solange keines der betrachteten Fahrzeuge Kosten oder eine Kauf-/Leasingangabe hat - dann
      * fehlt der Abschnitt im Dashboard.
      */
-    @Json(name = "vehicle_costs") val vehicleCosts: VehicleCostSummary? = null
+    @Json(name = "vehicle_costs") val vehicleCosts: VehicleCostSummary? = null,
+    /**
+     * Sonne/Hausakku gegen Netz, summiert ueber die Vorgaenge mit bekanntem Netzbezug
+     * ([ChargingSession.solarShare]); null, solange keiner einen hat. Nur lokal gerechnet
+     * ([com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalStatsCalculator]), deshalb
+     * nicht Teil des JSON (`@Transient`, wie [VehiclePayload.ownership]).
+     */
+    @Transient val solarShare: SolarShare? = null
 )
 
 @JsonClass(generateAdapter = true)

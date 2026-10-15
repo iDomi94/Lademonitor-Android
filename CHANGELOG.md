@@ -1,16 +1,27 @@
 # Changelog
 
-## Unveröffentlicht
+## 1.6 (unveröffentlicht)
+
+- **Sonnenanteil beim Laden zuhause**: neues optionales Feld „Davon aus dem
+  Netz (kWh)“ beim Ladevorgang (`grid_energy_kwh`), der Rest der geladenen
+  Energie kam kostenlos von PV-Anlage oder Hausakku. Die Detailansicht zeigt
+  die Aufteilung („☀ Sonne/Hausakku 78 % (12,4 kWh) · Netz 22 % (3,5 kWh)“),
+  die Liste ein kleines „☀ 78 %“ neben AC/DC, das Dashboard den Sonnenanteil
+  des Zeitraums unter „Gesamt kWh“. Der Netzbezug darf nicht größer als die
+  geladene Energie sein.
+- Automatisch gefüllt wird das Feld von Home Assistant (Integration ab 0.7.0)
+  über Lademonitor-Server ab 0.41.0; `price_total` sind dann die gemessenen
+  Kosten des Netzanteils. Im Server-Modus wird der Wert in beide Richtungen
+  synchronisiert, im „Nur lokal"-Modus lokal gespeichert (Room 10 → 11, neue
+  Spalte per Migration, keine Daten gehen verloren).
+
+## 1.5 (2026-10-27)
 
 - **Mehrverbrauch nach Tempo und Temperatur.** Neues Feld „Ø km/h seit
   Laden“ beim Ladevorgang (Durchschnittsgeschwindigkeit aus dem
   Bordcomputer), synchronisiert und auch im Local-Only-Modus. Im Server-Modus
   (ab Lademonitor-Server 0.47.0) zeigt die Detailansicht den Verbrauch
   aufgeteilt in dein Normal, Tempo, Temperatur und Rest. Room-Migration 9 → 10.
-- **Gesamtpreis beim Bearbeiten.** Ein neu eingetragener Gesamtpreis bleibt
-  jetzt stehen, der Preis je kWh wird daraus berechnet. Bisher hat der alte
-  kWh-Preis den Gesamtpreis beim Speichern wieder überschrieben. Im
-  Server-Modus braucht es dafür zusätzlich Lademonitor-Server 0.46.1.
 - **Ø Preis je Anbieter.** Neuer Abschnitt im Dashboard unter den
   Kuchendiagrammen: jeder Anbieter einzeln, der günstigste zuerst, mit
   Durchschnittspreis je kWh inklusive Grundgebühren, Anzahl der Vorgänge, kWh
@@ -18,6 +29,16 @@
   getrennt darunter. Vorgänge ohne Preis zählen wie im Ø Preis/kWh oben mit
   0 € und werden je Anbieter genannt. Folgt Zeitraum- und Fahrzeugfilter,
   funktioniert auch im Local-Only-Modus.
+
+## 1.4 (2026-10-27)
+
+- **Gesamtpreis beim Bearbeiten.** Ein neu eingetragener Gesamtpreis bleibt
+  jetzt stehen, der Preis je kWh wird daraus berechnet. Bisher hat der alte
+  kWh-Preis den Gesamtpreis beim Speichern wieder überschrieben. Im
+  Server-Modus braucht es dafür zusätzlich Lademonitor-Server 0.46.1.
+
+## 1.3 (2026-10-23)
+
 - **„Lädt gerade“.** Ein laufender Ladevorgang erscheint ganz oben im
   Dashboard und als grün markierter Eintrag über der Ladevorgangsliste – mit
   Beginn, Start-SoC und aktuellem SoC samt Ladebalken, bisher geladenen kWh

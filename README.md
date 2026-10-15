@@ -74,6 +74,13 @@ SwiftUI-App: ein **offline-fähiger lokaler Speicher** (Room) plus ein
   Lademonitor-Server 0.23.0). Gemeint ist der Wert **beim Ladebeginn**, weil
   der Verbrauch eines Ladevorgangs von der Fahrt davor stammt. Funktioniert
   auch im „Nur lokal"-Modus.
+- **Sonnenanteil beim Laden zuhause:** je Ladevorgang optional „Davon aus dem
+  Netz (kWh)“ – der Rest kam kostenlos von PV-Anlage oder Hausakku. Detailansicht
+  („☀ Sonne/Hausakku 78 % (12,4 kWh) · Netz 22 % (3,5 kWh)“), kleines
+  „☀ 78 %“-Kennzeichen in der Liste und Sonnenanteil unter „Gesamt kWh“ im
+  Dashboard. Automatisch gefüllt wird der Wert mit Lademonitor-Server 0.41.0
+  und der Home-Assistant-Integration 0.7.0; von Hand eintragen geht auch im
+  „Nur lokal"-Modus.
 - **Reifen** (Einstellungen → Reifen): jeden Reifenwechsel mit Art, Datum,
   Kilometerstand, Größe (bei Mischbereifung vorne und hinten getrennt), Marke
   und Modell eintragen. Dazu die Übersicht, wie lange ein Satz

@@ -647,6 +647,7 @@ object SyncService {
                     socStart = session.socStart,
                     socEnd = session.socEnd,
                     energyKwh = session.energyKwh,
+                    gridEnergyKwh = session.gridEnergyKwh,
                     pricePerKwh = session.pricePerKwh,
                     priceTotal = session.priceTotal,
                     odometerKm = session.odometerKm,
@@ -917,6 +918,7 @@ object SyncService {
                         locationId = ss.locationId, startTime = ss.startTime, endTime = ss.endTime,
                         chargingType = ss.chargingType, socStart = ss.socStart, socEnd = ss.socEnd,
                         energyKwh = ss.energyKwh, energyIsEstimated = ss.energyIsEstimated,
+                        gridEnergyKwh = ss.gridEnergyKwh,
                         odometerKm = ss.odometerKm, outsideTempC = ss.outsideTempC,
                         outsideTempSource = ss.outsideTempSource,
                         priceTotal = ss.priceTotal, pricePerKwh = ss.pricePerKwh,
@@ -941,6 +943,7 @@ object SyncService {
         session.socEnd = dto.socEnd
         session.energyKwh = dto.energyKwh
         session.energyIsEstimated = dto.energyIsEstimated
+        session.gridEnergyKwh = dto.gridEnergyKwh
         session.odometerKm = dto.odometerKm
         session.outsideTempC = dto.outsideTempC
         session.outsideTempSource = dto.outsideTempSource

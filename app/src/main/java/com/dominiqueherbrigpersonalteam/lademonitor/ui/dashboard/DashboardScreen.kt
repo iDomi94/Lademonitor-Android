@@ -207,9 +207,14 @@ private fun DashboardContent(
         }
         // Kleine Zusatzzeile unter einzelnen Kennzahlen, z.B. der Grundgebuehren-Anteil.
         val totalCostLabel = stringResource(R.string.dashboard_stat_total_cost)
+        val totalKwhLabel = stringResource(R.string.dashboard_stat_total_kwh)
         val details = buildMap {
             stats.totalFees?.takeIf { it > 0 }?.let {
                 put(totalCostLabel, stringResource(R.string.dashboard_total_cost_fees, Fmt.n("%.2f €", it)))
+            }
+            // Sonnenanteil der Vorgaenge mit bekanntem Netzbezug (Laden zuhause mit PV/Hausakku).
+            stats.solarShare?.takeIf { it.totalKwh > 0 }?.let {
+                put(totalKwhLabel, stringResource(R.string.dashboard_total_kwh_solar, it.solarPercent, Fmt.n("%.1f kWh", it.solarKwh)))
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

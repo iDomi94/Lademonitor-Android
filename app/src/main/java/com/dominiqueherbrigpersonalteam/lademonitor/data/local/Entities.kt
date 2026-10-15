@@ -229,7 +229,12 @@ data class LocalChargingSession(
      */
     var energyMeter: String? = null,
     /** Ø km/h seit dem letzten Laden (Room 9 -> 10), siehe Models.ChargingSession.avgSpeedKmh. */
-    var avgSpeedKmh: Double? = null
+    var avgSpeedKmh: Double? = null,
+    /**
+     * Davon aus dem Netz bezogene kWh (Room 10 -> 11), siehe Models.ChargingSession.gridEnergyKwh.
+     * `null` = unbekannt.
+     */
+    var gridEnergyKwh: Double? = null
 ) {
     /** Consumption fields are decorated later by the LocalConsumptionCalculator, hence null here. */
     fun asDTO() = ChargingSession(
@@ -244,6 +249,7 @@ data class LocalChargingSession(
         socEnd = socEnd,
         energyKwh = energyKwh,
         energyIsEstimated = energyIsEstimated,
+        gridEnergyKwh = gridEnergyKwh,
         odometerKm = odometerKm,
         outsideTempC = outsideTempC,
         outsideTempSource = outsideTempSource,
