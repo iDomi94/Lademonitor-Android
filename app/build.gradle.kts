@@ -16,13 +16,13 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "com.dominiqueherbrigpersonalteam.lademonitor"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = keystoreProperties.getProperty("applicationId")
             ?: "com.dominiqueherbrigpersonalteam.lademonitor"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // Der Release-Workflow ueberschreibt beides (-PversionCode/-PversionName),
         // siehe docs/RELEASE.md.
         versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 3

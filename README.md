@@ -162,8 +162,8 @@ nach einem Zurücksetzen über den Mail-Link ist eine neue Anmeldung nötig.
 ## Bauen & Ausführen
 
 1. Ordner `Lademonitor-Android/` in **Android Studio** öffnen
-   (Giraffe/Koala oder neuer, mit Android SDK 35).
-2. Gradle-Sync abwarten (lädt AGP 8.6, Kotlin 2.0, Compose BOM, Room, osmdroid …).
+   (Meerkat Feature Drop oder neuer, mit Android SDK 36).
+2. Gradle-Sync abwarten (lädt AGP 8.10, Kotlin 2.0, Compose BOM, Room, osmdroid …).
    Sollte Android Studio neuere Plugin-Versionen vorschlagen, kann man sie
    übernehmen.
 3. Auf Gerät/Emulator (Android 8.0 / API 26 oder neuer) ausführen (Run ▶).
