@@ -160,8 +160,8 @@ sign-in is needed.
 ## Build & run
 
 1. Open the `Lademonitor-Android/` folder in **Android Studio**
-   (Giraffe/Koala or newer, with Android SDK 35).
-2. Wait for the Gradle sync (downloads AGP 8.6, Kotlin 2.0, Compose BOM,
+   (Meerkat Feature Drop or newer, with Android SDK 36).
+2. Wait for the Gradle sync (downloads AGP 8.10, Kotlin 2.0, Compose BOM,
    Room, osmdroid, …). If Android Studio suggests newer plugin versions,
    you can accept them.
 3. Run on a device/emulator (Android 8.0 / API 26 or newer) (Run ▶).
