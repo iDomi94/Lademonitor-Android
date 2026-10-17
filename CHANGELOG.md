@@ -1,5 +1,17 @@
 # Changelog
 
+## Unveröffentlicht
+
+- **Kein ungewolltes Abmelden mehr.** Der verschlüsselte Speicher für die
+  Anmeldung ließ sich direkt nach einem Neustart oder einem App-Update (und auf
+  manchen Geräten zufällig) kurz nicht öffnen. Die App las dann keine Anmeldung
+  und zeigte den Login, obwohl sie noch gültig war. Jetzt wird erneut versucht,
+  die Anmeldung bleibt im Speicher, und beim Zurückholen der App in den
+  Vordergrund wird sie wieder aufgenommen.
+- Eine Server-Antwort „nicht angemeldet“ auf eine noch laufende Anfrage mit
+  einer älteren Anmeldung (z. B. direkt nach einem Passwortwechsel) meldet
+  nicht mehr ab.
+
 ## 1.2 (2026-10-14)
 
 Angleichung an die iOS-App:

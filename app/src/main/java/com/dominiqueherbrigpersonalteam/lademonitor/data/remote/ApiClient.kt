@@ -115,8 +115,10 @@ object ApiClient {
         response.use { resp ->
             val raw = resp.body?.string().orEmpty()
             if (!resp.isSuccessful) {
-                if (resp.code == 401 && request.header("Authorization") != null) {
-                    SessionManager.invalidateSession()
+                if (resp.code == 401) {
+                    SessionManager.invalidateSessionIfCurrent(
+                        request.header("Authorization")?.removePrefix("Bearer ")
+                    )
                 }
                 throw ApiException.Server(resp.code, messageFrom(raw))
             }
@@ -144,8 +146,10 @@ object ApiClient {
         response.use { resp ->
             if (!resp.isSuccessful) {
                 val raw = resp.body?.string().orEmpty()
-                if (resp.code == 401 && request.header("Authorization") != null) {
-                    SessionManager.invalidateSession()
+                if (resp.code == 401) {
+                    SessionManager.invalidateSessionIfCurrent(
+                        request.header("Authorization")?.removePrefix("Bearer ")
+                    )
                 }
                 throw ApiException.Server(resp.code, messageFrom(raw))
             }
