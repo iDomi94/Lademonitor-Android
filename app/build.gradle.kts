@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,14 +7,22 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// Lokale Play-Store-Konfiguration (git-ignoriert, siehe docs/RELEASE.md):
+// Upload-Schluessel und ggf. abweichende applicationId fuer Google Play.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) keystorePropertiesFile.inputStream().use { load(it) }
+}
+
 android {
     namespace = "com.dominiqueherbrigpersonalteam.lademonitor"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.dominiqueherbrigpersonalteam.lademonitor"
+        applicationId = keystoreProperties.getProperty("applicationId")
+            ?: "com.dominiqueherbrigpersonalteam.lademonitor"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // Der Release-Workflow ueberschreibt beides (-PversionCode/-PversionName),
         // siehe docs/RELEASE.md.
         versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 3
@@ -20,11 +30,19 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
-    // Release-Signatur nur, wenn der Schluessel per Umgebung kommt (GitHub-Secrets
-    // im Release-Workflow). Ohne ihn entsteht eine unsignierte Release-APK.
+    // Release-Signatur kommt entweder aus keystore.properties (lokaler Play-Upload)
+    // oder per Umgebung (GitHub-Secrets im Release-Workflow). Ohne beides entsteht
+    // eine unsignierte Release-APK.
     val releaseKeystore = System.getenv("ANDROID_KEYSTORE_PATH")?.let { file(it) }
     signingConfigs {
-        if (releaseKeystore != null && releaseKeystore.exists()) {
+        if (keystoreProperties.getProperty("storeFile") != null) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        } else if (releaseKeystore != null && releaseKeystore.exists()) {
             create("release") {
                 storeFile = releaseKeystore
                 storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")

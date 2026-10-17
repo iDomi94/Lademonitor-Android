@@ -118,3 +118,26 @@ soll:
 - „Interner Test“ funktioniert sofort für bis zu 100 Tester. Für eine
   öffentliche Veröffentlichung verlangt Google bei neuen privaten Konten
   vorher einen geschlossenen Test mit 12 Testern über 14 Tage.
+
+### Lokaler Play-Upload (halvar100)
+
+Für Google Play wird lokal gebaut und das `.aab` von Hand hochgeladen. Dafür
+liegt im Projektordner eine git-ignorierte `keystore.properties`:
+
+```properties
+storeFile=upload-keystore.jks
+storePassword=…
+keyAlias=upload
+keyPassword=…
+applicationId=com.herbrigpersonalteam.lademonitor
+```
+
+Ist sie vorhanden, signiert der Release-Build mit diesem Upload-Schlüssel und
+nutzt die Play-`applicationId`; ohne sie bleibt alles wie oben (GitHub-Secrets,
+`com.dominiqueherbrigpersonalteam.lademonitor`). Bauen mit demselben
+Versionsschema wie der Workflow:
+
+```bash
+./gradlew bundleRelease -PversionCode=10200 -PversionName=1.2
+# → app/build/outputs/bundle/release/app-release.aab
+```
