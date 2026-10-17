@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.WidgetSnapshotWriter
+import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.AppShortcuts
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.LademonitorRoot
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.theme.LademonitorTheme
@@ -29,6 +30,13 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         AppShortcuts.handleIntent(intent)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // The process may have started in the background (reboot, app update) while the Keystore
+        // was not ready yet - then the token was unreadable at that moment, not gone.
+        SessionManager.restoreIfTokenAvailable()
     }
 
     override fun onStop() {

@@ -24,6 +24,15 @@ object SessionManager {
         _isAuthenticated.value = TokenStore.readToken() != null
     }
 
+    /**
+     * Called when the app comes to the foreground: if the token could not be read at process
+     * start (Keystore not ready yet, see [TokenStore]) but is readable now, the session is still
+     * valid - continue it instead of keeping the user on the login screen.
+     */
+    fun restoreIfTokenAvailable() {
+        if (!_isAuthenticated.value && TokenStore.readToken() != null) _isAuthenticated.value = true
+    }
+
     fun completeAuthentication(response: AuthResponse) {
         TokenStore.saveToken(response.token)
         _currentUser.value = response.user
@@ -38,6 +47,15 @@ object SessionManager {
     /** Called on a 401 for an authenticated request: the session is no longer valid. */
     fun invalidateSession() {
         clearLocalSession()
+    }
+
+    /**
+     * A 401 only ends the session when it was answered for the token that is stored NOW. A request
+     * still in flight with an older token (e.g. across a password change, which replaces the token)
+     * must not delete the fresh one.
+     */
+    fun invalidateSessionIfCurrent(sentToken: String?) {
+        if (sentToken != null && sentToken == TokenStore.readToken()) clearLocalSession()
     }
 
     suspend fun refreshCurrentUserIfNeeded() {
