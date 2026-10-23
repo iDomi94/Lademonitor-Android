@@ -1407,6 +1407,37 @@ data class ReminderPayload(
     @Json(name = "last_done_km") val lastDoneKm: Int? = null
 )
 
+// MARK: - Laufender Ladevorgang
+
+/**
+ * Antwort von `GET /api/sessions/active` (Server ab 0.45.0): ein gerade laufender Ladevorgang
+ * ("Lädt gerade"). Kein [ChargingSession] - der Vorgang entsteht auf dem Server erst beim
+ * Ausstecken. Bis dahin ein Zwischenstand der Quelle (MyŠkoda, VW-Datenportal, Renault, Home
+ * Assistant), nur zum Anzeigen, nicht im lokalen Spiegel und nicht im Sync - deshalb nur im
+ * Server-Modus.
+ */
+@JsonClass(generateAdapter = true)
+data class ActiveCharging(
+    @Json(name = "vehicle_id") val vehicleId: String,
+    @Json(name = "vehicle_name") val vehicleName: String? = null,
+    /** myskoda | vw_data_act | renault | home_assistant */
+    val source: String,
+    @ServerDate @Json(name = "start_time") val startTime: Long? = null,
+    @Json(name = "charging_type") val chargingType: String? = null,
+    @Json(name = "soc_start") val socStart: Int? = null,
+    /** Juengster bekannter SoC (letzter Bericht der Quelle). */
+    @Json(name = "soc_current") val socCurrent: Int? = null,
+    @Json(name = "energy_kwh") val energyKwh: Double? = null,
+    @Json(name = "energy_is_estimated") val energyIsEstimated: Boolean = false,
+    @Json(name = "max_power_kw") val maxPowerKw: Double? = null,
+    @Json(name = "odometer_km") val odometerKm: Int? = null,
+    @Json(name = "outside_temp_c") val outsideTempC: Double? = null,
+    /** Zeitpunkt des Berichts, aus dem die Werte stammen - beim VW-Datenportal gern Stunden alt. */
+    @ServerDate @Json(name = "updated_at") val updatedAt: Long? = null
+) {
+    val chargingTypeValue: ChargingType? get() = ChargingType.from(chargingType)
+}
+
 // MARK: - Akku-Gesundheit und Ladeverluste
 
 /**

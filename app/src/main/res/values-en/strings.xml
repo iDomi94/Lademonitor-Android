@@ -1023,4 +1023,11 @@
     </plurals>
     <string name="shortcut_reminders_short">Due</string>
     <string name="shortcut_reminders_long">Due reminders</string>
+
+    <!-- Laufender Ladevorgang (GET /api/sessions/active) -->
+    <string name="active_title">Charging now</string>
+    <string name="active_since">since %1$s</string>
+    <string name="active_as_of">as of %1$s</string>
+    <string name="active_max_power">max. %1$s kW</string>
+    <string name="active_source_vw_data_act">VW data portal</string>
 </resources>
