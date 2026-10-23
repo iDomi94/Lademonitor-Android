@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dominiqueherbrigpersonalteam.lademonitor.R
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ActiveCharging
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
@@ -89,6 +90,8 @@ fun SessionsListScreen() {
     var vehicles by remember { mutableStateOf<List<Vehicle>>(emptyList()) }
     var providers by remember { mutableStateOf<List<Provider>>(emptyList()) }
     var locations by remember { mutableStateOf<List<ChargingLocation>>(emptyList()) }
+    // Laufende Ladevorgaenge ("Lädt gerade") - nur im Server-Modus, kein Datensatz.
+    var activeCharging by remember { mutableStateOf<List<ActiveCharging>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var hasLoaded by remember { mutableStateOf(false) }
@@ -117,6 +120,7 @@ fun SessionsListScreen() {
                 sessions.clear(); sessions.addAll(s.await())
                 vehicles = v.await(); providers = p.await(); locations = l.await()
             }
+            activeCharging = ActiveChargingLoader.load()
         } catch (e: Exception) {
             errorMessage = e.localizedMessage
         }
@@ -161,9 +165,13 @@ fun SessionsListScreen() {
             when {
                 errorMessage != null ->
                     ErrorState(errorMessage!!, onRetry = { scope.launch { load() } })
-                sessions.isEmpty() && !isLoading ->
+                sessions.isEmpty() && activeCharging.isEmpty() && !isLoading ->
                     EmptyState(stringResource(R.string.sessions_empty_state))
                 else -> LazyColumn(Modifier.fillMaxSize()) {
+                    // Laufender Vorgang ueber der Liste - nicht antipp- oder wischbar.
+                    items(activeCharging, key = { "active-" + it.vehicleId }) { item ->
+                        ActiveChargingCard(item, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                    }
                     items(sessions, key = { it.id }) { session ->
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { value ->

@@ -1024,4 +1024,11 @@
     </plurals>
     <string name="shortcut_reminders_short">Fällig</string>
     <string name="shortcut_reminders_long">Fällige Erinnerungen</string>
+
+    <!-- Laufender Ladevorgang (GET /api/sessions/active) -->
+    <string name="active_title">Lädt gerade</string>
+    <string name="active_since">seit %1$s</string>
+    <string name="active_as_of">Stand %1$s</string>
+    <string name="active_max_power">max. %1$s kW</string>
+    <string name="active_source_vw_data_act">VW-Datenportal</string>
 </resources>

@@ -2,6 +2,13 @@
 
 ## Unveröffentlicht
 
+- **„Lädt gerade“.** Ein laufender Ladevorgang erscheint ganz oben im
+  Dashboard und als grün markierter Eintrag über der Ladevorgangsliste – mit
+  Beginn, Start-SoC und aktuellem SoC samt Ladebalken, bisher geladenen kWh
+  (gemessen oder geschätzt), AC/DC, km-Stand, Außentemperatur und dem
+  Zeitpunkt des letzten Berichts. Nur im Server-Modus und ab
+  Lademonitor-Server 0.45.0; Quellen sind MyŠkoda, VW-Datenportal, Renault
+  und Home Assistant (ab Lademonitor-HA 0.9.0).
 - **Kein ungewolltes Abmelden mehr.** Der verschlüsselte Speicher für die
   Anmeldung ließ sich direkt nach einem Neustart oder einem App-Update (und auf
   manchen Geräten zufällig) kurz nicht öffnen. Die App las dann keine Anmeldung

@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dominiqueherbrigpersonalteam.lademonitor.LademonitorApp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ActiveCharging
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.CostCategory
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PlaceStat
@@ -66,6 +67,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.ErrorState
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.Fmt
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.SectionCard
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.sessions.ActiveChargingCard
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.sessions.ActiveChargingLoader
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.filter.FilterIconButton
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.filter.FilterSheet
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.filter.SessionFilter
@@ -86,6 +89,8 @@ fun DashboardScreen(onOpenReminders: (String) -> Unit = {}, onOpenRangeCalculato
     var temperature by remember { mutableStateOf<TemperatureStats?>(null) }
     // Bald faellige/ueberfaellige Erinnerungen aller Fahrzeuge - bewusst ohne Zeitraumfilter.
     var dueReminders by remember { mutableStateOf<List<LocalReminderCalculator.Evaluated>>(emptyList()) }
+    // Laufende Ladevorgaenge ("Lädt gerade") - nur im Server-Modus, folgt keinem Filter.
+    var activeCharging by remember { mutableStateOf<List<ActiveCharging>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var showFilter by remember { mutableStateOf(false) }
@@ -112,6 +117,7 @@ fun DashboardScreen(onOpenReminders: (String) -> Unit = {}, onOpenRangeCalculato
         } catch (e: Exception) {
             emptyList()
         }
+        activeCharging = ActiveChargingLoader.load()
         // Temperaturauswertung ausschliesslich im Server-Modus. Scheitert der Abruf (aelterer
         // Server ohne den Endpunkt, Netzfehler), bleibt der Abschnitt einfach weg: er ist eine
         // Ergaenzung, kein Grund, das ganze Dashboard als fehlgeschlagen zu melden.
@@ -149,7 +155,7 @@ fun DashboardScreen(onOpenReminders: (String) -> Unit = {}, onOpenRangeCalculato
             when {
                 errorMessage != null && current == null ->
                     ErrorState(errorMessage!!, onRetry = { scope.launch { load() } })
-                current != null -> DashboardContent(current, temperature, dueReminders, onOpenReminders, onOpenRangeCalculator)
+                current != null -> DashboardContent(current, temperature, dueReminders, activeCharging, onOpenReminders, onOpenRangeCalculator)
                 isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
@@ -165,6 +171,7 @@ private fun DashboardContent(
     stats: StatsSummary,
     temperature: TemperatureStats?,
     dueReminders: List<LocalReminderCalculator.Evaluated>,
+    activeCharging: List<ActiveCharging>,
     onOpenReminders: (String) -> Unit,
     onOpenRangeCalculator: (String?) -> Unit
 ) {
@@ -175,6 +182,9 @@ private fun DashboardContent(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        // Laufender Ladevorgang ganz oben.
+        activeCharging.forEach { ActiveChargingCard(it) }
+
         // Ganz oben und nur, wenn etwas bald faellig oder ueberfaellig ist.
         if (dueReminders.isNotEmpty()) {
             Column {

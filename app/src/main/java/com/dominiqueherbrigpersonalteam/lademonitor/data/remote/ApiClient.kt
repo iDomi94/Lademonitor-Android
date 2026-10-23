@@ -28,6 +28,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ReimbursementRate
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.BatteryStats
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ActiveCharging
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireComparison
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireOverview
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireSet
@@ -556,4 +557,8 @@ object ApiClient {
     /** Akku-Index und Ladeverluste je Fahrzeug (Server ab 0.28.0). Nur im Server-Modus. */
     suspend fun fetchBatteryStats(): BatteryStats =
         send("/api/stats/battery", type = BatteryStats::class.java)
+
+    /** Laufende Ladevorgaenge (Server ab 0.45.0), nur im Server-Modus - siehe [ActiveCharging]. */
+    suspend fun fetchActiveSessions(): List<ActiveCharging> =
+        send("/api/sessions/active", type = listType(ActiveCharging::class.java))
 }
