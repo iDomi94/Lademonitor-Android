@@ -678,6 +678,12 @@
     <string name="provider_charging_place_hint">Splits the dashboard into home, work and on the road. In the tariff calculator only providers set to “On the road” count towards the automatic price without tariff.</string>
     <string name="dashboard_section_by_place">Home, work, on the road</string>
     <string name="dashboard_place_price_per_kwh">%1$s € per kWh</string>
+    <string name="dashboard_section_price_by_provider">Avg. price per provider</string>
+    <plurals name="dashboard_provider_without_price">
+        <item quantity="one">%1$d session without price</item>
+        <item quantity="other">%1$d sessions without price</item>
+    </plurals>
+    <string name="dashboard_provider_price_hint">Including base fees. Sessions without a price count as €0.</string>
     <plurals name="dashboard_place_sessions">
         <item quantity="one">%1$d session</item>
         <item quantity="other">%1$d sessions</item>

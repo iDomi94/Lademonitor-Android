@@ -11,6 +11,13 @@
   jetzt stehen, der Preis je kWh wird daraus berechnet. Bisher hat der alte
   kWh-Preis den Gesamtpreis beim Speichern wieder überschrieben. Im
   Server-Modus braucht es dafür zusätzlich Lademonitor-Server 0.46.1.
+- **Ø Preis je Anbieter.** Neuer Abschnitt im Dashboard unter den
+  Kuchendiagrammen: jeder Anbieter einzeln, der günstigste zuerst, mit
+  Durchschnittspreis je kWh inklusive Grundgebühren, Anzahl der Vorgänge, kWh
+  und Kosten. Lädt man bei einem Anbieter AC und DC, stehen beide Preise
+  getrennt darunter. Vorgänge ohne Preis zählen wie im Ø Preis/kWh oben mit
+  0 € und werden je Anbieter genannt. Folgt Zeitraum- und Fahrzeugfilter,
+  funktioniert auch im Local-Only-Modus.
 - **„Lädt gerade“.** Ein laufender Ladevorgang erscheint ganz oben im
   Dashboard und als grün markierter Eintrag über der Ladevorgangsliste – mit
   Beginn, Start-SoC und aktuellem SoC samt Ladebalken, bisher geladenen kWh

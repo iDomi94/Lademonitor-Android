@@ -679,6 +679,12 @@
     <string name="provider_charging_place_hint">Teilt das Dashboard in Zuhause, Arbeit und unterwegs. Im Tarifrechner zählen nur Anbieter mit „Unterwegs“ zum automatischen Preis ohne Tarif.</string>
     <string name="dashboard_section_by_place">Zuhause, Arbeit, unterwegs</string>
     <string name="dashboard_place_price_per_kwh">%1$s € je kWh</string>
+    <string name="dashboard_section_price_by_provider">Ø Preis je Anbieter</string>
+    <plurals name="dashboard_provider_without_price">
+        <item quantity="one">%1$d Vorgang ohne Preis</item>
+        <item quantity="other">%1$d Vorgänge ohne Preis</item>
+    </plurals>
+    <string name="dashboard_provider_price_hint">Inklusive Grundgebühren. Vorgänge ohne Preis zählen mit 0 €.</string>
     <plurals name="dashboard_place_sessions">
         <item quantity="one">%1$d Vorgang</item>
         <item quantity="other">%1$d Vorgänge</item>

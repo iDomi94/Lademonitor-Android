@@ -94,11 +94,22 @@ object LocalStatsCalculator {
         val providerKwh = HashMap<String, Double>()
         val providerCost = HashMap<String, Double>()
         val providerFees = HashMap<String, Double>()
+        val providerCount = HashMap<String, Int>()
+        val providerUnpriced = HashMap<String, Int>()
+        // Je Anbieter und Lade-Art: kWh und Kosten fuer den Ø Preis je Lade-Art.
+        val providerTyped = HashMap<String, HashMap<ChargingType, Pair<Double, Double>>>()
         for (session in sorted) {
             val name = providers.firstOrNull { it.id == session.providerId }?.name ?: noProviderLabel
             providerKwh[name] = (providerKwh[name] ?: 0.0) + (session.energyKwh ?: 0.0)
             providerCost[name] = (providerCost[name] ?: 0.0) + cost(session)
             providerFees[name] = (providerFees[name] ?: 0.0) + (session.feeShare ?: 0.0)
+            providerCount[name] = (providerCount[name] ?: 0) + 1
+            if (session.priceTotal == null) providerUnpriced[name] = (providerUnpriced[name] ?: 0) + 1
+            session.chargingTypeValue?.let { type ->
+                val byType = providerTyped.getOrPut(name) { HashMap() }
+                val (kwh, c) = byType[type] ?: (0.0 to 0.0)
+                byType[type] = (kwh + (session.energyKwh ?: 0.0)) to (c + cost(session))
+            }
         }
         for (period in unallocatedFees) {
             val name = providers.firstOrNull { it.id == period.providerId }?.name ?: noProviderLabel
@@ -109,11 +120,21 @@ object LocalStatsCalculator {
         val byProvider = providerKwh.keys
             .sortedByDescending { providerKwh[it]!! }
             .map { name ->
+                val kwh = providerKwh[name]!!
+                val ac = providerTyped[name]?.get(ChargingType.AC)
+                val dc = providerTyped[name]?.get(ChargingType.DC)
                 ProviderStat(
                     name,
-                    round2(providerKwh[name]!!),
+                    round2(kwh),
                     round2(providerCost[name]!!),
-                    round2(providerFees[name] ?: 0.0)
+                    round2(providerFees[name] ?: 0.0),
+                    sessionCount = providerCount[name] ?: 0,
+                    sessionsWithoutPrice = providerUnpriced[name] ?: 0,
+                    avgPricePerKwh = if (kwh > 0) round4(providerCost[name]!! / kwh) else null,
+                    acKwh = ac?.let { round2(it.first) },
+                    acAvgPricePerKwh = ac?.takeIf { it.first > 0 }?.let { round4(it.second / it.first) },
+                    dcKwh = dc?.let { round2(it.first) },
+                    dcAvgPricePerKwh = dc?.takeIf { it.first > 0 }?.let { round4(it.second / it.first) }
                 )
             }
 
