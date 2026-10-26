@@ -650,7 +650,8 @@ object LocalDataStore {
             notes = payload.notes,
             source = "manual",
             needsReview = payload.needsReview ?: false,
-            energyMeter = EnergyMeter.normalizedOverride(payload.energyMeter, providerEnergyMeter(payload.providerId))
+            energyMeter = EnergyMeter.normalizedOverride(payload.energyMeter, providerEnergyMeter(payload.providerId)),
+            avgSpeedKmh = payload.avgSpeedKmh
         )
         sessions.upsert(session)
         updateProviderPriceMemory(payload.providerId, ChargingType.from(payload.chargingType), payload.pricePerKwh)
@@ -695,6 +696,7 @@ object LocalDataStore {
             }
             session.outsideTempC = it
         }
+        payload.avgSpeedKmh?.let { session.avgSpeedKmh = it }
         payload.latitude?.let { session.latitude = it }
         payload.longitude?.let { session.longitude = it }
         payload.geocodedPlace?.let { session.geocodedPlace = it }

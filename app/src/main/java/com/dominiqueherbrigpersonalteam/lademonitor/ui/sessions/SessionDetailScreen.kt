@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingLocation
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.DriveBreakdownModel
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.DriveBreakdownPoint
+import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
+import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
+import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureSource
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSession
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPayload
@@ -63,6 +69,16 @@ fun SessionDetailScreen(
     var showEdit by remember { mutableStateOf(false) }
     var isConfirming by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    // Aufteilung des Verbrauchs aus GET /api/stats/drive-breakdown, nur im Server-Modus. Bleibt
+    // null bei einem aelteren Server oder solange es zu wenige Fahrten mit Tempo gibt.
+    var breakdown by remember { mutableStateOf<DriveBreakdownPoint?>(null) }
+    var breakdownModel by remember { mutableStateOf<DriveBreakdownModel?>(null) }
+    LaunchedEffect(session.id, session.avgSpeedKmh) {
+        if (AppSettings.appMode.value != AppMode.SERVER || session.avgSpeedKmh == null) return@LaunchedEffect
+        val stats = runCatching { ApiClient.fetchDriveBreakdown(session.vehicleId) }.getOrNull() ?: return@LaunchedEffect
+        breakdown = stats.drives.firstOrNull { it.sessionId == session.id }
+        breakdownModel = stats.model
+    }
 
     val vehicleName = vehicles.firstOrNull { it.id == session.vehicleId }?.name
     val providerName = providers.firstOrNull { it.id == session.providerId }?.name
@@ -156,6 +172,28 @@ fun SessionDetailScreen(
                     )
                 }
                 session.consumptionKwhPer100km?.let { LabeledRow(stringResource(R.string.session_detail_label_consumption), Fmt.n("%.1f kWh/100km", it)) }
+                session.avgSpeedKmh?.let { LabeledRow(stringResource(R.string.session_detail_label_avg_speed), Fmt.n("%.0f km/h", it)) }
+            }
+
+            val part = breakdown
+            val model = breakdownModel
+            if (part != null && model != null) {
+                fun signed(v: Double) = (if (v >= 0) "+" else "−") + Fmt.n("%.1f kWh/100km", kotlin.math.abs(v))
+                SectionCard {
+                    CardTitle(stringResource(R.string.session_detail_section_breakdown))
+                    LabeledRow(stringResource(R.string.session_detail_label_breakdown_normal), Fmt.n("%.1f kWh/100km", part.base))
+                    LabeledRow(stringResource(R.string.session_detail_label_breakdown_speed), signed(part.speed))
+                    LabeledRow(stringResource(R.string.session_detail_label_breakdown_temp), signed(part.temperature))
+                    LabeledRow(stringResource(R.string.session_detail_label_breakdown_rest), signed(part.rest))
+                    Text(
+                        stringResource(
+                            R.string.session_detail_breakdown_footer,
+                            model.referenceSpeedKmh.toInt(), model.driveCount
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             if (session.priceTotal != null || session.pricePerKwh != null || session.feeShare != null) {

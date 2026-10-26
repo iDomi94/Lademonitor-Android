@@ -300,6 +300,14 @@
     <string name="add_session_field_location_optional">Ladeort (optional)</string>
     <string name="add_session_field_odometer_optional">Kilometerstand (optional)</string>
     <string name="add_session_field_outside_temp_optional">Außentemperatur (°C, optional)</string>
+    <string name="session_detail_label_avg_speed">Ø seit Laden</string>
+    <string name="session_detail_section_breakdown">Mehrverbrauch</string>
+    <string name="session_detail_label_breakdown_normal">Dein Normal</string>
+    <string name="session_detail_label_breakdown_speed">Tempo</string>
+    <string name="session_detail_label_breakdown_temp">Temperatur</string>
+    <string name="session_detail_label_breakdown_rest">Rest</string>
+    <string name="session_detail_breakdown_footer">Gegen dein Normal bei Ø %1$d km/h ohne Heizen und Kühlen, aus %2$d Fahrten. Der Rest umfasst Wind, Nässe, Steigung und Fahrweise.</string>
+    <string name="add_session_field_avg_speed_optional">Ø km/h seit Laden (Bordcomputer, optional)</string>
     <string name="add_session_section_position">Position</string>
     <string name="add_session_use_location_action">Von Ladeort übernehmen</string>
     <string name="add_session_coordinates_format">Koordinaten: %1$s, %2$s</string>
