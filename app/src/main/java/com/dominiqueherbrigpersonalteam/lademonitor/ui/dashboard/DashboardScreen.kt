@@ -50,6 +50,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ActiveCharging
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingPlace
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.CostCategory
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.PlaceStat
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderStat
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.RangeEstimate
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.StatsSummary
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TemperatureStats
@@ -74,6 +75,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.filter.FilterSheet
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.filter.SessionFilter
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.theme.Blue
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.theme.Green
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.theme.Orange
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -257,6 +259,10 @@ private fun DashboardContent(
             SectionCard {
                 SectionHeader(stringResource(R.string.dashboard_section_paid_by_provider))
                 DonutChart(entries.map { PieEntry(it.name, it.cost, it.color) }, unit = "€")
+            }
+            Column {
+                SectionHeader(stringResource(R.string.dashboard_section_price_by_provider))
+                SectionCard { ProviderPriceSection(stats.byProvider) }
             }
         }
 
@@ -525,6 +531,81 @@ private fun PlaceSection(places: List<PlaceStat>) {
                 }
             }
         }
+    }
+}
+
+/**
+ * Ø Preis je Anbieter: alle Anbieter einzeln (nicht auf fuenf plus "Andere" gekuerzt wie die
+ * Kuchendiagramme), guenstigster zuerst. Der Preis enthaelt die Grundgebuehren; bei gemischter
+ * Lade-Art steht AC/DC getrennt darunter, weil ein Mittel ueber beide wenig ueber den Tarif sagt.
+ * Gleich aufgebaut wie `ProviderPriceCard` in der iOS-App.
+ */
+@Composable
+private fun ProviderPriceSection(providers: List<ProviderStat>) {
+    val noProviderLabel = stringResource(R.string.stats_no_provider)
+    fun isNoProvider(name: String) = name == noProviderLabel || name == "Ohne Anbieter"
+    // Mit Preis aufsteigend, dann ohne kWh (nur Grundgebuehr), "Ohne Anbieter" zuletzt.
+    val rows = providers.sortedWith(
+        compareBy<ProviderStat> { isNoProvider(it.providerName) }
+            .thenBy { it.avgPricePerKwh == null }
+            .thenBy { it.avgPricePerKwh ?: 0.0 }
+            .thenByDescending { it.totalKwh }
+            .thenBy { it.providerName }
+    )
+    val secondary = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        rows.forEach { stat ->
+            Row(verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (isNoProvider(stat.providerName)) noProviderLabel else stat.providerName,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    val count = stat.sessionCount
+                    val detail = listOfNotNull(
+                        count?.let { pluralStringResource(R.plurals.dashboard_place_sessions, it, it) },
+                        Fmt.n("%.1f kWh", stat.totalKwh),
+                        Fmt.n("%.2f €", stat.totalCost)
+                    ).joinToString(" · ")
+                    Text(detail, style = MaterialTheme.typography.bodySmall, color = secondary)
+                    stat.totalFees?.takeIf { it > 0 }?.let {
+                        Text(
+                            stringResource(R.string.dashboard_total_cost_fees, Fmt.n("%.2f €", it)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = secondary
+                        )
+                    }
+                    stat.sessionsWithoutPrice?.takeIf { it > 0 }?.let {
+                        Text(
+                            pluralStringResource(R.plurals.dashboard_provider_without_price, it, it),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Orange
+                        )
+                    }
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        stat.avgPricePerKwh?.let { stringResource(R.string.dashboard_place_price_per_kwh, Fmt.n("%.3f", it)) } ?: "–",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    val ac = stat.acAvgPricePerKwh
+                    val dc = stat.dcAvgPricePerKwh
+                    if (ac != null && dc != null) {
+                        Text(
+                            Fmt.n("AC %.3f € · ", ac) + Fmt.n("DC %.3f €", dc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = secondary
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            stringResource(R.string.dashboard_provider_price_hint),
+            style = MaterialTheme.typography.labelSmall,
+            color = secondary
+        )
     }
 }
 

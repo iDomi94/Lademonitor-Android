@@ -618,7 +618,20 @@ data class ProviderStat(
     @Json(name = "total_kwh") val totalKwh: Double,
     /** Inklusive Grundgebuehren (ab Server 0.27.0). */
     @Json(name = "total_cost") val totalCost: Double,
-    @Json(name = "total_fees") val totalFees: Double? = null
+    @Json(name = "total_fees") val totalFees: Double? = null,
+    // Die folgenden Felder setzt nur LocalStatsCalculator (das Dashboard entsteht immer
+    // lokal), der Server liefert sie nicht.
+    val sessionCount: Int? = null,
+    /** Vorgaenge ohne Preis, zaehlen mit 0 EUR (wie im Ø Preis/kWh oben). */
+    val sessionsWithoutPrice: Int? = null,
+    /** Ø Preis je kWh inkl. Grundgebuehren, auch der Perioden ohne Vorgang. */
+    val avgPricePerKwh: Double? = null,
+    // Je Lade-Art nur Saeulenpreis plus umgelegter Anteil - Perioden ohne Vorgang gehoeren
+    // zu keiner Lade-Art.
+    val acKwh: Double? = null,
+    val acAvgPricePerKwh: Double? = null,
+    val dcKwh: Double? = null,
+    val dcAvgPricePerKwh: Double? = null
 )
 
 @JsonClass(generateAdapter = true)
