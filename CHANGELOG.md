@@ -2,6 +2,10 @@
 
 ## Unveröffentlicht
 
+- **Gesamtpreis beim Bearbeiten.** Ein neu eingetragener Gesamtpreis bleibt
+  jetzt stehen, der Preis je kWh wird daraus berechnet. Bisher hat der alte
+  kWh-Preis den Gesamtpreis beim Speichern wieder überschrieben. Im
+  Server-Modus braucht es dafür zusätzlich Lademonitor-Server 0.46.1.
 - **„Lädt gerade“.** Ein laufender Ladevorgang erscheint ganz oben im
   Dashboard und als grün markierter Eintrag über der Ladevorgangsliste – mit
   Beginn, Start-SoC und aktuellem SoC samt Ladebalken, bisher geladenen kWh
