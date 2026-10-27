@@ -120,6 +120,7 @@ fun AddEditSessionScreen(
     var priceTotal by remember { mutableStateOf(session?.priceTotal?.let { Fmt.n("%.2f", it) } ?: "") }
     var odometerKm by remember { mutableStateOf(session?.odometerKm?.toString() ?: "") }
     var outsideTempC by remember { mutableStateOf(session?.outsideTempC?.toString() ?: "") }
+    var avgSpeedKmh by remember { mutableStateOf(session?.avgSpeedKmh?.let { Math.round(it).toString() } ?: "") }
     var geocodedPlace by remember { mutableStateOf(session?.geocodedPlace ?: "") }
     var latitude by remember { mutableStateOf(session?.latitude?.let { Fmt.n("%.6f", it) } ?: "") }
     var longitude by remember { mutableStateOf(session?.longitude?.let { Fmt.n("%.6f", it) } ?: "") }
@@ -215,6 +216,8 @@ fun AddEditSessionScreen(
                 priceTotal = priceTotal.replace(",", ".").toDoubleOrNull(),
                 odometerKm = odometerKm.toIntOrNull(),
                 outsideTempC = outsideTempC.replace(",", ".").toDoubleOrNull(),
+                // 5..250 km/h wie auf dem Server - ein Tippfehler soll nicht das Speichern scheitern lassen.
+                avgSpeedKmh = avgSpeedKmh.replace(",", ".").toDoubleOrNull()?.takeIf { it in 5.0..250.0 },
                 latitude = latitude.replace(",", ".").toDoubleOrNull(),
                 longitude = longitude.replace(",", ".").toDoubleOrNull(),
                 geocodedPlace = geocodedPlace.trim().ifEmpty { null },
@@ -368,6 +371,15 @@ fun AddEditSessionScreen(
                     value = outsideTempC,
                     onValueChange = { input -> outsideTempC = input.filter { it.isDigit() || it in "-,." } },
                     label = { Text(stringResource(R.string.add_session_field_outside_temp_optional)) }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                )
+                // Ø-Geschwindigkeit "seit Laden" aus dem Bordcomputer - damit teilt der Server den
+                // Verbrauch in Tempo und Temperatur auf (Detailansicht, nur im Server-Modus).
+                OutlinedTextField(
+                    value = avgSpeedKmh,
+                    onValueChange = { input -> avgSpeedKmh = input.filter { it.isDigit() || it in ",." } },
+                    label = { Text(stringResource(R.string.add_session_field_avg_speed_optional)) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 )

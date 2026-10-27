@@ -12,6 +12,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ChargingSessionPa
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.CombustionVehicleOut
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.CombustionVehiclePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.DeletionsResponse
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.DriveBreakdownStats
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.EmailUpdatePayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.GeocodeResult
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.LocationPayload
@@ -540,6 +541,10 @@ object ApiClient {
      * Uhrzeit) — anders als bei der Zusammenfassung, die aus dem lokalen Spiegel kommt und
      * dort gefiltert wird.
      */
+    /** Mehrverbrauch je Fahrt nach Tempo und Temperatur (Server ab 0.47.0), nur Server-Modus. */
+    suspend fun fetchDriveBreakdown(vehicleId: String): DriveBreakdownStats =
+        send("/api/stats/drive-breakdown?vehicle_id=$vehicleId", type = DriveBreakdownStats::class.java)
+
     suspend fun fetchTemperatureStats(
         vehicleId: String? = null,
         startDate: LocalDate? = null,

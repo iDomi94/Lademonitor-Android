@@ -651,6 +651,7 @@ object SyncService {
                     priceTotal = session.priceTotal,
                     odometerKm = session.odometerKm,
                     outsideTempC = session.outsideTempC,
+                    avgSpeedKmh = session.avgSpeedKmh,
                     latitude = session.latitude,
                     longitude = session.longitude,
                     geocodedPlace = session.geocodedPlace,
@@ -922,7 +923,7 @@ object SyncService {
                         latitude = ss.latitude, longitude = ss.longitude, geocodedPlace = ss.geocodedPlace,
                         notes = ss.notes, source = ss.source, needsReview = ss.needsReview,
                         externalSessionId = ss.externalSessionId, energyMeter = ss.energyMeter,
-                        isDirty = false
+                        avgSpeedKmh = ss.avgSpeedKmh, isDirty = false
                     )
                 )
             }
@@ -943,6 +944,7 @@ object SyncService {
         session.odometerKm = dto.odometerKm
         session.outsideTempC = dto.outsideTempC
         session.outsideTempSource = dto.outsideTempSource
+        session.avgSpeedKmh = dto.avgSpeedKmh
         session.priceTotal = dto.priceTotal
         session.pricePerKwh = dto.pricePerKwh
         session.latitude = dto.latitude

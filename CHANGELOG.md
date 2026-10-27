@@ -2,6 +2,11 @@
 
 ## Unveröffentlicht
 
+- **Mehrverbrauch nach Tempo und Temperatur.** Neues Feld „Ø km/h seit
+  Laden“ beim Ladevorgang (Durchschnittsgeschwindigkeit aus dem
+  Bordcomputer), synchronisiert und auch im Local-Only-Modus. Im Server-Modus
+  (ab Lademonitor-Server 0.47.0) zeigt die Detailansicht den Verbrauch
+  aufgeteilt in dein Normal, Tempo, Temperatur und Rest. Room-Migration 9 → 10.
 - **Gesamtpreis beim Bearbeiten.** Ein neu eingetragener Gesamtpreis bleibt
   jetzt stehen, der Preis je kWh wird daraus berechnet. Bisher hat der alte
   kWh-Preis den Gesamtpreis beim Speichern wieder überschrieben. Im

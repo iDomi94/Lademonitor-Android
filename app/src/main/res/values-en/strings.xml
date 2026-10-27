@@ -300,6 +300,14 @@
     <string name="add_session_field_location_optional">Charging location (optional)</string>
     <string name="add_session_field_odometer_optional">Odometer reading (optional)</string>
     <string name="add_session_field_outside_temp_optional">Outside temperature (°C, optional)</string>
+    <string name="session_detail_label_avg_speed">Avg since charge</string>
+    <string name="session_detail_section_breakdown">Extra consumption</string>
+    <string name="session_detail_label_breakdown_normal">Your normal</string>
+    <string name="session_detail_label_breakdown_speed">Speed</string>
+    <string name="session_detail_label_breakdown_temp">Temperature</string>
+    <string name="session_detail_label_breakdown_rest">Rest</string>
+    <string name="session_detail_breakdown_footer">Compared with your normal at avg %1$d km/h without heating or cooling, from %2$d drives. The rest covers wind, rain, gradient and driving style.</string>
+    <string name="add_session_field_avg_speed_optional">Avg km/h since charge (trip computer, optional)</string>
     <string name="add_session_section_position">Position</string>
     <string name="add_session_use_location_action">Use from charging location</string>
     <string name="add_session_coordinates_format">Coordinates: %1$s, %2$s</string>

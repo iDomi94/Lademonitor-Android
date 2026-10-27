@@ -357,7 +357,13 @@ data class ChargingSession(
      * Das vom Server zusaetzlich gelieferte `energy_meter_effective` wird bewusst nicht
      * uebernommen: gespiegelt wird nur der Rohwert, wirksam ist [effectiveEnergyMeter].
      */
-    @Json(name = "energy_meter") val energyMeter: String? = null
+    @Json(name = "energy_meter") val energyMeter: String? = null,
+    /**
+     * Durchschnittsgeschwindigkeit seit dem letzten Laden in km/h, aus dem Bordcomputer abgelesen
+     * (Server ab 0.47.0). Beschreibt dieselbe Strecke wie der Verbrauch dieses Vorgangs und teilt
+     * dessen Mehrverbrauch in Tempo und Temperatur auf ([DriveBreakdownStats]).
+     */
+    @Json(name = "avg_speed_kmh") val avgSpeedKmh: Double? = null
 ) {
     /** Uebersteuerung am Vorgang, sonst Standard des Anbieters aus [providers], sonst Ladesaeule. */
     fun effectiveEnergyMeter(providers: List<Provider>): EnergyMeter =
@@ -444,7 +450,9 @@ data class ChargingSessionPayload(
      * (`encode`), liesse sich also nie zuruecksetzen. Der Server wie auch der lokale Speicher
      * legen eine Wahl, die dem Standard des Anbieters entspricht, selbst als null ab.
      */
-    @Json(name = "energy_meter") val energyMeter: String? = null
+    @Json(name = "energy_meter") val energyMeter: String? = null,
+    /** Ø km/h seit dem letzten Laden, null = unveraendert (wird nicht gesendet). */
+    @Json(name = "avg_speed_kmh") val avgSpeedKmh: Double? = null
 )
 
 // MARK: - Auth
@@ -720,6 +728,39 @@ data class DeletionsResponse(
 )
 
 // ---------- Verbrauch nach Aussentemperatur ----------
+
+/**
+ * Antwort von `GET /api/stats/drive-breakdown` (Server ab 0.47.0): Mehrverbrauch je Fahrt nach
+ * Tempo und Temperatur. Wie die Temperaturauswertung nur im Server-Modus - das Modell
+ * (`drive_breakdown.py`) wird je Fahrzeug aus allen Fahrten mit Tempo angepasst.
+ */
+@JsonClass(generateAdapter = true)
+data class DriveBreakdownStats(
+    @Json(name = "vehicle_id") val vehicleId: String? = null,
+    @Json(name = "needs_vehicle") val needsVehicle: Boolean = false,
+    val model: DriveBreakdownModel? = null,
+    val drives: List<DriveBreakdownPoint> = emptyList(),
+    @Json(name = "drives_without_speed") val drivesWithoutSpeed: Int = 0,
+    @Json(name = "min_drives") val minDrives: Int = 5
+)
+
+@JsonClass(generateAdapter = true)
+data class DriveBreakdownModel(
+    /** Verbrauch bei Bezugstempo ohne Heizen/Kuehlen - "dein Normal". */
+    @Json(name = "normal_consumption") val normalConsumption: Double,
+    @Json(name = "reference_speed_kmh") val referenceSpeedKmh: Double,
+    @Json(name = "drive_count") val driveCount: Int
+)
+
+/** Eine Fahrt: base + speed + temperature + rest = Verbrauch. */
+@JsonClass(generateAdapter = true)
+data class DriveBreakdownPoint(
+    @Json(name = "session_id") val sessionId: String,
+    val base: Double,
+    val speed: Double,
+    val temperature: Double,
+    val rest: Double
+)
 
 /**
  * Antwort von `GET /api/stats/temperature`.
