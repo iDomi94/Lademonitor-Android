@@ -663,6 +663,7 @@ object LocalDataStore {
 
     suspend fun updateSession(id: String, payload: ChargingSessionPayload): ChargingSession {
         val session = sessions.find(id) ?: throw LocalStoreException.notFound()
+        val previousTotal = session.priceTotal
         payload.providerId?.let { session.providerId = it }
         payload.locationId?.let { session.locationId = it }
         payload.startTime?.let { session.startTime = it }
@@ -702,6 +703,23 @@ object LocalDataStore {
         // Nach dem Anbieter: normalisiert wird gegen den Standard des (ggf. neuen) Anbieters.
         payload.energyMeter?.let {
             session.energyMeter = EnergyMeter.normalizedOverride(it, providerEnergyMeter(session.providerId))
+        }
+        // Preise wie update_session() im Backend: ein GEAENDERTER Gesamtpreis gewinnt, der
+        // Preis je kWh wird daraus gerechnet. Das Formular schickt ein geleertes Feld als null
+        // (= "nicht aendern"), der alte kWh-Preis bliebe sonst stehen und wuerde den
+        // Gesamtpreis beim Sync auf dem Server wieder zurueckrechnen.
+        val totalChanged = payload.priceTotal?.let { new ->
+            previousTotal == null || kotlin.math.abs(new - previousTotal) > 1e-6
+        } ?: false
+        val kwh = session.energyKwh
+        if (kwh != null && kwh > 0) {
+            val total = session.priceTotal
+            val perKwh = session.pricePerKwh
+            if (total != null && total > 0 && (totalChanged || perKwh == null || perKwh == 0.0)) {
+                session.pricePerKwh = Math.round(total / kwh * 10_000) / 10_000.0
+            } else if (perKwh != null && perKwh > 0) {
+                session.priceTotal = Math.round(perKwh * kwh * 100) / 100.0
+            }
         }
         session.updatedAt = System.currentTimeMillis()
         session.isDirty = true
