@@ -75,6 +75,13 @@ plus a **server mode with bidirectional synchronization**.
   Lademonitor-Server 0.23.0). It means the value **at the start of charging**,
   because a session's consumption comes from the drive before it. Works in
   local-only mode too.
+- **Solar share of home charging:** optional "Of which from the grid (kWh)"
+  per session – the rest came for free from solar panels or a home battery.
+  Shown in the detail view ("☀ Sun/home battery 78 % (12.4 kWh) · Grid 22 %
+  (3.5 kWh)"), as a small "☀ 78 %" badge in the list and as the solar share
+  under "Total kWh" on the dashboard. Filled automatically with
+  Lademonitor-Server 0.41.0 and the Home Assistant integration 0.7.0; manual
+  entry also works in local-only mode.
 - **Tires** (Settings → Tires): record every tire change with type, date, odometer reading,
   size (front and rear separately for a staggered fitment), brand and model.
   Plus the overview of how long a set was fitted, how many

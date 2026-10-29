@@ -116,6 +116,7 @@ fun AddEditSessionScreen(
     var socStartKnown by remember { mutableStateOf(session == null || session.socStart != null) }
     var socEnd by remember { mutableStateOf((session?.socEnd ?: 80).toFloat()) }
     var energyKwh by remember { mutableStateOf(session?.energyKwh?.let { Fmt.n("%.2f", it) } ?: "") }
+    var gridEnergyKwh by remember { mutableStateOf(session?.gridEnergyKwh?.let { Fmt.n("%.2f", it) } ?: "") }
     var pricePerKwh by remember { mutableStateOf(session?.pricePerKwh?.let { Fmt.n("%.4f", it) } ?: "") }
     var priceTotal by remember { mutableStateOf(session?.priceTotal?.let { Fmt.n("%.2f", it) } ?: "") }
     var odometerKm by remember { mutableStateOf(session?.odometerKm?.toString() ?: "") }
@@ -141,6 +142,7 @@ fun AddEditSessionScreen(
     var locationMenu by remember { mutableStateOf(false) }
     val searchNoResultsMessage = stringResource(R.string.add_session_search_no_results)
     val searchFailedMessage = stringResource(R.string.location_search_failed)
+    val gridEnergyInvalidMessage = stringResource(R.string.add_session_grid_energy_invalid)
 
     /** Standard-Messort des gewaehlten Anbieters - beim Anbieterwechsel wird darauf zurueckgesetzt. */
     fun providerDefaultMeter(): EnergyMeter =
@@ -200,7 +202,21 @@ fun AddEditSessionScreen(
         )
     }
 
+    // Netzanteil nur gegen die Energiemenge pruefen, wenn beides eingetragen ist: ohne
+    // Energiemenge (wird dann automatisch ermittelt) laesst sich nichts vergleichen.
+    fun gridEnergyInvalid(): Boolean {
+        val grid = gridEnergyKwh.replace(",", ".").toDoubleOrNull() ?: return false
+        val energy = energyKwh.replace(",", ".").toDoubleOrNull()
+        return grid < 0.0 || (energy != null && grid > energy + 1e-6)
+    }
+
     fun save() {
+        if (gridEnergyInvalid()) {
+            errorMessage = gridEnergyInvalidMessage
+            return
+        }
+        val energyValue = energyKwh.replace(",", ".").toDoubleOrNull()
+        val gridValue = gridEnergyKwh.replace(",", ".").toDoubleOrNull()
         scope.launch {
             isSaving = true; errorMessage = null
             val payload = ChargingSessionPayload(
@@ -211,7 +227,8 @@ fun AddEditSessionScreen(
                 chargingType = chargingType.raw,
                 socStart = if (socEnabled && socStartKnown) socStart.toInt() else null,
                 socEnd = if (socEnabled) socEnd.toInt() else null,
-                energyKwh = energyKwh.replace(",", ".").toDoubleOrNull(),
+                energyKwh = energyValue,
+                gridEnergyKwh = gridValue,
                 pricePerKwh = pricePerKwh.replace(",", ".").toDoubleOrNull(),
                 priceTotal = priceTotal.replace(",", ".").toDoubleOrNull(),
                 odometerKm = odometerKm.toIntOrNull(),
@@ -325,6 +342,16 @@ fun AddEditSessionScreen(
             SectionCard {
                 FieldLabel(stringResource(R.string.add_session_section_energy_price))
                 DecimalField(stringResource(R.string.session_detail_label_kwh), energyKwh, stringResource(R.string.add_session_kwh_placeholder)) { energyKwh = it }
+                // Netzbezug fuer den Sonnenanteil beim Laden zuhause. Home Assistant traegt ihn
+                // selbst ein (Integration ab 0.7.0), hier steht er zum Nachtragen/Korrigieren.
+                DecimalField(stringResource(R.string.add_session_field_grid_energy), gridEnergyKwh, stringResource(R.string.field_optional_placeholder)) { gridEnergyKwh = it }
+                val gridInvalid = gridEnergyInvalid()
+                Text(
+                    if (gridInvalid) gridEnergyInvalidMessage else stringResource(R.string.add_session_grid_energy_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (gridInvalid) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
                 Text(
                     stringResource(R.string.add_session_energy_meter_label),
                     style = MaterialTheme.typography.bodyMedium,
