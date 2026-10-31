@@ -62,13 +62,10 @@ object AppSettings {
         prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         _serverUrlString.value = prefs.getString(KEY_SERVER_URL, "") ?: ""
         _appMode.value = AppMode.from(prefs.getString(KEY_APP_MODE, null))
-        if (prefs.contains(KEY_ONBOARDING_COMPLETED)) {
-            _onboardingCompleted.value = prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false)
-        } else {
-            // Existing users (mode already chosen) are not shown the introduction unasked after
-            // the update - it waits in the settings under "Hilfe". Same rule as on iOS.
-            setOnboardingCompleted(_appMode.value != AppMode.UNDECIDED)
-        }
+        // Never seen yet, new and existing users alike: existing users (mode already chosen) get it
+        // once after the update on top of the app (LademonitorRoot), new users before the mode
+        // selection. Same rule as on iOS.
+        _onboardingCompleted.value = prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false)
     }
 
     fun setOnboardingCompleted(value: Boolean) {

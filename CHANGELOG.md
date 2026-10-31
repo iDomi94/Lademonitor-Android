@@ -10,8 +10,8 @@
   „Einführung ansehen“ wieder zurück.
 - Unter Einstellungen → Hilfe → „Einführung erneut ansehen“ lässt sie sich
   jederzeit wieder öffnen; die letzte Seite markiert dann den Modus, den du
-  gerade nutzt. Wer die App schon eingerichtet hat, bekommt sie nach dem
-  Update nicht ungefragt angezeigt. Gleicher Inhalt wie in der iOS-App 1.14.0.
+  gerade nutzt. Wer die App schon eingerichtet hat, sieht sie einmalig
+  nach dem Update. Gleicher Inhalt wie in der iOS-App 1.14.0.
 
 ## 1.6 (2026-10-29)
 

@@ -95,10 +95,13 @@ fun LademonitorRoot() {
     // never appear. LademonitorRoot exists in every state.
     LocalDataDecisionDialog()
 
-    // Aus den Einstellungen erneut geoeffnet: ueber allem, auch ueber der Navigationsleiste
-    // (wie das fullScreenCover in iOS).
-    if (onboardingReplay && appMode != AppMode.UNDECIDED) {
-        OnboardingScreen(OnboardingContext.REPLAY) { OnboardingReplay.hide() }
+    // Aus den Einstellungen erneut geoeffnet, oder einmalig nach dem Update fuer Bestandsnutzer:
+    // ueber allem, auch ueber der Navigationsleiste (wie das fullScreenCover in iOS).
+    if (appMode != AppMode.UNDECIDED && (onboardingReplay || !onboardingCompleted)) {
+        OnboardingScreen(OnboardingContext.REPLAY) {
+            AppSettings.setOnboardingCompleted(true)
+            OnboardingReplay.hide()
+        }
     }
 }
 
