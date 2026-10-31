@@ -24,6 +24,7 @@ object AppSettings {
     private const val PREFS = "lademonitor_settings"
     private const val KEY_SERVER_URL = "serverURL"
     private const val KEY_APP_MODE = "appMode"
+    private const val KEY_ONBOARDING_COMPLETED = "onboardingCompleted"
 
     /** The public server operated by us - the alternative to self-hosting, see [ServerHosting]. */
     const val CLOUD_SERVER_URL = "https://lademonitor.cloud"
@@ -49,10 +50,30 @@ object AppSettings {
     private val _appMode = MutableStateFlow(AppMode.UNDECIDED)
     val appMode: StateFlow<AppMode> = _appMode
 
+    private val _onboardingCompleted = MutableStateFlow(false)
+
+    /**
+     * Whether the introduction (OnboardingScreen) was finished or skipped once. Only controls the
+     * very first launch - from the settings it can be opened again at any time.
+     */
+    val onboardingCompleted: StateFlow<Boolean> = _onboardingCompleted
+
     fun init(context: Context) {
         prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         _serverUrlString.value = prefs.getString(KEY_SERVER_URL, "") ?: ""
         _appMode.value = AppMode.from(prefs.getString(KEY_APP_MODE, null))
+        if (prefs.contains(KEY_ONBOARDING_COMPLETED)) {
+            _onboardingCompleted.value = prefs.getBoolean(KEY_ONBOARDING_COMPLETED, false)
+        } else {
+            // Existing users (mode already chosen) are not shown the introduction unasked after
+            // the update - it waits in the settings under "Hilfe". Same rule as on iOS.
+            setOnboardingCompleted(_appMode.value != AppMode.UNDECIDED)
+        }
+    }
+
+    fun setOnboardingCompleted(value: Boolean) {
+        _onboardingCompleted.value = value
+        prefs.edit().putBoolean(KEY_ONBOARDING_COMPLETED, value).apply()
     }
 
     fun setServerUrlString(value: String) {

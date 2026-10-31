@@ -41,6 +41,9 @@ import com.dominiqueherbrigpersonalteam.lademonitor.ui.auth.AuthScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.auth.ModeSelectionScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.dashboard.DashboardScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.map.MapScreen
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.onboarding.OnboardingContext
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.onboarding.OnboardingReplay
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.onboarding.OnboardingScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.sessions.SessionsListScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.AccountSettingsScreen
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.settings.ChargeBarSettingsScreen
@@ -68,9 +71,14 @@ import kotlinx.coroutines.launch
 fun LademonitorRoot() {
     val appMode by AppSettings.appMode.collectAsStateWithLifecycle()
     val isAuthenticated by SessionManager.isAuthenticated.collectAsStateWithLifecycle()
+    val onboardingCompleted by AppSettings.onboardingCompleted.collectAsStateWithLifecycle()
+    val onboardingReplay by OnboardingReplay.visible.collectAsStateWithLifecycle()
 
     when (appMode) {
-        AppMode.UNDECIDED -> ModeSelectionScreen()
+        // Erster Start: erst die Einfuehrung, dann die Moduswahl.
+        AppMode.UNDECIDED ->
+            if (onboardingCompleted) ModeSelectionScreen()
+            else OnboardingScreen(OnboardingContext.FIRST_LAUNCH) { AppSettings.setOnboardingCompleted(true) }
         AppMode.LOCAL_ONLY -> MainScaffold()
         AppMode.SERVER -> {
             if (isAuthenticated) {
@@ -86,6 +94,12 @@ fun LademonitorRoot() {
     // already left the hierarchy (see SyncService.pendingLocalDataDecision), so its dialog would
     // never appear. LademonitorRoot exists in every state.
     LocalDataDecisionDialog()
+
+    // Aus den Einstellungen erneut geoeffnet: ueber allem, auch ueber der Navigationsleiste
+    // (wie das fullScreenCover in iOS).
+    if (onboardingReplay && appMode != AppMode.UNDECIDED) {
+        OnboardingScreen(OnboardingContext.REPLAY) { OnboardingReplay.hide() }
+    }
 }
 
 /**

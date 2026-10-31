@@ -41,6 +41,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.Fmt
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.SectionCard
+import com.dominiqueherbrigpersonalteam.lademonitor.ui.onboarding.OnboardingReplay
 import androidx.compose.material3.AlertDialog
 import kotlinx.coroutines.launch
 
@@ -116,6 +117,11 @@ fun SettingsScreen(navController: NavController) {
             SectionCard {
                 SettingsHeader(stringResource(R.string.settings_section_server))
                 SettingsNavRow(stringResource(R.string.settings_nav_connection)) { navController.navigate("settings/connection") }
+            }
+
+            SectionCard {
+                SettingsHeader(stringResource(R.string.settings_section_help))
+                SettingsActionText(stringResource(R.string.settings_restart_onboarding)) { OnboardingReplay.show() }
             }
 
             if (appMode == AppMode.SERVER) {
