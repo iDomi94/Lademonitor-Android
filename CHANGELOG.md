@@ -1,6 +1,19 @@
 # Changelog
 
-## 1.6 (unveröffentlicht)
+## 1.7 (unveröffentlicht)
+
+- **Einführung beim ersten Start**: ein paar Seiten zu den wichtigsten
+  Funktionen (Ladevorgänge erfassen, Dashboard, Kosten und Erinnerungen rund
+  ums Auto, Tools) und zum Schluss der Unterschied zwischen „Nur lokal“,
+  eigenem Server und Lademonitor-Cloud – danach geht es wie bisher zur
+  Moduswahl. Überspringen geht jederzeit, die Moduswahl führt über
+  „Einführung ansehen“ wieder zurück.
+- Unter Einstellungen → Hilfe → „Einführung erneut ansehen“ lässt sie sich
+  jederzeit wieder öffnen; die letzte Seite markiert dann den Modus, den du
+  gerade nutzt. Wer die App schon eingerichtet hat, sieht sie einmalig
+  nach dem Update. Gleicher Inhalt wie in der iOS-App 1.14.0.
+
+## 1.6 (2026-10-29)
 
 - **Sonnenanteil beim Laden zuhause**: neues optionales Feld „Davon aus dem
   Netz (kWh)“ beim Ladevorgang (`grid_energy_kwh`), der Rest der geladenen

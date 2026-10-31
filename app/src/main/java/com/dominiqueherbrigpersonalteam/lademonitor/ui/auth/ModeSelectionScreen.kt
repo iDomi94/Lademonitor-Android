@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -97,6 +98,13 @@ fun ModeSelectionScreen() {
             ) {
                 AppSettings.setServerHosting(AppSettings.ServerHosting.CLOUD)
                 AppSettings.setAppMode(AppMode.SERVER)
+            }
+
+            // Zurueck zur Einfuehrung, falls sie uebersprungen wurde - dort steht der Unterschied
+            // der drei Wege ausfuehrlicher.
+            Spacer(Modifier.size(16.dp))
+            TextButton(onClick = { AppSettings.setOnboardingCompleted(false) }) {
+                Text(stringResource(R.string.onboarding_view))
             }
         }
     }
