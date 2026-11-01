@@ -396,7 +396,7 @@ data class ChargingSession(
                 pricePerKwh != null -> pricePerKwh + (feeShare ?: 0.0) / energy
                 else -> return null
             }
-            return consumption * perKwh / 100
+            return consumption * perKwh
         }
 
     /**
