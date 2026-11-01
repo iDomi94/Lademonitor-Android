@@ -1,6 +1,11 @@
 # Changelog
 
-## 1.7 (unveröffentlicht)
+## 1.8 (unveröffentlicht)
+
+- **€/100 km je Ladevorgang**: der Wert war um den Faktor 100 zu klein
+  (0,06 statt 6,23 €/100km). Behoben.
+
+## 1.7 (2026-11-01)
 
 - **Einführung beim ersten Start**: ein paar Seiten zu den wichtigsten
   Funktionen (Ladevorgänge erfassen, Dashboard, Kosten und Erinnerungen rund
