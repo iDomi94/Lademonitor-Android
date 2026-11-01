@@ -348,7 +348,8 @@ private fun SessionRow(
             if (session.consumptionKwhPer100km != null && method != null && method != com.dominiqueherbrigpersonalteam.lademonitor.data.model.ConsumptionMethod.UNAVAILABLE) {
                 Text(
                     (if (method.marker.isNotEmpty()) method.marker + " " else "") +
-                        Fmt.n("%.1f kWh/100km", session.consumptionKwhPer100km!!),
+                        Fmt.n("%.1f kWh/100km", session.consumptionKwhPer100km!!) +
+                        (session.costPer100km?.let { " · " + Fmt.n("%.2f €/100km", it) } ?: ""),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
