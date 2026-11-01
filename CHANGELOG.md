@@ -12,6 +12,11 @@
   jederzeit wieder öffnen; die letzte Seite markiert dann den Modus, den du
   gerade nutzt. Wer die App schon eingerichtet hat, sieht sie einmalig
   nach dem Update. Gleicher Inhalt wie in der iOS-App 1.14.0.
+- **€/100 km je Ladevorgang**: in der Liste steht neben dem Verbrauch jetzt
+  auch, was die Strecke seit dem vorherigen Ladevorgang je 100 km gekostet
+  hat („17,8 kWh/100km · 6,23 €/100km“). Live gerechnet aus Verbrauch und
+  effektivem Preis je kWh inklusive Grundgebühr-Anteil; ohne Preis oder
+  Verbrauch bleibt der Wert weg. Wie in der iOS-App 1.15.0.
 
 ## 1.6 (2026-10-29)
 

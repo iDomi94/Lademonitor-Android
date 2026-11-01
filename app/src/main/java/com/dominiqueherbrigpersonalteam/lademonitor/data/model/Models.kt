@@ -381,6 +381,25 @@ data class ChargingSession(
         get() = if (priceTotal == null && feeShare == null) null else (priceTotal ?: 0.0) + (feeShare ?: 0.0)
 
     /**
+     * Kosten je 100 km der Strecke seit dem vorherigen Ladevorgang: Verbrauch x effektiver Preis je
+     * kWh dieses Vorgangs (Saeulenpreis plus Grundgebuehranteil, verteilt auf die geladenen kWh).
+     * Live gerechnet, nichts gespeichert; `null`, wenn Verbrauch, Preis oder Energie fehlen. Gleiche
+     * Regel wie `ChargingSession.costPer100km` in der iOS-App.
+     */
+    val costPer100km: Double?
+        get() {
+            val consumption = consumptionKwhPer100km ?: return null
+            if (consumptionMethodValue == ConsumptionMethod.UNAVAILABLE) return null
+            val energy = energyKwh?.takeIf { it > 0 } ?: return null
+            val perKwh = when {
+                priceTotal != null -> (priceTotal + (feeShare ?: 0.0)) / energy
+                pricePerKwh != null -> pricePerKwh + (feeShare ?: 0.0) / energy
+                else -> return null
+            }
+            return consumption * perKwh / 100
+        }
+
+    /**
      * Sonnen-/Hausakku-Anteil, sobald Energie und Netzbezug bekannt sind; sonst `null`.
      * Ein Netzbezug ueber der Energiemenge (Messungenauigkeit) zaehlt als 0 % Sonne.
      */
