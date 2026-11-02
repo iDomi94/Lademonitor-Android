@@ -318,6 +318,8 @@ data class LocalVehicleCost(
     var odometerKm: Int? = null,
     var label: String? = null,
     var notes: String? = null,
+    /** Room 11 -> 12: Kosten auf Monate verteilen (Server ab 0.49.0). */
+    var spreadMonths: Int? = null,
     var createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis(),
     var isDirty: Boolean = true,
@@ -333,7 +335,8 @@ data class LocalVehicleCost(
         endDate = endDate,
         odometerKm = odometerKm,
         label = label,
-        notes = notes
+        notes = notes,
+        spreadMonths = spreadMonths
     )
 }
 

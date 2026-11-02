@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -244,6 +245,19 @@ private fun CostRow(cost: VehicleCost, modifier: Modifier = Modifier) {
                 color = secondary
             )
         }
+        val monthly = LocalVehicleCostCalculator.spreadMonthly(cost)
+        if (cost.spreadMonths != null && monthly != null) {
+            Text(
+                stringResource(R.string.vehicle_cost_spread_info, cost.spreadMonths, Fmt.n("%.2f €", monthly)),
+                style = MaterialTheme.typography.bodySmall,
+                color = secondary
+            )
+            Text(
+                stringResource(R.string.vehicle_cost_spread_so_far, Fmt.n("%.2f €", LocalVehicleCostCalculator.spreadToDate(cost))),
+                style = MaterialTheme.typography.bodySmall,
+                color = secondary
+            )
+        }
         cost.odometerKm?.let { Text(Fmt.km(it), style = MaterialTheme.typography.bodySmall, color = secondary) }
     }
 }
@@ -289,6 +303,13 @@ fun AddEditVehicleCostModal(
     var odometer by remember { mutableStateOf((if (cost != null) cost.odometerKm else prefill?.odometerKm)?.toString() ?: "") }
     var label by remember { mutableStateOf(if (cost != null) cost.label ?: "" else prefill?.label ?: "") }
     var notes by remember { mutableStateOf(cost?.notes ?: "") }
+    val initialSpread = cost?.spreadMonths
+    val initialSpreadYears = initialSpread == null || initialSpread % 12 == 0
+    var isSpread by remember { mutableStateOf(initialSpread != null) }
+    var spreadInYears by remember { mutableStateOf(initialSpreadYears) }
+    var spreadCount by remember {
+        mutableStateOf(initialSpread?.let { (if (initialSpreadYears) it / 12 else it).toString() } ?: "4")
+    }
     var categoryMenu by remember { mutableStateOf(false) }
     var intervalMenu by remember { mutableStateOf(false) }
     var pickingDate by remember { mutableStateOf<CostDateField?>(null) }
@@ -300,8 +321,11 @@ fun AddEditVehicleCostModal(
     val parsedAmount = amount.trim().replace(",", ".").toDoubleOrNull()
     val parsedOdometer = odometer.trim().toIntOrNull()
     val odometerOk = odometer.isBlank() || (parsedOdometer != null && parsedOdometer >= 0)
+    val spreadMonths: Int? = if (!isSpread) null else spreadCount.trim().toIntOrNull()
+        ?.takeIf { it > 0 }
+        ?.let { LocalVehicleCostCalculator.normalizedSpread(if (spreadInYears) it * 12 else it) }
     val canSave = parsedAmount != null && parsedAmount >= 0 && odometerOk &&
-        !(usesEndDate && endDate.isBefore(startDate))
+        !(usesEndDate && endDate.isBefore(startDate)) && !(isSpread && spreadMonths == null)
 
     fun save() {
         val value = parsedAmount ?: return
@@ -316,7 +340,8 @@ fun AddEditVehicleCostModal(
                 endDate = if (usesEndDate) endDate.atStartOfDay(zone).toInstant().toEpochMilli() else null,
                 odometerKm = parsedOdometer,
                 label = label.trim().ifEmpty { null },
-                notes = notes.trim().ifEmpty { null }
+                notes = notes.trim().ifEmpty { null },
+                spreadMonths = spreadMonths
             )
             try {
                 if (cost != null) AppRepository.updateVehicleCost(cost.id, payload)
@@ -393,6 +418,32 @@ fun AddEditVehicleCostModal(
                         }
                     }
                 }
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.vehicle_cost_field_spread), Modifier.weight(1f))
+                    Switch(checked = isSpread, onCheckedChange = { isSpread = it })
+                }
+                if (isSpread) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = spreadCount, onValueChange = { spreadCount = it }, singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f)
+                        )
+                        FilterChip(selected = !spreadInYears, onClick = { spreadInYears = false }, label = { Text(stringResource(R.string.vehicle_cost_unit_months)) })
+                        FilterChip(selected = spreadInYears, onClick = { spreadInYears = true }, label = { Text(stringResource(R.string.vehicle_cost_unit_years)) })
+                    }
+                    if (spreadMonths != null && parsedAmount != null) {
+                        Text(
+                            stringResource(R.string.vehicle_cost_spread_per_month, Fmt.n("%.2f €", parsedAmount / spreadMonths)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Text(
+                    stringResource(R.string.vehicle_cost_hint_spread),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 OutlinedTextField(
                     value = odometer, onValueChange = { odometer = it }, label = { Text(stringResource(R.string.vehicle_cost_field_odometer)) },
                     singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth()

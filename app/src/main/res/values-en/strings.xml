@@ -751,6 +751,13 @@
     <string name="vehicle_cost_yearly">yearly</string>
     <string name="vehicle_cost_until">until %1$s</string>
     <string name="vehicle_cost_paid_to_date">Paid so far %1$s</string>
+    <string name="vehicle_cost_field_spread">Spread over a longer period</string>
+    <string name="vehicle_cost_unit_months">Months</string>
+    <string name="vehicle_cost_unit_years">Years</string>
+    <string name="vehicle_cost_spread_per_month">%1$s per month</string>
+    <string name="vehicle_cost_hint_spread">Spreading counts each payment evenly over the chosen time, month by month from the payment date – e.g. tires over 4 years or the yearly insurance over 12 months.</string>
+    <string name="vehicle_cost_spread_info">Spread over %1$d months · %2$s/month</string>
+    <string name="vehicle_cost_spread_so_far">Counted so far %1$s</string>
     <string name="vehicle_cost_field_category">Category</string>
     <string name="vehicle_cost_field_amount">Amount (€)</string>
     <string name="vehicle_cost_field_interval">Repeat</string>
