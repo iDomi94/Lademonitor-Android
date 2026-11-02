@@ -1341,7 +1341,13 @@ data class VehicleCost(
     @ServerDate @Json(name = "end_date") val endDate: Long? = null,
     @Json(name = "odometer_km") val odometerKm: Int? = null,
     val label: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    /**
+     * Server ab 0.49.0: jede Zahlung gleichmaessig auf so viele Monate ab dem Zahltag verteilen
+     * ([com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalVehicleCostCalculator.spreadShares]).
+     * null = nicht verteilen.
+     */
+    @Json(name = "spread_months") val spreadMonths: Int? = null
 ) {
     val categoryValue: CostCategory get() = CostCategory.from(category)
 
@@ -1368,7 +1374,9 @@ data class VehicleCostPayload(
     @ServerDate @Json(name = "end_date") val endDate: Long? = null,
     @Json(name = "odometer_km") val odometerKm: Int? = null,
     val label: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    /** Ab 0.49.0; muss bei jedem PATCH mit, sonst setzt der Server die Verteilung auf null. */
+    @Json(name = "spread_months") val spreadMonths: Int? = null
 )
 
 /** Ein Posten der Gesamtkosten: "charging" | "depreciation" | "leasing" | eine [CostCategory]. */

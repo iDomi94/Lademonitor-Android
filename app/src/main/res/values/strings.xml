@@ -752,6 +752,13 @@
     <string name="vehicle_cost_yearly">jährlich</string>
     <string name="vehicle_cost_until">bis %1$s</string>
     <string name="vehicle_cost_paid_to_date">Bisher bezahlt %1$s</string>
+    <string name="vehicle_cost_field_spread">Auf längeren Zeitraum verteilen</string>
+    <string name="vehicle_cost_unit_months">Monate</string>
+    <string name="vehicle_cost_unit_years">Jahre</string>
+    <string name="vehicle_cost_spread_per_month">%1$s je Monat</string>
+    <string name="vehicle_cost_hint_spread">Verteilt zählt jede Zahlung gleichmäßig über die gewählte Zeit in die Kosten, Monat für Monat ab dem Zahltag – z. B. Reifen auf 4 Jahre oder die Jahresversicherung auf 12 Monate.</string>
+    <string name="vehicle_cost_spread_info">Verteilt auf %1$d Monate · %2$s/Monat</string>
+    <string name="vehicle_cost_spread_so_far">Davon in den Kosten %1$s</string>
     <string name="vehicle_cost_field_category">Kategorie</string>
     <string name="vehicle_cost_field_amount">Betrag (€)</string>
     <string name="vehicle_cost_field_interval">Wiederholung</string>

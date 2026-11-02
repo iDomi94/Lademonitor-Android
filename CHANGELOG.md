@@ -1,6 +1,18 @@
 # Changelog
 
-## 1.8 (unveröffentlicht)
+## 1.9 (unveröffentlicht)
+
+- **Kosten auf längere Zeiträume verteilen**: im Kostenformular „Auf
+  längeren Zeitraum verteilen“, Dauer in Monaten oder Jahren. Reifen für
+  800 € auf 4 Jahre zählen dann mit 16,67 € je Monat in Gesamtkosten, Kosten
+  je km und Jahresübersicht – Monat für Monat ab dem Kaufdatum, statt alles
+  im Kaufmonat. Bei jährlichen Zahlungen wird jede Zahlung für sich verteilt
+  (Versicherung auf 12 Monate). Die Liste zeigt Monatsanteil und was davon
+  bisher in die Kosten eingeflossen ist.
+- Wird im Server-Modus synchronisiert (braucht Server 0.49.0). Room-Migration
+  11 -> 12. Gleiches Verhalten wie in der iOS-App 1.16.0.
+
+## 1.8
 
 - **€/100 km je Ladevorgang**: der Wert war um den Faktor 100 zu klein
   (0,06 statt 6,23 €/100km). Behoben.

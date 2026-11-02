@@ -24,7 +24,9 @@ import kotlin.math.pow
  *
  * - Sonstige Kosten: `once` ist eine Zahlung am Startdatum, wiederkehrende laufen vom
  *   URSPRUENGLICHEN Ankertag aus (31.01. -> 28.02. -> 31.03.) bis zum inklusiven Enddatum bzw.
- *   bis heute. Ein Jahresbetrag zaehlt in dem Monat, in dem er faellig ist.
+ *   bis heute. Ein Jahresbetrag zaehlt in dem Monat, in dem er faellig ist. Seit Server 0.49.0
+ *   laesst sich jede Zahlung optional gleichmaessig auf `spreadMonths` Monate ab dem Zahltag
+ *   verteilen; nur begonnene Monate zaehlen, der Rundungsrest steckt im letzten Anteil.
  * - Leasing: Rate plus Sonderzahlung / Laufzeit in Monaten; ohne Enddatum zaehlt die
  *   Sonderzahlung im ersten Monat.
  * - Kauf: Restwertkurve (1. Jahr linear auf 75 %, danach x0,87 je Jahr) ueber das "wirksame
@@ -100,10 +102,40 @@ object LocalVehicleCostCalculator {
     fun paidToDate(cost: VehicleCost, until: LocalDate = LocalDate.now()): Double =
         round2(cost.amount * occurrences(cost, until).size)
 
+    const val MAX_SPREAD_MONTHS = 600
+
+    /** Wie der Server: 1 Monat (oder weniger) ist dasselbe wie gar nicht verteilen. */
+    fun normalizedSpread(months: Int?): Int? =
+        months?.takeIf { it > 1 }?.coerceAtMost(MAX_SPREAD_MONTHS)
+
+    /**
+     * Eine Zahlung, verteilt auf [months] Monatsanteile ab dem Zahltag, wie
+     * `vehicle_costs.spread_shares`: ohne Verteilung die eine Zahlung, sonst gleiche, auf den
+     * Cent gerundete Anteile; der Rundungsrest landet im LETZTEN Anteil.
+     */
+    fun spreadShares(amount: Double, day: LocalDate, months: Int?): List<Pair<LocalDate, Double>> {
+        if (months == null || months <= 1) return listOf(day to amount)
+        val share = round2(amount / months)
+        val last = round2(amount - share * (months - 1))
+        return (0 until months).map { k -> addMonths(day, k) to (if (k == months - 1) last else share) }
+    }
+
     fun costEntries(costs: List<VehicleCost>, until: LocalDate): List<CostEntry> =
         costs.flatMap { c ->
-            occurrences(c, until).map { CostEntry(c.vehicleId, it, c.amount, c.categoryValue.raw) }
+            occurrences(c, until).flatMap { payDay ->
+                spreadShares(c.amount, payDay, c.spreadMonths)
+                    .filter { !it.first.isAfter(until) }
+                    .map { CostEntry(c.vehicleId, it.first, it.second, c.categoryValue.raw) }
+            }
         }
+
+    /** Davon bis heute in die Kosten eingeflossen, wie `spread_to_date` im Server. */
+    fun spreadToDate(cost: VehicleCost, until: LocalDate = LocalDate.now()): Double =
+        round2(costEntries(listOf(cost), until).sumOf { it.amount })
+
+    /** Monatsanteil einer verteilten Zahlung, wie `spread_monthly`. */
+    fun spreadMonthly(cost: VehicleCost): Double? =
+        cost.spreadMonths?.takeIf { it > 1 }?.let { round2(cost.amount / it) }
 
     // ---------- Wertverlust ----------
 

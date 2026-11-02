@@ -392,7 +392,8 @@ object LocalDataStore {
             endDate = normalizedEndDate(payload),
             odometerKm = payload.odometerKm,
             label = payload.label,
-            notes = payload.notes
+            notes = payload.notes,
+            spreadMonths = LocalVehicleCostCalculator.normalizedSpread(payload.spreadMonths)
         )
         vehicleCosts.upsert(cost)
         return cost.asDTO()
@@ -410,6 +411,7 @@ object LocalDataStore {
         cost.odometerKm = payload.odometerKm
         cost.label = payload.label
         cost.notes = payload.notes
+        cost.spreadMonths = LocalVehicleCostCalculator.normalizedSpread(payload.spreadMonths)
         cost.updatedAt = System.currentTimeMillis()
         cost.isDirty = true
         vehicleCosts.upsert(cost)

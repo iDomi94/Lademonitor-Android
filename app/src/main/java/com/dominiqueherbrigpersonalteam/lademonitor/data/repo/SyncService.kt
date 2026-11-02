@@ -486,7 +486,8 @@ object SyncService {
                 val payload = VehicleCostPayload(
                     vehicleId = vehicleId, amount = cost.amount, category = cost.category,
                     interval = cost.interval, startDate = cost.startDate, endDate = cost.endDate,
-                    odometerKm = cost.odometerKm, label = cost.label, notes = cost.notes
+                    odometerKm = cost.odometerKm, label = cost.label, notes = cost.notes,
+                    spreadMonths = cost.spreadMonths
                 )
                 if (cost.serverId != null) {
                     ApiClient.updateVehicleCost(cost.serverId!!, payload)
@@ -826,6 +827,7 @@ object SyncService {
                     existing.odometerKm = sc.odometerKm
                     existing.label = sc.label
                     existing.notes = sc.notes
+                    existing.spreadMonths = sc.spreadMonths
                     vehicleCosts.upsert(existing)
                 }
             } else {
@@ -834,7 +836,7 @@ object SyncService {
                         serverId = sc.id, vehicleId = sc.vehicleId, amount = sc.amount,
                         category = sc.category, interval = sc.interval, startDate = sc.startDate,
                         endDate = sc.endDate, odometerKm = sc.odometerKm, label = sc.label,
-                        notes = sc.notes, isDirty = false
+                        notes = sc.notes, spreadMonths = sc.spreadMonths, isDirty = false
                     )
                 )
             }
