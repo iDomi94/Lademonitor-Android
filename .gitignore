@@ -9,3 +9,7 @@
 .cxx
 local.properties
 /app/build
+
+# Signatur / lokale Play-Konfiguration (nie ins Git)
+keystore.properties
+*.jks
