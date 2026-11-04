@@ -39,13 +39,18 @@ object LocalStatsCalculator {
      * [canonicalProviderIds] bildet lokale wie Server-IDs eines Anbieters auf `Provider.id` ab
      * ([LocalDataStore.canonicalProviderIds]) - ein Ladevorgang kann seinen Anbieter noch unter
      * der lokalen ID kennen, obwohl der inzwischen eine Server-ID hat.
+     *
+     * [sessions] muessen ausserdem `consumptionKwhPer100km`/`consumptionKm` ueber die ganze
+     * Historie tragen ([LocalDataStore.fetchSessions]); [history] sind alle Vorgaenge der
+     * betrachteten Fahrzeuge OHNE Zeitraumfilter, fuer den km-Anker vor dem Zeitraum.
      */
     fun compute(
         sessions: List<ChargingSession>,
         vehicles: List<Vehicle>,
         providers: List<Provider>,
         unallocatedFees: List<LocalFeeAllocator.Period> = emptyList(),
-        canonicalProviderIds: Map<String, String> = emptyMap()
+        canonicalProviderIds: Map<String, String> = emptyMap(),
+        history: List<ChargingSession>? = null
     ): StatsSummary {
         val sorted = sessions.sortedBy { it.startTime }
 
@@ -73,29 +78,44 @@ object LocalStatsCalculator {
             gridKwh = round2(shares.sumOf { it.gridKwh })
         )
 
-        val withOdo = sorted.filter { it.odometerKm != null }
-        var consumption: Double? = null
-        var pricePer100km: Double? = null
-        var totalKmDriven: Int? = null
-        if (withOdo.size >= 2) {
-            val first = withOdo.first().odometerKm
-            val last = withOdo.last().odometerKm
-            if (first != null && last != null) {
-                val kmDriven = last - first
-                totalKmDriven = kmDriven
-                if (kmDriven > 0) {
-                    val kwhInRange = withOdo.drop(1).sumOf { it.energyKwh ?: 0.0 }
-                    consumption = round1(kwhInRange / kmDriven.toDouble() * 100)
-                    // Wie die kWh ab dem zweiten Vorgang, dazu nur die nicht umgelegten
-                    // Gebuehren, deren Periode in genau diesem Zeitraum beginnt.
-                    val firstDay = LocalFeeAllocator.day(withOdo.first().startTime)
-                    val lastDay = LocalFeeAllocator.day(withOdo.last().startTime)
-                    val costInRange = withOdo.drop(1).sumOf { cost(it) } +
-                        unallocatedFees.filter { it.start.isAfter(firstDay) && !it.start.isAfter(lastDay) }
-                            .sumOf { it.amount }
-                    pricePer100km = round2(costInRange / kmDriven.toDouble() * 100)
-                }
+        // Verbrauch, Preis je 100 km und km - wie stats.py seit 0.49.1. Vorher: kWh ab dem zweiten
+        // Vorgang im Zeitraum / km zwischen erstem und letztem km-Stand. Bei kurzen Zeitraeumen hing
+        // das am Akkustand an den Raendern ("Monat bis jetzt", 04.11.2026: zwei Ladungen mit 19,4 und
+        // 20,6 kWh/100 km ergaben 29,5). Jetzt das km-gewichtete Mittel der Einzelwerte, die
+        // LocalDataStore ueber die GANZE Historie rechnet - also genau die Werte aus der Liste.
+        var consumptionNum = 0.0
+        var consumptionKmSum = 0.0
+        for (session in sorted) {
+            val value = session.consumptionKwhPer100km
+            val km = session.consumptionKm
+            if (value != null && km != null && km > 0) {
+                consumptionNum += value * km
+                consumptionKmSum += km
             }
+        }
+        val rawConsumption = if (consumptionKmSum > 0) consumptionNum / consumptionKmSum else null
+        val consumption = rawConsumption?.let { round1(it) }
+        // Verbrauch x Ø Preis je kWh (inkl. Grundgebuehren) - Kosten / km haette denselben
+        // Randfehler.
+        val pricePer100km = rawConsumption?.takeIf { totalKwh > 0 }?.let { round2(it * totalCost / totalKwh) }
+
+        // km je Fahrzeug: letzter Stand im Zeitraum minus Anker (letzter Stand VOR dem Zeitraum aus
+        // [history], sonst der erste im Zeitraum), wie stats.py/review.py. Summiert, damit bei
+        // mehreren Fahrzeugen nicht Kilometerstaende verschiedener Autos voneinander abgezogen werden.
+        var totalKmDriven: Int? = null
+        val firstStart = sorted.firstOrNull()?.startTime
+        val inRangeIds = sorted.map { it.id }.toSet()
+        val readingsSource = (history ?: sorted).sortedBy { it.startTime }
+        for (vehicleId in sorted.map { it.vehicleId }.toSet()) {
+            val readings = readingsSource.filter { it.vehicleId == vehicleId && it.odometerKm != null }
+            val inside = readings.filter { it.id in inRangeIds }
+            val last = inside.lastOrNull()?.odometerKm ?: continue
+            val firstInside = inside.first().odometerKm ?: continue
+            val before = if (firstStart == null) emptyList()
+                else readings.filter { it.startTime < firstStart && it.id !in inRangeIds }
+            if (before.isEmpty() && inside.size < 2) continue
+            val anchor = before.lastOrNull()?.odometerKm ?: firstInside
+            totalKmDriven = (totalKmDriven ?: 0) + maxOf(last - anchor, 0)
         }
 
         // Provider split; sessions without provider -> localized "No provider" placeholder.
@@ -149,15 +169,8 @@ object LocalStatsCalculator {
 
         val byPlace = buildByPlace(sorted, providers, unallocatedFees, canonicalProviderIds) { cost(it) }
 
-        // Monthly consumption: km-weighted mean over per-vehicle consumption results.
-        val consumptionByVehicle = HashMap<String, LocalConsumptionCalculator.Result>()
-        for (vehicle in vehicles) {
-            val vehicleSessions = sorted.filter { it.vehicleId == vehicle.id }
-            consumptionByVehicle.putAll(
-                LocalConsumptionCalculator.compute(vehicleSessions, vehicle.batteryCapacityKwh)
-            )
-        }
-
+        // Monatlicher Verbrauch: km-gewichtet ueber dieselben Einzelwerte wie oben (aus der ganzen
+        // Historie - sonst fehlte dem ersten Vorgang im Zeitraum sein Vorgaenger).
         val monthlyCost = HashMap<String, Double>()
         val monthlyFees = HashMap<String, Double>()
         val monthlyKwh = HashMap<String, Double>()
@@ -176,9 +189,8 @@ object LocalStatsCalculator {
             monthlyFees[key] = (monthlyFees[key] ?: 0.0) + (session.feeShare ?: 0.0)
             monthlyKwh[key] = (monthlyKwh[key] ?: 0.0) + (session.energyKwh ?: 0.0)
             monthlyCount[key] = (monthlyCount[key] ?: 0) + 1
-            val result = consumptionByVehicle[session.id]
-            val value = result?.value
-            val km = result?.km
+            val value = session.consumptionKwhPer100km
+            val km = session.consumptionKm
             if (value != null && km != null && km > 0) {
                 monthlyConsumptionNum[key] = (monthlyConsumptionNum[key] ?: 0.0) + value * km
                 monthlyConsumptionKm[key] = (monthlyConsumptionKm[key] ?: 0.0) + km
