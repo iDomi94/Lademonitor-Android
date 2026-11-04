@@ -13,6 +13,16 @@
 - Der Monatsverbrauch im Diagramm berücksichtigt beim ersten Ladevorgang im
   Zeitraum jetzt auch dessen Vorgänger. Gleiches Verhalten wie iOS 1.16.1
   und Server 0.49.1.
+- **THG-Quote eintragen**: neue Kostenkategorie „THG-Quote“ (Fahrzeug →
+  Kosten). Sie zählt als Gutschrift negativ für das Kalenderjahr ihres
+  Datums, gleichmäßig auf die Monate verteilt – 300 € sind 25 € pro Monat in
+  Gesamtkosten, Kosten je km und Jahresübersicht. Wurde das Auto erst im
+  Laufe des Jahres gekauft oder geleast, verteilt sie sich auf die Monate ab
+  dann. „Jährlich“ trägt sie für jedes Folgejahr ein.
+- Neue Funktionen, die einen neueren Server brauchen, bleiben auf einem
+  älteren Server sichtbar, sind aber gesperrt („Benötigt Server 0.50.0 oder
+  neuer“). Die App liest die Server-Version bei jedem Abgleich, im
+  Nur-lokal-Modus ist nichts gesperrt. Gleiches Verhalten wie iOS 1.17.0.
 
 ## 1.9
 

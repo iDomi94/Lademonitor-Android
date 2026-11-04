@@ -9,6 +9,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.ReminderNotifier
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.SyncService
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
+import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.ServerCapabilities
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.TokenStore
 import org.osmdroid.config.Configuration
 
@@ -34,6 +35,7 @@ class LademonitorApp : Application() {
         TokenStore.init(this)
         SessionManager.init()
         AppSettings.init(this)
+        ServerCapabilities.init(this)
         LocalStore.init(this)
         NetworkMonitor.init(this)
         SyncService.init(this)
