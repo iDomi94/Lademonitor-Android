@@ -1,6 +1,20 @@
 # Changelog
 
-## 1.9 (unveröffentlicht)
+## 1.10 (unveröffentlicht)
+
+- **Dashboard: Ø Verbrauch passt jetzt auch bei kurzen Zeiträumen** wie
+  „Monat bis jetzt“. Er ist der nach km gewichtete Durchschnitt der Werte,
+  die auch in der Liste stehen. Vorher zählten nur die kWh ab der zweiten
+  Ladung im Zeitraum, egal wie voll der Akku danach war – zwei Ladungen mit
+  19,4 und 20,6 kWh/100 km ergaben so 29,5.
+- Preis je 100 km = Ø Verbrauch × Ø Preis je kWh (inkl. Grundgebühren).
+- Gefahrene Kilometer zählen ab dem letzten Kilometerstand vor dem Zeitraum
+  (wie im Rückblick), bei mehreren Fahrzeugen je Fahrzeug addiert.
+- Der Monatsverbrauch im Diagramm berücksichtigt beim ersten Ladevorgang im
+  Zeitraum jetzt auch dessen Vorgänger. Gleiches Verhalten wie iOS 1.16.1
+  und Server 0.49.1.
+
+## 1.9
 
 - **Kosten auf längere Zeiträume verteilen**: im Kostenformular „Auf
   längeren Zeitraum verteilen“, Dauer in Monaten oder Jahren. Reifen für

@@ -787,7 +787,8 @@ object LocalDataStore {
             if (result != null) {
                 session.copy(
                     consumptionKwhPer100km = result.value,
-                    consumptionMethod = result.method
+                    consumptionMethod = result.method,
+                    consumptionKm = result.km
                 )
             } else session
         }

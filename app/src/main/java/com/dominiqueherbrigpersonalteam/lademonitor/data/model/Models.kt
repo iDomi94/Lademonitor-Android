@@ -370,7 +370,14 @@ data class ChargingSession(
      * (Server ab 0.47.0). Beschreibt dieselbe Strecke wie der Verbrauch dieses Vorgangs und teilt
      * dessen Mehrverbrauch in Tempo und Temperatur auf ([DriveBreakdownStats]).
      */
-    @Json(name = "avg_speed_kmh") val avgSpeedKmh: Double? = null
+    @Json(name = "avg_speed_kmh") val avgSpeedKmh: Double? = null,
+    /**
+     * km zum Vorgaenger, auf denen [consumptionKwhPer100km] beruht - nur als Gewicht fuer die
+     * Mittelwerte im Dashboard ([com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalStatsCalculator]).
+     * Lokal gesetzt ([com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalDataStore]),
+     * nicht Teil des JSON.
+     */
+    @Transient val consumptionKm: Double? = null
 ) {
     /** Uebersteuerung am Vorgang, sonst Standard des Anbieters aus [providers], sonst Ladesaeule. */
     fun effectiveEnergyMeter(providers: List<Provider>): EnergyMeter =

@@ -140,7 +140,10 @@ object AppRepository {
         dateRange: LongRange? = null
     ): StatsSummary {
         syncBeforeRead()
-        val sessions = LocalDataStore.fetchSessions(vehicleId, null, dateRange)
+        // Ohne Zeitraum geholt und erst hier gefiltert: der Rest der Historie liefert den km-Anker
+        // vor dem Zeitraum (LocalStatsCalculator).
+        val history = LocalDataStore.fetchSessions(vehicleId, null, null)
+        val sessions = if (dateRange == null) history else history.filter { it.startTime in dateRange }
         val vehicles = LocalDataStore.fetchVehicles()
         val providers = LocalDataStore.fetchProviders()
         // Perioden ohne Ladevorgang gehoeren zu keinem Fahrzeug (ein Abo gilt fuers Konto) und
@@ -155,7 +158,8 @@ object AppRepository {
             }
         }
         val stats = LocalStatsCalculator.compute(
-            sessions, vehicles, providers, unallocated, LocalDataStore.canonicalProviderIds()
+            sessions, vehicles, providers, unallocated, LocalDataStore.canonicalProviderIds(),
+            history = history
         )
         // Gesamtkosten (Laden + sonstige Kosten + Wertverlust/Leasing), wie build_vehicle_costs()
         // auf dem Server: gleicher Fahrzeug- und Zeitraumfilter, Laden = total_cost von oben.
