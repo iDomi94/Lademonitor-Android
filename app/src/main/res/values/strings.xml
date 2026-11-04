@@ -714,6 +714,7 @@
     <string name="cost_category_toll">Maut/Vignette</string>
     <string name="cost_category_cleaning">Wäsche/Pflege</string>
     <string name="cost_category_other">Sonstiges</string>
+    <string name="cost_category_thg">THG-Quote</string>
     <string name="local_data_summary_vehicle_costs">%1$d Fahrzeugkosten</string>
     <string name="sync_error_item_vehicle_cost">Fahrzeugkosten „%1$s“: %2$s</string>
     <string name="action_clear_date">Datum entfernen</string>
@@ -759,6 +760,10 @@
     <string name="vehicle_cost_hint_spread">Verteilt zählt jede Zahlung gleichmäßig über die gewählte Zeit in die Kosten, Monat für Monat ab dem Zahltag – z. B. Reifen auf 4 Jahre oder die Jahresversicherung auf 12 Monate.</string>
     <string name="vehicle_cost_spread_info">Verteilt auf %1$d Monate · %2$s/Monat</string>
     <string name="vehicle_cost_spread_so_far">Davon in den Kosten %1$s</string>
+    <string name="vehicle_cost_thg_info">Gutschrift · %1$s/Monat</string>
+    <string name="vehicle_cost_field_thg_date">Datum im Jahr der Quote</string>
+    <string name="vehicle_cost_hint_thg">Die THG-Quote ist eine Gutschrift: Sie zählt negativ für das Kalenderjahr des Datums, gleichmäßig auf die Monate verteilt (300 € = 25 € pro Monat). Wurde das Auto erst im Laufe des Jahres gekauft oder geleast, verteilt sie sich nur auf die Monate ab dann. „Jährlich“ wiederholt sie für jedes Folgejahr.</string>
+    <string name="server_feature_requires">Benötigt Server %1$s oder neuer</string>
     <string name="vehicle_cost_field_category">Kategorie</string>
     <string name="vehicle_cost_field_amount">Betrag (€)</string>
     <string name="vehicle_cost_field_interval">Wiederholung</string>

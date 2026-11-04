@@ -713,6 +713,7 @@
     <string name="cost_category_toll">Tolls/vignette</string>
     <string name="cost_category_cleaning">Washing/care</string>
     <string name="cost_category_other">Other</string>
+    <string name="cost_category_thg">GHG quota (THG)</string>
     <string name="local_data_summary_vehicle_costs">%1$d vehicle costs</string>
     <string name="sync_error_item_vehicle_cost">Vehicle cost “%1$s”: %2$s</string>
     <string name="action_clear_date">Clear date</string>
@@ -758,6 +759,10 @@
     <string name="vehicle_cost_hint_spread">Spreading counts each payment evenly over the chosen time, month by month from the payment date – e.g. tires over 4 years or the yearly insurance over 12 months.</string>
     <string name="vehicle_cost_spread_info">Spread over %1$d months · %2$s/month</string>
     <string name="vehicle_cost_spread_so_far">Counted so far %1$s</string>
+    <string name="vehicle_cost_thg_info">Credit · %1$s/month</string>
+    <string name="vehicle_cost_field_thg_date">Date in the quota\'s year</string>
+    <string name="vehicle_cost_hint_thg">The GHG quota is a credit: it counts negatively for the calendar year of the date, spread evenly over its months (300 € = 25 € per month). If the car was bought or leased during the year, it is spread only over the months from then on. \"Yearly\" repeats it for every following year.</string>
+    <string name="server_feature_requires">Requires server %1$s or newer</string>
     <string name="vehicle_cost_field_category">Category</string>
     <string name="vehicle_cost_field_amount">Amount (€)</string>
     <string name="vehicle_cost_field_interval">Repeat</string>

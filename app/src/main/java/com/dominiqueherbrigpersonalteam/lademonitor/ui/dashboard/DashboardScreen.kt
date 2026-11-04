@@ -637,14 +637,15 @@ private fun VehicleCostsSection(costs: VehicleCostSummary) {
                 Text(share?.let { Fmt.n("%.0f %%", it) } ?: "–", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
         }
-        val max = costs.byCategory.maxOfOrNull { it.amount } ?: 0.0
+        // Gutschriften (THG-Quote) kommen negativ - Balkenlaenge nach Betrag.
+        val max = costs.byCategory.maxOfOrNull { kotlin.math.abs(it.amount) } ?: 0.0
         costs.byCategory.sortedByDescending { it.amount }.forEach { stat ->
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(CostCategory.labelResFor(stat.category)), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                     Text(Fmt.n("%.2f €", stat.amount), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 }
-                val fraction = if (max > 0) (stat.amount / max).toFloat().coerceIn(0f, 1f) else 0f
+                val fraction = if (max > 0) (kotlin.math.abs(stat.amount) / max).toFloat().coerceIn(0f, 1f) else 0f
                 Box(
                     Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -700,6 +701,7 @@ private fun costCategoryColor(category: String): Color = when (category) {
     "parking" -> Color(0xFFD48AC8)
     "toll" -> Color(0xFFC9A227)
     "cleaning" -> Color(0xFF6CC4E0)
+    "thg" -> Color(0xFF16A34A)
     else -> Color(0xFF6B7280)
 }
 

@@ -266,6 +266,15 @@ object ApiClient {
         return map["status"] == "ok"
     }
 
+    /** Version des Servers aus `/health` (seit jeher Teil der Antwort), fuer ServerCapabilities. */
+    suspend fun fetchServerVersion(): String? {
+        val map: Map<String, Any> = send(
+            "/health", authenticated = false,
+            type = Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java)
+        )
+        return map["version"] as? String
+    }
+
     // MARK: - Vehicles
 
     suspend fun fetchVehicles(): List<Vehicle> =

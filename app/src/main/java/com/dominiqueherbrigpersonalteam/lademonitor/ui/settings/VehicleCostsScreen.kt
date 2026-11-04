@@ -53,6 +53,7 @@ import androidx.navigation.NavController
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.CostCategory
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.FeeInterval
+import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCost
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.VehicleCostPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.YearCostStat
@@ -60,6 +61,9 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalFeeAllocator
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalVehicleCostCalculator
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
+import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.ServerCapabilities
+import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.ServerFeature
+import androidx.compose.runtime.collectAsState
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.Fmt
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.FullScreenModal
 import kotlinx.coroutines.launch
@@ -82,6 +86,8 @@ import java.time.ZoneOffset
 fun VehicleCostsScreen(navController: NavController, vehicleId: String) {
     val scope = rememberCoroutineScope()
     var vehicleName by remember { mutableStateOf<String?>(null) }
+    // Gespeicherter Stand des Fahrzeugs (Kaufdatum fuer die THG-Quote).
+    var vehicle by remember { mutableStateOf<Vehicle?>(null) }
     var costs by remember { mutableStateOf<List<VehicleCost>>(emptyList()) }
     var years by remember { mutableStateOf<List<YearCostStat>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -95,7 +101,8 @@ fun VehicleCostsScreen(navController: NavController, vehicleId: String) {
         if (!AppSettings.isReadyForDataAccess) { errorMessage = serverAddressRequiredMessage; return }
         try {
             val basis = AppRepository.vehicleCostBasis()
-            vehicleName = basis.vehicles.firstOrNull { it.id == vehicleId }?.name
+            vehicle = basis.vehicles.firstOrNull { it.id == vehicleId }
+            vehicleName = vehicle?.name
             costs = basis.costs.filter { it.vehicleId == vehicleId }.sortedByDescending { it.startDate }
             years = LocalVehicleCostCalculator.yearSummary(basis, vehicleId)
             errorMessage = null
@@ -144,7 +151,7 @@ fun VehicleCostsScreen(navController: NavController, vehicleId: String) {
             }
             items(costs, key = { it.id }) { cost ->
                 Row(Modifier.fillMaxWidth().clickable { editing = cost }.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    CostRow(cost, Modifier.weight(1f))
+                    CostRow(cost, vehicle, Modifier.weight(1f))
                     IconButton(onClick = { pendingDelete = cost }) { Icon(Icons.Filled.Delete, stringResource(R.string.action_delete), tint = MaterialTheme.colorScheme.error) }
                 }
                 HorizontalDivider()
@@ -219,7 +226,7 @@ private fun YearRow(year: YearCostStat) {
 }
 
 @Composable
-private fun CostRow(cost: VehicleCost, modifier: Modifier = Modifier) {
+private fun CostRow(cost: VehicleCost, vehicle: Vehicle?, modifier: Modifier = Modifier) {
     val secondary = MaterialTheme.colorScheme.onSurfaceVariant
     val interval = cost.intervalValue
     Column(modifier) {
@@ -229,7 +236,11 @@ private fun CostRow(cost: VehicleCost, modifier: Modifier = Modifier) {
                 Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge
             )
-            Text(Fmt.n("%.2f €", cost.amount), style = MaterialTheme.typography.bodyLarge)
+            if (cost.categoryValue.isCredit) {
+                Text(Fmt.n("%.2f €", -cost.amount), style = MaterialTheme.typography.bodyLarge, color = androidx.compose.ui.graphics.Color(0xFF16A34A))
+            } else {
+                Text(Fmt.n("%.2f €", cost.amount), style = MaterialTheme.typography.bodyLarge)
+            }
         }
         val text = listOfNotNull(cost.label, cost.notes).joinToString(" · ")
         if (text.isNotEmpty()) {
@@ -245,8 +256,19 @@ private fun CostRow(cost: VehicleCost, modifier: Modifier = Modifier) {
                 color = secondary
             )
         }
-        val monthly = LocalVehicleCostCalculator.spreadMonthly(cost)
-        if (cost.spreadMonths != null && monthly != null) {
+        val monthly = LocalVehicleCostCalculator.spreadMonthly(cost, vehicle)
+        if (cost.categoryValue.isCredit && monthly != null) {
+            Text(
+                stringResource(R.string.vehicle_cost_thg_info, Fmt.n("%.2f €", monthly)),
+                style = MaterialTheme.typography.bodySmall,
+                color = secondary
+            )
+            Text(
+                stringResource(R.string.vehicle_cost_spread_so_far, Fmt.n("%.2f €", LocalVehicleCostCalculator.spreadToDate(cost, vehicle))),
+                style = MaterialTheme.typography.bodySmall,
+                color = secondary
+            )
+        } else if (cost.spreadMonths != null && monthly != null) {
             Text(
                 stringResource(R.string.vehicle_cost_spread_info, cost.spreadMonths, Fmt.n("%.2f €", monthly)),
                 style = MaterialTheme.typography.bodySmall,
@@ -324,8 +346,17 @@ fun AddEditVehicleCostModal(
     val spreadMonths: Int? = if (!isSpread) null else spreadCount.trim().toIntOrNull()
         ?.takeIf { it > 0 }
         ?.let { LocalVehicleCostCalculator.normalizedSpread(if (spreadInYears) it * 12 else it) }
+    val isThg = category == CostCategory.THG
+    // Beobachtet, damit die Sperre nach einem Sync im offenen Formular aufgeht.
+    val serverVersion by ServerCapabilities.serverVersion.collectAsState()
+    // Gesperrt auf einem Server vor 0.50.0 - ein bestehender THG-Eintrag laesst sich aber weiter
+    // bearbeiten (er kam ja von irgendwo).
+    val thgLocked = remember(serverVersion) {
+        cost?.categoryValue != CostCategory.THG && !ServerCapabilities.supports(ServerFeature.THG_CREDIT)
+    }
     val canSave = parsedAmount != null && parsedAmount >= 0 && odometerOk &&
-        !(usesEndDate && endDate.isBefore(startDate)) && !(isSpread && spreadMonths == null)
+        !(usesEndDate && endDate.isBefore(startDate)) && !(!isThg && isSpread && spreadMonths == null) &&
+        !(isThg && thgLocked)
 
     fun save() {
         val value = parsedAmount ?: return
@@ -341,7 +372,7 @@ fun AddEditVehicleCostModal(
                 odometerKm = parsedOdometer,
                 label = label.trim().ifEmpty { null },
                 notes = notes.trim().ifEmpty { null },
-                spreadMonths = spreadMonths
+                spreadMonths = if (isThg) null else spreadMonths
             )
             try {
                 if (cost != null) AppRepository.updateVehicleCost(cost.id, payload)
@@ -374,9 +405,32 @@ fun AddEditVehicleCostModal(
                     }
                     DropdownMenu(expanded = categoryMenu, onDismissRequest = { categoryMenu = false }) {
                         CostCategory.entries.forEach { option ->
-                            DropdownMenuItem(text = { Text(stringResource(option.labelRes)) }, onClick = { category = option; categoryMenu = false })
+                            val locked = option == CostCategory.THG && thgLocked
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(stringResource(option.labelRes))
+                                        if (locked) {
+                                            Text(
+                                                stringResource(R.string.server_feature_requires, ServerFeature.THG_CREDIT.minimumServerVersion),
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                    }
+                                },
+                                onClick = { category = option; categoryMenu = false },
+                                enabled = !locked
+                            )
                         }
                     }
+                }
+                if (isThg) {
+                    Text(
+                        if (thgLocked) stringResource(R.string.server_feature_requires, ServerFeature.THG_CREDIT.minimumServerVersion)
+                        else stringResource(R.string.vehicle_cost_hint_thg),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (thgLocked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 OutlinedTextField(
                     value = amount, onValueChange = { amount = it }, label = { Text(stringResource(R.string.vehicle_cost_field_amount)) },
@@ -392,7 +446,7 @@ fun AddEditVehicleCostModal(
                         }
                     }
                 }
-                if (interval == FeeInterval.YEARLY) {
+                if (interval == FeeInterval.YEARLY && !isThg) {
                     Text(
                         stringResource(R.string.vehicle_cost_hint_yearly),
                         style = MaterialTheme.typography.bodySmall,
@@ -400,7 +454,13 @@ fun AddEditVehicleCostModal(
                     )
                 }
 
-                val startLabel = stringResource(if (recurring) R.string.vehicle_cost_field_first_payment else R.string.vehicle_cost_field_date)
+                val startLabel = stringResource(
+                    when {
+                        isThg -> R.string.vehicle_cost_field_thg_date
+                        recurring -> R.string.vehicle_cost_field_first_payment
+                        else -> R.string.vehicle_cost_field_date
+                    }
+                )
                 OutlinedButton(onClick = { pickingDate = CostDateField.START }, modifier = Modifier.fillMaxWidth()) {
                     Text("$startLabel: ${Fmt.dateMedium(startDate.atStartOfDay(zone).toInstant().toEpochMilli())}")
                 }
@@ -418,11 +478,13 @@ fun AddEditVehicleCostModal(
                         }
                     }
                 }
+                if (!isThg) {
                 Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.vehicle_cost_field_spread), Modifier.weight(1f))
                     Switch(checked = isSpread, onCheckedChange = { isSpread = it })
                 }
-                if (isSpread) {
+                }
+                if (isSpread && !isThg) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(
                             value = spreadCount, onValueChange = { spreadCount = it }, singleLine = true,
@@ -439,11 +501,13 @@ fun AddEditVehicleCostModal(
                         )
                     }
                 }
-                Text(
-                    stringResource(R.string.vehicle_cost_hint_spread),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (!isThg) {
+                    Text(
+                        stringResource(R.string.vehicle_cost_hint_spread),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 OutlinedTextField(
                     value = odometer, onValueChange = { odometer = it }, label = { Text(stringResource(R.string.vehicle_cost_field_odometer)) },
                     singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth()

@@ -31,6 +31,7 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiException
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppMode
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
+import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.ServerCapabilities
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -248,6 +249,8 @@ object SyncService {
         }
         _isSyncing.value = true
         itemErrors.clear()
+        // Server-Version fuer die Sperre neuer Funktionen (ServerCapabilities) - wirft nicht.
+        ServerCapabilities.refresh()
         try {
             resetSyncStateIfAccountChanged()
             pushVehicles()

@@ -27,6 +27,10 @@ import kotlin.math.pow
  *   bis heute. Ein Jahresbetrag zaehlt in dem Monat, in dem er faellig ist. Seit Server 0.49.0
  *   laesst sich jede Zahlung optional gleichmaessig auf `spreadMonths` Monate ab dem Zahltag
  *   verteilen; nur begonnene Monate zaehlen, der Rundungsrest steckt im letzten Anteil.
+ * - THG-Quote (seit Server 0.50.0, Kategorie "thg"): eine Gutschrift, NEGATIV ueber die Monate
+ *   des Kalenderjahres ihres Datums verteilt (je Monat ab dem 1.1.); wurde das Fahrzeug in
+ *   diesem Jahr gekauft bzw. geleast, nur ab dann bis Dezember - der volle Betrag auf weniger
+ *   Monate. `spreadMonths` gilt dafuer nicht ([thgShares]).
  * - Leasing: Rate plus Sonderzahlung / Laufzeit in Monaten; ohne Enddatum zaehlt die
  *   Sonderzahlung im ersten Monat.
  * - Kauf: Restwertkurve (1. Jahr linear auf 75 %, danach x0,87 je Jahr) ueber das "wirksame
@@ -120,22 +124,57 @@ object LocalVehicleCostCalculator {
         return (0 until months).map { k -> addMonths(day, k) to (if (k == months - 1) last else share) }
     }
 
-    fun costEntries(costs: List<VehicleCost>, until: LocalDate): List<CostEntry> =
+    /**
+     * Ab wann das Fahrzeug dem Nutzer gehoert, wie `vehicle_costs.ownership_start`: Kauf- bzw.
+     * Leasingbeginn, sonst null (dann zaehlt das ganze Jahr).
+     */
+    fun ownershipStart(vehicle: Vehicle?): LocalDate? = when (vehicle?.ownershipValue) {
+        Ownership.PURCHASE -> vehicle?.purchaseDate?.let { day(it) }
+        Ownership.LEASING -> vehicle?.leasingStart?.let { day(it) }
+        else -> null
+    }
+
+    /**
+     * Eine THG-Quote als Monatsanteile ueber das Kalenderjahr von [payDay], wie
+     * `vehicle_costs.thg_shares`: ab 1.1. (bzw. ab Kauf-/Leasingbeginn, wenn der in DIESES Jahr
+     * faellt) bis Dezember, Rundung wie [spreadShares]. Positiv - das Vorzeichen setzt
+     * [costEntries].
+     */
+    fun thgShares(amount: Double, payDay: LocalDate, ownedFrom: LocalDate?): List<Pair<LocalDate, Double>> {
+        var first = LocalDate.of(payDay.year, 1, 1)
+        if (ownedFrom != null && ownedFrom.isAfter(first) && ownedFrom.year == payDay.year) first = ownedFrom
+        return spreadShares(amount, first, 12 - first.monthValue + 1)
+    }
+
+    /** [vehicles] braucht es nur fuer die THG-Quote (Kauf-/Leasingbeginn). */
+    fun costEntries(costs: List<VehicleCost>, until: LocalDate, vehicles: List<Vehicle> = emptyList()): List<CostEntry> =
         costs.flatMap { c ->
-            occurrences(c, until).flatMap { payDay ->
-                spreadShares(c.amount, payDay, c.spreadMonths)
-                    .filter { !it.first.isAfter(until) }
-                    .map { CostEntry(c.vehicleId, it.first, it.second, c.categoryValue.raw) }
+            val category = c.categoryValue
+            val shares = if (category.isCredit) {
+                // Bis Jahresende: eine Quote mit Datum im Mai zaehlt schon ab Januar.
+                val ownedFrom = ownershipStart(vehicles.firstOrNull { it.id == c.vehicleId })
+                occurrences(c, LocalDate.of(until.year, 12, 31)).flatMap { payDay ->
+                    thgShares(c.amount, payDay, ownedFrom).map { it.first to -it.second }
+                }
+            } else {
+                occurrences(c, until).flatMap { payDay -> spreadShares(c.amount, payDay, c.spreadMonths) }
             }
+            shares
+                .filter { !it.first.isAfter(until) }
+                .map { CostEntry(c.vehicleId, it.first, it.second, category.raw) }
         }
 
-    /** Davon bis heute in die Kosten eingeflossen, wie `spread_to_date` im Server. */
-    fun spreadToDate(cost: VehicleCost, until: LocalDate = LocalDate.now()): Double =
-        round2(costEntries(listOf(cost), until).sumOf { it.amount })
+    /** Davon bis heute in die Kosten eingeflossen, wie `spread_to_date` im Server (THG negativ). */
+    fun spreadToDate(cost: VehicleCost, vehicle: Vehicle? = null, until: LocalDate = LocalDate.now()): Double =
+        round2(costEntries(listOf(cost), until, listOfNotNull(vehicle)).sumOf { it.amount })
 
-    /** Monatsanteil einer verteilten Zahlung, wie `spread_monthly`. */
-    fun spreadMonthly(cost: VehicleCost): Double? =
-        cost.spreadMonths?.takeIf { it > 1 }?.let { round2(cost.amount / it) }
+    /** Monatsanteil einer verteilten Zahlung, wie `spread_monthly` (THG: positiver Anteil). */
+    fun spreadMonthly(cost: VehicleCost, vehicle: Vehicle? = null): Double? =
+        if (cost.categoryValue.isCredit) {
+            thgShares(cost.amount, day(cost.startDate), ownershipStart(vehicle)).firstOrNull()?.second
+        } else {
+            cost.spreadMonths?.takeIf { it > 1 }?.let { round2(cost.amount / it) }
+        }
 
     // ---------- Wertverlust ----------
 
@@ -325,7 +364,7 @@ object LocalVehicleCostCalculator {
     /** Kosteneintraege und Wertverlust/Leasing aller [vehicles] bis [until]. */
     private fun allEntries(basis: VehicleCostBasis, vehicles: List<Vehicle>, until: LocalDate): List<CostEntry> {
         val ids = vehicles.map { it.id }.toSet()
-        val entries = costEntries(basis.costs.filter { it.vehicleId in ids }, until).toMutableList()
+        val entries = costEntries(basis.costs.filter { it.vehicleId in ids }, until, vehicles).toMutableList()
         for (v in vehicles) {
             if (v.ownershipValue == Ownership.NONE) continue
             // Die km-Staende kommen aus der GANZEN Historie des Fahrzeugs, nicht nur aus dem

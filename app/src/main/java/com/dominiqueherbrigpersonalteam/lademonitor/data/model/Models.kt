@@ -1315,7 +1315,13 @@ enum class CostCategory(val raw: String, @param:StringRes val labelRes: Int) {
     PARKING("parking", R.string.cost_category_parking),
     TOLL("toll", R.string.cost_category_toll),
     CLEANING("cleaning", R.string.cost_category_cleaning),
+
+    /** THG-Quote (Server ab 0.50.0): Gutschrift, negativ ueber ihr Kalenderjahr verteilt. */
+    THG("thg", R.string.cost_category_thg),
     OTHER("other", R.string.cost_category_other);
+
+    /** Gutschrift statt Kosten, wie `vehicle_costs.CREDIT_CATEGORIES`. */
+    val isCredit: Boolean get() = this == THG
 
     companion object {
         fun from(raw: String?): CostCategory = entries.firstOrNull { it.raw == raw } ?: OTHER
