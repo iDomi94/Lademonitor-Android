@@ -2,6 +2,14 @@
 
 ## 1.10 (unveröffentlicht)
 
+- **Anmelden schlug bei bestätigter E-Mail-Adresse fehl** („No JsonAdapter
+  for class java.lang.Long annotated @ServerDate …“). Datumsfelder, die leer
+  sein dürfen, konnte die App gar nicht lesen – betroffen war vor allem das
+  Bestätigungsdatum der E-Mail-Adresse in der Login-Antwort.
+- **Verständlichere Fehlermeldungen**: statt technischer Texte mit Klassen-
+  und Paketnamen steht dort jetzt, was los ist (Server nicht erreichbar,
+  Server antwortet nicht, Antwort passt nicht zur App-Version, Fehler auf dem
+  Server). Die Details landen nur noch im Geräte-Log.
 - **Dashboard: Ø Verbrauch passt jetzt auch bei kurzen Zeiträumen** wie
   „Monat bis jetzt“. Er ist der nach km gewichtete Durchschnitt der Werte,
   die auch in der Liste stehen. Vorher zählten nur die kWh ab der zweiten
