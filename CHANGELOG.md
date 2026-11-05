@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.10 (unveröffentlicht)
+## 1.11
 
 - **Anmelden schlug bei bestätigter E-Mail-Adresse fehl** („No JsonAdapter
   for class java.lang.Long annotated @ServerDate …“). Datumsfelder, die leer
@@ -10,6 +10,8 @@
   und Paketnamen steht dort jetzt, was los ist (Server nicht erreichbar,
   Server antwortet nicht, Antwort passt nicht zur App-Version, Fehler auf dem
   Server). Die Details landen nur noch im Geräte-Log.
+## 1.10
+
 - **Dashboard: Ø Verbrauch passt jetzt auch bei kurzen Zeiträumen** wie
   „Monat bis jetzt“. Er ist der nach km gewichtete Durchschnitt der Werte,
   die auch in der Liste stehen. Vorher zählten nur die kWh ab der zweiten
