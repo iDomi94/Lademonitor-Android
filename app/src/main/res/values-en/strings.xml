@@ -32,8 +32,11 @@
     <string name="api_error_not_configured">No server URL configured. Please enter one in Settings.</string>
     <string name="api_error_invalid_response">Invalid response from server.</string>
     <string name="api_error_server">Server error (%1$d): %2$s</string>
-    <string name="api_error_decoding">Could not read response: %1$s</string>
-    <string name="api_error_network">Connection failed: %1$s</string>
+    <string name="api_error_decoding">The server\'s response does not match this app version. Please update the app and the server.</string>
+    <string name="api_error_network">Server not reachable. Please check your internet connection and the server address.</string>
+    <string name="api_error_network_timeout">The server is not responding. Please try again later.</string>
+    <string name="api_error_server_generic">Something went wrong on the server. Please try again later.</string>
+    <string name="api_error_unexpected">Something went wrong. Please try again.</string>
     <string name="api_error_unknown">unknown</string>
 
     <!-- LocalGeocoder.kt -->
