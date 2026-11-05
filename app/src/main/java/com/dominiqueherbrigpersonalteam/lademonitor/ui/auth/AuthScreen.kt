@@ -31,7 +31,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dominiqueherbrigpersonalteam.lademonitor.R
-import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiException
+import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.userFacingMessage
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.SyncService
 import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
@@ -95,10 +95,8 @@ fun AuthScreen() {
                 // hangs on LademonitorRoot, see SyncService.pendingLocalDataDecision). Otherwise
                 // taking over local data is not a special case, just the first normal sync pass.
                 SyncService.startAfterLogin()
-            } catch (e: ApiException.Server) {
-                errorMessage = e.serverMessage
             } catch (e: Exception) {
-                errorMessage = e.localizedMessage
+                errorMessage = e.userFacingMessage()
             } finally {
                 isSubmitting = false
             }
@@ -304,7 +302,7 @@ private fun ForgotPasswordDialog(initialIdentifier: String, onDismiss: () -> Uni
                             } catch (e: Exception) {
                                 // Only real connection/server errors land here; an unknown account
                                 // looks like a success to the client.
-                                errorMessage = e.localizedMessage
+                                errorMessage = e.userFacingMessage()
                             } finally {
                                 isSubmitting = false
                             }
