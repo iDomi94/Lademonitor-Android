@@ -669,6 +669,16 @@
     <string name="tires_tread_wheels_label">VL/VR/HL/HR: %1$s</string>
     <string name="tires_section_tread">Profiltiefe</string>
     <string name="tires_tread_empty">Noch keine Messung eingetragen.</string>
+    <string name="tires_offline_cached">Offline – Stand vom %1$s. Neue Eingaben werden gespeichert und hochgeladen, sobald wieder Netz da ist.</string>
+    <string name="tires_pending_title">Wartet auf Upload</string>
+    <string name="tires_pending_hint">Wird beim nächsten Abgleich mit dem Server hochgeladen. Zum Verwerfen auf den Papierkorb tippen.</string>
+    <string name="tires_pending_rejected">Vom Server abgelehnt: %1$s</string>
+    <string name="tires_pending_discard">Verwerfen</string>
+    <string name="tires_queue_delete_tread">Profilmessung vom %1$s löschen</string>
+    <string name="tires_queue_delete_set">Reifenwechsel vom %1$s löschen</string>
+    <string name="tires_queue_edit_set">Reifenwechsel vom %1$s ändern</string>
+    <string name="tires_queue_create_set">Reifenwechsel am %1$s: %2$s</string>
+    <string name="tires_queue_create_tread">Profilmessung am %1$s: %2$s</string>
     <string name="tires_tread_add">Messung eintragen</string>
     <string name="tires_tread_measure">Profil messen</string>
     <string name="tires_tread_hint">Gemessen wird in den Hauptrillen an der flachsten Stelle. Gesetzliches Minimum sind 1,6 mm; empfohlen werden mindestens 3 mm bei Sommer- und 4 mm bei Winter- und Ganzjahresreifen.</string>
