@@ -41,6 +41,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +55,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.dominiqueherbrigpersonalteam.lademonitor.LademonitorApp
 import com.dominiqueherbrigpersonalteam.lademonitor.R
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireComparison
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TireKind
@@ -67,7 +69,11 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TreadInput
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.TreadMeasurementPayload
 import com.dominiqueherbrigpersonalteam.lademonitor.data.model.Vehicle
 import com.dominiqueherbrigpersonalteam.lademonitor.data.remote.ApiClient
+import com.dominiqueherbrigpersonalteam.lademonitor.data.net.NetworkMonitor
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
+import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.TireCache
+import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.TireOutbox
+import com.dominiqueherbrigpersonalteam.lademonitor.data.session.SessionManager
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.Fmt
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.FullScreenModal
@@ -76,6 +82,9 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.UUID
 import kotlin.math.roundToInt
 
 /**
@@ -99,16 +108,35 @@ fun TiresSettingsScreen(navController: NavController) {
     var pendingDelete by remember { mutableStateOf<TireMounting?>(null) }
     var measurements by remember { mutableStateOf<List<TireTreadMeasurement>>(emptyList()) }
     var measuringFor by remember { mutableStateOf<TireSet?>(null) }
+    // Gesetzt, wenn ohne Netz der zwischengespeicherte Stand gezeigt wird.
+    var cachedAt by remember { mutableStateOf<Long?>(null) }
+    val pending by TireOutbox.entries.collectAsState()
     val serverAddressRequiredMessage = stringResource(R.string.error_server_address_required)
 
     suspend fun load() {
         if (!AppSettings.isReadyForDataAccess) { errorMessage = serverAddressRequiredMessage; return }
+        // Fahrzeuge kommen aus dem lokalen Speicher, gehen also auch offline.
+        vehicles = runCatching { AppRepository.fetchVehicles() }.getOrDefault(vehicles)
+        // Zuerst offline Erfasstes hochladen, damit es gleich mit angezeigt wird.
+        TireOutbox.flush()
         try {
             sets = ApiClient.fetchTireSets()
-            vehicles = AppRepository.fetchVehicles()
             errorMessage = null
+            cachedAt = null
         } catch (e: Exception) {
-            errorMessage = e.localizedMessage
+            val cache = if (TireOutbox.isTransient(e)) TireCache.load() else null
+            if (cache != null) {
+                // Kein Netz: letzten Stand zeigen, Eingaben gehen in die Warteschlange.
+                sets = cache.sets
+                measurements = cache.measurements
+                overview = cache.overview
+                comparison = cache.comparison
+                cachedAt = cache.savedAt
+                errorMessage = null
+            } else {
+                errorMessage = e.localizedMessage
+            }
+            return
         }
         // Die Auswertungen einzeln und fehlertolerant: gegen einen Server ohne
         // diese Endpunkte bleibt die Verwaltung trotzdem benutzbar.
@@ -116,19 +144,60 @@ fun TiresSettingsScreen(navController: NavController) {
         comparison = runCatching { ApiClient.fetchTireComparison() }.getOrNull()
         // Server vor 0.30.0 kennt keine Messungen - dann bleibt die Liste leer.
         measurements = runCatching { ApiClient.fetchTreadMeasurements() }.getOrDefault(emptyList())
+        TireCache.save(
+            TireCache(sets, measurements, overview, comparison, System.currentTimeMillis(),
+                SessionManager.currentUser.value?.id)
+        )
     }
     LaunchedEffect(Unit) { load() }
+
+    fun deleteTread(measurement: TireTreadMeasurement) {
+        scope.launch {
+            val label = appString(R.string.tires_queue_delete_tread, dayText(measurement.measuredOn))
+            try {
+                if (!NetworkMonitor.isOnline.value) {
+                    TireOutbox.enqueueDeleteTread(measurement.id, label); return@launch
+                }
+                ApiClient.deleteTreadMeasurement(measurement.id)
+            } catch (e: Exception) {
+                if (TireOutbox.isTransient(e)) TireOutbox.enqueueDeleteTread(measurement.id, label)
+                else errorMessage = e.localizedMessage
+            }
+            load()
+        }
+    }
+
+    fun deleteSet(mounting: TireMounting) {
+        scope.launch {
+            val label = appString(R.string.tires_queue_delete_set, dayText(mounting.installedOn))
+            try {
+                if (!NetworkMonitor.isOnline.value) {
+                    TireOutbox.enqueueDeleteSet(mounting.tireSetId, label); return@launch
+                }
+                ApiClient.deleteTireSet(mounting.tireSetId)
+            } catch (e: Exception) {
+                if (TireOutbox.isTransient(e)) TireOutbox.enqueueDeleteSet(mounting.tireSetId, label)
+                else errorMessage = e.localizedMessage
+            }
+            load()
+        }
+    }
 
     // Die Wechsel-Liste kommt aus der Uebersicht, weil nur sie Zeitraum und
     // Laufleistung kennt. Fehlt sie, werden die reinen Stammdaten gezeigt
     // statt gar nichts.
-    val mountings: List<TireMounting> = overview?.mountings?.takeIf { it.isNotEmpty() }
+    val allMountings: List<TireMounting> = overview?.mountings?.takeIf { it.isNotEmpty() }
         ?: sets.map {
             TireMounting(
                 tireSetId = it.id, vehicleId = it.vehicleId, kind = it.kind,
                 label = it.label, installedOn = it.installedOn
             )
         }
+    // Offline geloescht, Upload steht noch aus: schon jetzt ausblenden.
+    val deletedSetIds = TireOutbox.pendingDeletedSetIds(pending)
+    val mountings = allMountings.filterNot { it.tireSetId in deletedSetIds }
+    val deletedTreadIds = TireOutbox.pendingDeletedTreadIds(pending)
+    val visibleMeasurements = measurements.filterNot { it.id in deletedTreadIds }
 
     Scaffold(topBar = {
         TopAppBar(
@@ -151,6 +220,51 @@ fun TiresSettingsScreen(navController: NavController) {
         ) {
             errorMessage?.let {
                 item { Text(it, Modifier.padding(top = 16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            }
+
+            cachedAt?.let { savedAt ->
+                item {
+                    Text(
+                        stringResource(R.string.tires_offline_cached, dateTimeText(savedAt)),
+                        Modifier.padding(top = 16.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Offline erfasste Eingaben, die noch auf den Upload warten.
+            if (pending.isNotEmpty()) {
+                item {
+                    SectionCard {
+                        SectionHeader(stringResource(R.string.tires_pending_title))
+                        pending.forEachIndexed { index, entry ->
+                            if (index > 0) HorizontalDivider()
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
+                                    Text(entry.label, style = MaterialTheme.typography.bodyMedium)
+                                    entry.failure?.let {
+                                        Text(
+                                            stringResource(R.string.tires_pending_rejected, it),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                }
+                                IconButton(onClick = { TireOutbox.discard(entry) }) {
+                                    Icon(Icons.Filled.Delete, stringResource(R.string.tires_pending_discard),
+                                        tint = MaterialTheme.colorScheme.error)
+                                }
+                            }
+                        }
+                        Text(
+                            stringResource(R.string.tires_pending_hint),
+                            Modifier.padding(top = 8.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             comparison?.winterVsSummerPct?.let { value ->
@@ -230,26 +344,20 @@ fun TiresSettingsScreen(navController: NavController) {
                 item {
                     SectionCard {
                         SectionHeader(stringResource(R.string.tires_section_tread))
-                        if (measurements.isEmpty()) {
+                        if (visibleMeasurements.isEmpty()) {
                             Text(
                                 stringResource(R.string.tires_tread_empty),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        measurements.forEachIndexed { index, measurement ->
+                        visibleMeasurements.forEachIndexed { index, measurement ->
                             if (index > 0) HorizontalDivider()
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
                                     TreadMeasurementRow(measurement, sets.firstOrNull { it.id == measurement.tireSetId })
                                 }
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        runCatching { ApiClient.deleteTreadMeasurement(measurement.id) }
-                                            .onFailure { errorMessage = it.localizedMessage }
-                                        load()
-                                    }
-                                }) {
+                                IconButton(onClick = { deleteTread(measurement) }) {
                                     Icon(Icons.Filled.Delete, stringResource(R.string.action_delete), tint = MaterialTheme.colorScheme.error)
                                 }
                             }
@@ -309,7 +417,7 @@ fun TiresSettingsScreen(navController: NavController) {
             confirmButton = {
                 TextButton(onClick = {
                     val target = mounting; pendingDelete = null
-                    scope.launch { runCatching { ApiClient.deleteTireSet(target.tireSetId) }; load() }
+                    deleteSet(target)
                 }) { Text(stringResource(R.string.action_delete), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text(stringResource(R.string.action_cancel)) } }
@@ -632,11 +740,25 @@ fun AddEditTireSetModal(
                 tread = if (isEditing) null else treadNew.input,
                 removedTread = if (isEditing || removedSet == null) null else treadRemoved.input
             )
+            val label = if (tireSet != null) appString(R.string.tires_queue_edit_set, dayText(day))
+                else appString(R.string.tires_queue_create_set, dayText(day), appString(kind.labelRes()))
+            // Eigene UUID als Idempotency-Key: kommt die Antwort nicht an, legt die
+            // Wiederholung aus der Warteschlange keinen zweiten Satz an.
+            val key = UUID.randomUUID().toString()
+            // Offline: in die Warteschlange (TireOutbox), Upload beim naechsten Sync.
+            fun enqueue() {
+                if (tireSet != null) TireOutbox.enqueueUpdateSet(tireSet.id, payload, label)
+                else TireOutbox.enqueueCreateSet(payload, label, key)
+            }
             try {
-                if (tireSet != null) ApiClient.updateTireSet(tireSet.id, payload)
-                else ApiClient.createTireSet(payload)
+                if (!NetworkMonitor.isOnline.value) enqueue()
+                else if (tireSet != null) ApiClient.updateTireSet(tireSet.id, payload)
+                else ApiClient.createTireSet(payload, idempotencyKey = key)
                 onSaved()
-            } catch (e: Exception) { errorMessage = e.localizedMessage }
+            } catch (e: Exception) {
+                if (TireOutbox.isTransient(e)) { enqueue(); onSaved() }
+                else errorMessage = e.localizedMessage
+            }
             isSaving = false
         }
     }
@@ -833,21 +955,34 @@ fun AddTreadMeasurementModal(tireSet: TireSet, onDismiss: () -> Unit, onSaved: (
         val tread = draft.input ?: return
         scope.launch {
             isSaving = true; errorMessage = null
+            val payload = TreadMeasurementPayload(
+                measuredOn = measuredOn,
+                odometerKm = odometer.replace(",", ".").toDoubleOrNull(),
+                depthMm = tread.depthMm,
+                frontLeftMm = tread.frontLeftMm,
+                frontRightMm = tread.frontRightMm,
+                rearLeftMm = tread.rearLeftMm,
+                rearRightMm = tread.rearRightMm
+            )
+            val label = appString(
+                R.string.tires_queue_create_tread, dayText(measuredOn),
+                tireSet.label.ifEmpty { appString(tireSet.tireKind.labelRes()) }
+            )
+            // Eigene UUID als Idempotency-Key - auch fuer die Warteschlange, falls
+            // die Anfrage ankam, die Antwort aber nicht.
+            val key = UUID.randomUUID().toString()
             try {
-                ApiClient.createTreadMeasurement(
-                    tireSet.id,
-                    TreadMeasurementPayload(
-                        measuredOn = measuredOn,
-                        odometerKm = odometer.replace(",", ".").toDoubleOrNull(),
-                        depthMm = tread.depthMm,
-                        frontLeftMm = tread.frontLeftMm,
-                        frontRightMm = tread.frontRightMm,
-                        rearLeftMm = tread.rearLeftMm,
-                        rearRightMm = tread.rearRightMm
-                    )
-                )
+                if (NetworkMonitor.isOnline.value) {
+                    ApiClient.createTreadMeasurement(tireSet.id, payload, idempotencyKey = key)
+                } else {
+                    TireOutbox.enqueueCreateTread(tireSet.id, payload, label, key)
+                }
                 onSaved()
-            } catch (e: Exception) { errorMessage = e.localizedMessage }
+            } catch (e: Exception) {
+                if (TireOutbox.isTransient(e)) {
+                    TireOutbox.enqueueCreateTread(tireSet.id, payload, label, key); onSaved()
+                } else errorMessage = e.localizedMessage
+            }
             isSaving = false
         }
     }
@@ -914,3 +1049,14 @@ fun AddTreadMeasurementModal(tireSet: TireSet, onDismiss: () -> Unit, onSaved: (
         ) { DatePicker(state = state) }
     }
 }
+
+private fun appString(id: Int, vararg args: Any): String =
+    LademonitorApp.appContext.getString(id, *args)
+
+private fun dayText(millis: Long): String =
+    DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
+        .format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))
+
+private fun dateTimeText(millis: Long): String =
+    DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+        .format(Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()))

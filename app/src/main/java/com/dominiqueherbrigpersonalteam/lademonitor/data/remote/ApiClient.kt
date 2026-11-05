@@ -85,7 +85,8 @@ object ApiClient {
         path: String,
         method: String,
         body: String?,
-        authenticated: Boolean
+        authenticated: Boolean,
+        idempotencyKey: String? = null
     ): Request {
         val base = AppSettings.serverUrl() ?: throw ApiException.NotConfigured
         val url = (base + path).toHttpUrlOrNull() ?: throw ApiException.InvalidResponse
@@ -93,6 +94,10 @@ object ApiClient {
         if (authenticated) {
             TokenStore.readToken()?.let { builder.header("Authorization", "Bearer $it") }
         }
+        // Lokale ID beim Anlegen: kommt die Antwort nicht an und der Sync
+        // wiederholt das POST, liefert der Server (ab 0.51.0) die schon angelegte
+        // Zeile statt einer Dublette. Aeltere Server ignorieren den Header.
+        idempotencyKey?.let { builder.header("Idempotency-Key", it) }
         val requestBody = when (method) {
             "GET", "DELETE" -> if (body != null) body.toRequestBody(jsonMedia) else null
             else -> (body ?: "").toRequestBody(jsonMedia)
@@ -106,9 +111,10 @@ object ApiClient {
         method: String = "GET",
         body: String? = null,
         authenticated: Boolean = true,
+        idempotencyKey: String? = null,
         type: Type
     ): T = withContext(Dispatchers.IO) {
-        val request = buildRequest(path, method, body, authenticated)
+        val request = buildRequest(path, method, body, authenticated, idempotencyKey)
         val response = try {
             http.newCall(request).execute()
         } catch (e: Exception) {
@@ -137,9 +143,10 @@ object ApiClient {
         path: String,
         method: String,
         body: String? = null,
-        authenticated: Boolean = true
+        authenticated: Boolean = true,
+        idempotencyKey: String? = null
     ) = withContext(Dispatchers.IO) {
-        val request = buildRequest(path, method, body, authenticated)
+        val request = buildRequest(path, method, body, authenticated, idempotencyKey)
         val response = try {
             http.newCall(request).execute()
         } catch (e: Exception) {
@@ -280,8 +287,8 @@ object ApiClient {
     suspend fun fetchVehicles(): List<Vehicle> =
         send("/api/vehicles", type = listType(Vehicle::class.java))
 
-    suspend fun createVehicle(payload: VehiclePayload): Vehicle =
-        send("/api/vehicles", "POST", vehicleBody(payload), type = Vehicle::class.java)
+    suspend fun createVehicle(payload: VehiclePayload, idempotencyKey: String? = null): Vehicle =
+        send("/api/vehicles", "POST", vehicleBody(payload), idempotencyKey = idempotencyKey, type = Vehicle::class.java)
 
     suspend fun updateVehicle(id: String, payload: VehiclePayload): Vehicle =
         send("/api/vehicles/$id", "PATCH", vehicleBody(payload), type = Vehicle::class.java)
@@ -332,8 +339,8 @@ object ApiClient {
      * an, ein fehlendes Feld liesse den alten Wert stehen - eine geleerte
      * Marke waere also nicht zu loeschen.
      */
-    suspend fun createTireSet(payload: TireSetPayload): TireSet =
-        send("/api/tires", "POST", encodeKeepingNulls(payload), type = TireSet::class.java)
+    suspend fun createTireSet(payload: TireSetPayload, idempotencyKey: String? = null): TireSet =
+        send("/api/tires", "POST", encodeKeepingNulls(payload), idempotencyKey = idempotencyKey, type = TireSet::class.java)
 
     suspend fun updateTireSet(id: String, payload: TireSetPayload): TireSet =
         send("/api/tires/$id", "PATCH", encodeKeepingNulls(payload), type = TireSet::class.java)
@@ -344,10 +351,18 @@ object ApiClient {
     suspend fun fetchTreadMeasurements(vehicleId: String? = null): List<TireTreadMeasurement> =
         send("/api/tires/tread" + query(vehicleId), type = listType(TireTreadMeasurement::class.java))
 
-    suspend fun createTreadMeasurement(tireSetId: String, payload: TreadMeasurementPayload): TireTreadMeasurement =
-        send("/api/tires/$tireSetId/tread", "POST", encode(payload), type = TireTreadMeasurement::class.java)
+    suspend fun createTreadMeasurement(tireSetId: String, payload: TreadMeasurementPayload, idempotencyKey: String? = null): TireTreadMeasurement =
+        send("/api/tires/$tireSetId/tread", "POST", encode(payload), idempotencyKey = idempotencyKey, type = TireTreadMeasurement::class.java)
 
     suspend fun deleteTreadMeasurement(id: String) = sendNoContent("/api/tires/tread/$id", "DELETE")
+
+    /** Bodies genau wie oben kodiert - fuer die Warteschlange, die den fertigen Request speichert. */
+    fun tireSetBody(payload: TireSetPayload): String = encodeKeepingNulls(payload)
+    fun treadBody(payload: TreadMeasurementPayload): String = encode(payload)
+
+    /** Spielt einen gespeicherten Request aus der Warteschlange ab (TireOutbox). */
+    suspend fun sendQueued(method: String, path: String, body: String?, idempotencyKey: String?) =
+        sendNoContent(path, method, body, idempotencyKey = idempotencyKey)
 
     /** Laufleistung, Dauer und Alter je Montage und je Satz. */
     suspend fun fetchTireOverview(vehicleId: String? = null): TireOverview =
@@ -365,8 +380,8 @@ object ApiClient {
     suspend fun fetchProviders(): List<Provider> =
         send("/api/providers", type = listType(Provider::class.java))
 
-    suspend fun createProvider(payload: ProviderPayload): Provider =
-        send("/api/providers", "POST", encode(payload), type = Provider::class.java)
+    suspend fun createProvider(payload: ProviderPayload, idempotencyKey: String? = null): Provider =
+        send("/api/providers", "POST", encode(payload), idempotencyKey = idempotencyKey, type = Provider::class.java)
 
     suspend fun updateProvider(id: String, payload: ProviderPayload): Provider =
         send("/api/providers/$id", "PATCH", encode(payload), type = Provider::class.java)
@@ -382,8 +397,8 @@ object ApiClient {
         send("/api/provider-fees", type = listType(ProviderFee::class.java))
 
     /** `encodeKeepingNulls`: ein geleertes Enddatum (Kuendigung aufgehoben) muss als null ankommen. */
-    suspend fun createProviderFee(payload: ProviderFeePayload): ProviderFee =
-        send("/api/provider-fees", "POST", encodeKeepingNulls(payload), type = ProviderFee::class.java)
+    suspend fun createProviderFee(payload: ProviderFeePayload, idempotencyKey: String? = null): ProviderFee =
+        send("/api/provider-fees", "POST", encodeKeepingNulls(payload), idempotencyKey = idempotencyKey, type = ProviderFee::class.java)
 
     suspend fun updateProviderFee(id: String, payload: ProviderFeePayload): ProviderFee =
         send("/api/provider-fees/$id", "PATCH", encodeKeepingNulls(payload), type = ProviderFee::class.java)
@@ -399,8 +414,8 @@ object ApiClient {
         send("/api/vehicle-costs", type = listType(VehicleCost::class.java))
 
     /** `encodeKeepingNulls`: Enddatum, km-Stand, Bezeichnung und Notiz muessen sich leeren lassen. */
-    suspend fun createVehicleCost(payload: VehicleCostPayload): VehicleCost =
-        send("/api/vehicle-costs", "POST", encodeKeepingNulls(payload), type = VehicleCost::class.java)
+    suspend fun createVehicleCost(payload: VehicleCostPayload, idempotencyKey: String? = null): VehicleCost =
+        send("/api/vehicle-costs", "POST", encodeKeepingNulls(payload), idempotencyKey = idempotencyKey, type = VehicleCost::class.java)
 
     suspend fun updateVehicleCost(id: String, payload: VehicleCostPayload): VehicleCost =
         send("/api/vehicle-costs/$id", "PATCH", encodeKeepingNulls(payload), type = VehicleCost::class.java)
@@ -416,8 +431,8 @@ object ApiClient {
     suspend fun fetchReimbursementRates(): List<ReimbursementRate> =
         send("/api/reimbursement/rates", type = listType(ReimbursementRate::class.java))
 
-    suspend fun createReimbursementRate(payload: ReimbursementRatePayload): ReimbursementRate =
-        send("/api/reimbursement/rates", "POST", encode(payload), type = ReimbursementRate::class.java)
+    suspend fun createReimbursementRate(payload: ReimbursementRatePayload, idempotencyKey: String? = null): ReimbursementRate =
+        send("/api/reimbursement/rates", "POST", encode(payload), idempotencyKey = idempotencyKey, type = ReimbursementRate::class.java)
 
     suspend fun updateReimbursementRate(id: String, payload: ReimbursementRatePayload): ReimbursementRate =
         send("/api/reimbursement/rates/$id", "PATCH", encode(payload), type = ReimbursementRate::class.java)
@@ -445,8 +460,8 @@ object ApiClient {
         send("/api/reminders", type = listType(Reminder::class.java))
 
     /** `encodeKeepingNulls`: Faelligkeit, Wiederholung, Bezeichnung und Notiz muessen sich leeren lassen. */
-    suspend fun createReminder(payload: ReminderPayload): Reminder =
-        send("/api/reminders", "POST", encodeKeepingNulls(payload), type = Reminder::class.java)
+    suspend fun createReminder(payload: ReminderPayload, idempotencyKey: String? = null): Reminder =
+        send("/api/reminders", "POST", encodeKeepingNulls(payload), idempotencyKey = idempotencyKey, type = Reminder::class.java)
 
     suspend fun updateReminder(id: String, payload: ReminderPayload): Reminder =
         send("/api/reminders/$id", "PATCH", encodeKeepingNulls(payload), type = Reminder::class.java)
@@ -458,8 +473,8 @@ object ApiClient {
     suspend fun fetchLocations(): List<ChargingLocation> =
         send("/api/locations", type = listType(ChargingLocation::class.java))
 
-    suspend fun createLocation(payload: LocationPayload): ChargingLocation =
-        send("/api/locations", "POST", encode(payload), type = ChargingLocation::class.java)
+    suspend fun createLocation(payload: LocationPayload, idempotencyKey: String? = null): ChargingLocation =
+        send("/api/locations", "POST", encode(payload), idempotencyKey = idempotencyKey, type = ChargingLocation::class.java)
 
     suspend fun updateLocation(id: String, payload: LocationPayload): ChargingLocation =
         send("/api/locations/$id", "PATCH", encode(payload), type = ChargingLocation::class.java)
@@ -513,8 +528,8 @@ object ApiClient {
         return send(path, type = listType(ChargingSession::class.java))
     }
 
-    suspend fun createSession(payload: ChargingSessionPayload): ChargingSession =
-        send("/api/sessions", "POST", encode(payload), type = ChargingSession::class.java)
+    suspend fun createSession(payload: ChargingSessionPayload, idempotencyKey: String? = null): ChargingSession =
+        send("/api/sessions", "POST", encode(payload), idempotencyKey = idempotencyKey, type = ChargingSession::class.java)
 
     suspend fun updateSession(id: String, payload: ChargingSessionPayload): ChargingSession =
         send("/api/sessions/$id", "PATCH", encode(payload), type = ChargingSession::class.java)

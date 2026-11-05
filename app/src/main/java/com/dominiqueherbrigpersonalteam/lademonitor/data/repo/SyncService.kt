@@ -282,6 +282,9 @@ object SyncService {
             _lastSyncError.value = summary + (e.localizedMessage ?: e.toString())
         } finally {
             _isSyncing.value = false
+            // Offline erfasste Reifen-Eingaben (nicht Teil des lokalen Spiegels, siehe
+            // TireOutbox) - nach den Fahrzeugen, deren IDs sie brauchen. Wirft nie.
+            TireOutbox.flush()
             // Ein Pull kann Erinnerungen oder km-Staende geaendert haben.
             ReminderNotifier.rescheduleAsync()
         }
@@ -374,7 +377,7 @@ object SyncService {
                 if (vehicle.serverId != null) {
                     ApiClient.updateVehicle(vehicle.serverId!!, payload)
                 } else {
-                    vehicle.serverId = ApiClient.createVehicle(payload).id
+                    vehicle.serverId = ApiClient.createVehicle(payload, idempotencyKey = vehicle.localId).id
                 }
                 vehicle.isDirty = false
                 vehicles.upsert(vehicle)
@@ -405,7 +408,7 @@ object SyncService {
                 if (provider.serverId != null) {
                     ApiClient.updateProvider(provider.serverId!!, payload)
                 } else {
-                    provider.serverId = ApiClient.createProvider(payload).id
+                    provider.serverId = ApiClient.createProvider(payload, idempotencyKey = provider.localId).id
                 }
                 provider.isDirty = false
                 providers.upsert(provider)
@@ -449,7 +452,7 @@ object SyncService {
                 if (fee.serverId != null) {
                     ApiClient.updateProviderFee(fee.serverId!!, payload)
                 } else {
-                    fee.serverId = ApiClient.createProviderFee(payload).id
+                    fee.serverId = ApiClient.createProviderFee(payload, idempotencyKey = fee.localId).id
                 }
                 fee.providerId = providerId
                 fee.isDirty = false
@@ -495,7 +498,7 @@ object SyncService {
                 if (cost.serverId != null) {
                     ApiClient.updateVehicleCost(cost.serverId!!, payload)
                 } else {
-                    cost.serverId = ApiClient.createVehicleCost(payload).id
+                    cost.serverId = ApiClient.createVehicleCost(payload, idempotencyKey = cost.localId).id
                 }
                 cost.vehicleId = vehicleId
                 cost.isDirty = false
@@ -542,7 +545,7 @@ object SyncService {
                 if (reminder.serverId != null) {
                     ApiClient.updateReminder(reminder.serverId!!, payload)
                 } else {
-                    reminder.serverId = ApiClient.createReminder(payload).id
+                    reminder.serverId = ApiClient.createReminder(payload, idempotencyKey = reminder.localId).id
                 }
                 reminder.vehicleId = vehicleId
                 reminder.isDirty = false
@@ -584,7 +587,7 @@ object SyncService {
                 if (rate.serverId != null) {
                     ApiClient.updateReimbursementRate(rate.serverId!!, payload)
                 } else {
-                    rate.serverId = ApiClient.createReimbursementRate(payload).id
+                    rate.serverId = ApiClient.createReimbursementRate(payload, idempotencyKey = rate.localId).id
                 }
                 rate.vehicleId = vehicleId
                 rate.isDirty = false
@@ -616,7 +619,7 @@ object SyncService {
                 if (location.serverId != null) {
                     ApiClient.updateLocation(location.serverId!!, payload)
                 } else {
-                    location.serverId = ApiClient.createLocation(payload).id
+                    location.serverId = ApiClient.createLocation(payload, idempotencyKey = location.localId).id
                 }
                 location.defaultProviderId = resolvedProviderId
                 location.isDirty = false
@@ -673,7 +676,7 @@ object SyncService {
                 if (session.serverId != null) {
                     ApiClient.updateSession(session.serverId!!, payload)
                 } else {
-                    session.serverId = ApiClient.createSession(payload).id
+                    session.serverId = ApiClient.createSession(payload, idempotencyKey = session.localId).id
                 }
                 session.vehicleId = resolvedVehicleId
                 session.providerId = resolvedProviderId
