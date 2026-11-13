@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.12
+
+- **Neues App-Symbol und Logo**: eine Ladesäule, per Kabel mit einem Auto
+  verbunden, auf dem eine Batterie den Ladestand zeigt – dasselbe Motiv wie
+  in der iOS-App, der Weboberfläche und Home Assistant. Gilt für das
+  Startbildschirm-Symbol, den Erststart-Bildschirm und das Store-Bild.
+- **Themensymbole**: Ab Android 13 färbt das System das Symbol auf Wunsch
+  passend zum Hintergrundbild ein.
+
 ## 1.11
 
 - **Anmelden schlug bei bestätigter E-Mail-Adresse fehl** („No JsonAdapter
