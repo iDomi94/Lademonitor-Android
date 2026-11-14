@@ -1076,6 +1076,8 @@
     <string name="active_as_of">as of %1$s</string>
     <string name="active_max_power">max. %1$s kW</string>
     <string name="active_source_vw_data_act">VW data portal</string>
+    <string name="active_price_estimated">estimated</string>
+    <string name="active_price_average">est. from avg. price</string>
 
     <!-- Einfuehrung (OnboardingScreen), gleicher Inhalt wie OnboardingView.swift -->
     <string name="onboarding_skip">Skip</string>
