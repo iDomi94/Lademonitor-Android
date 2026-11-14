@@ -1568,9 +1568,17 @@ data class ActiveCharging(
     @Json(name = "odometer_km") val odometerKm: Int? = null,
     @Json(name = "outside_temp_c") val outsideTempC: Double? = null,
     /** Zeitpunkt des Berichts, aus dem die Werte stammen - beim VW-Datenportal gern Stunden alt. */
-    @ServerDate @Json(name = "updated_at") val updatedAt: Long? = null
+    @ServerDate @Json(name = "updated_at") val updatedAt: Long? = null,
+    /** Preisschaetzung (Server ab 0.55.0, sonst null): Ort/Anbieter nur, wenn die Position passt. */
+    @Json(name = "location_name") val locationName: String? = null,
+    @Json(name = "provider_name") val providerName: String? = null,
+    @Json(name = "price_per_kwh") val pricePerKwh: Double? = null,
+    @Json(name = "price_total") val priceTotal: Double? = null,
+    /** "provider" = letzter Preis des Anbieters am Ladeort, "average" = Durchschnittspreis. */
+    @Json(name = "price_source") val priceSource: String? = null
 ) {
     val chargingTypeValue: ChargingType? get() = ChargingType.from(chargingType)
+    val priceIsAverage: Boolean get() = priceSource == "average"
 }
 
 // MARK: - Akku-Gesundheit und Ladeverluste

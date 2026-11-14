@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.13
+
+- **„Lädt gerade“ wie die übrigen Ladevorgänge**: Fahrzeug, Anbieter und
+  Ort, SoC und Kilometerstand, der Ladebalken mit den roten Markierungen aus
+  den Ladebalken-Einstellungen und rechts kWh, Gesamtpreis und Preis je kWh.
+  Die roten Markierungen erscheinen auch auf der Karte im Dashboard.
+- **Preisschätzung** (mit ~ gekennzeichnet): der letzte Preis des Anbieters
+  am erkannten Ladeort, sonst dein Durchschnittspreis („Ø-Preis geschätzt“).
+  Braucht Lademonitor-Server 0.55.0, auf älteren Servern steht dort ein
+  Hinweis.
+
 ## 1.12
 
 - **Neues App-Symbol und Logo**: eine Ladesäule, per Kabel mit einem Auto

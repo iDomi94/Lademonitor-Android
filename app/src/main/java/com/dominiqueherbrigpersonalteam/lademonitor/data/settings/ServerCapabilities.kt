@@ -18,7 +18,10 @@ import kotlinx.coroutines.flow.StateFlow
  */
 enum class ServerFeature(val minimumServerVersion: String) {
     /** THG-Quote als Gutschrift (Kostenkategorie "thg"). */
-    THG_CREDIT("0.50.0")
+    THG_CREDIT("0.50.0"),
+
+    /** Preisschaetzung auf der "Lädt gerade"-Karte. */
+    ACTIVE_CHARGING_PRICE("0.55.0")
 }
 
 /**
