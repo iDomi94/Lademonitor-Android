@@ -37,6 +37,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -56,6 +58,8 @@ import com.dominiqueherbrigpersonalteam.lademonitor.data.model.ProviderFeePayloa
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.AppRepository
 import com.dominiqueherbrigpersonalteam.lademonitor.data.repo.LocalFeeAllocator
 import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.AppSettings
+import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.ServerCapabilities
+import com.dominiqueherbrigpersonalteam.lademonitor.data.settings.ServerFeature
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.Fmt
 import com.dominiqueherbrigpersonalteam.lademonitor.ui.common.FullScreenModal
 import kotlinx.coroutines.launch
@@ -175,13 +179,22 @@ private fun FeeRow(fee: ProviderFee, providerName: String, modifier: Modifier = 
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                Fmt.n("%.2f €", fee.amount) + " " + stringResource(fee.intervalValue.perRes),
-                style = MaterialTheme.typography.bodyLarge
+                Fmt.n("%.2f €", fee.amount) + " " +
+                    stringResource(if (fee.isCredit) R.string.fees_per_credit else fee.intervalValue.perRes),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (fee.isCredit) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
         }
         val start = Fmt.dateMedium(fee.startDate)
+        val once = fee.intervalValue == FeeInterval.ONCE
         Text(
-            fee.endDate?.let { "$start – ${Fmt.dateMedium(it)}" } ?: stringResource(R.string.fees_since, start),
+            when {
+                once && fee.singleSession -> stringResource(R.string.fees_next_session_since, start)
+                once && fee.spreadMonths != null && fee.endDate != null ->
+                    "$start – ${Fmt.dateMedium(fee.endDate)} · " +
+                        pluralStringResource(R.plurals.fees_months_count, fee.spreadMonths, fee.spreadMonths)
+                else -> fee.endDate?.let { "$start – ${Fmt.dateMedium(it)}" } ?: stringResource(R.string.fees_since, start)
+            },
             style = MaterialTheme.typography.bodySmall,
             color = secondary
         )
@@ -195,6 +208,19 @@ private fun FeeRow(fee: ProviderFee, providerName: String, modifier: Modifier = 
 
 private enum class FeeDateField { START, END }
 
+/** Gebuehr oder Gutschrift - gespeichert wird nur das Vorzeichen des Betrags. */
+private enum class FeeKind(val labelRes: Int) {
+    FEE(R.string.fees_kind_fee),
+    CREDIT(R.string.fees_kind_credit)
+}
+
+/** Worauf ein einmaliger Betrag verteilt wird (Server ab 0.56.0). */
+private enum class FeeSpread(val labelRes: Int) {
+    SESSION(R.string.fees_spread_session),
+    MONTHS(R.string.fees_spread_months),
+    RANGE(R.string.fees_spread_range)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditFeeModal(fee: ProviderFee?, providers: List<Provider>, onDismiss: () -> Unit, onSaved: () -> Unit) {
@@ -205,8 +231,21 @@ fun AddEditFeeModal(fee: ProviderFee?, providers: List<Provider>, onDismiss: () 
 
     var providerId by remember { mutableStateOf(fee?.providerId ?: providers.firstOrNull()?.id ?: "") }
     var label by remember { mutableStateOf(fee?.label ?: "") }
-    var amount by remember { mutableStateOf(fee?.amount?.let { Fmt.n("%.2f", it) } ?: "") }
+    var kind by remember { mutableStateOf(if (fee?.isCredit == true) FeeKind.CREDIT else FeeKind.FEE) }
+    var amount by remember { mutableStateOf(fee?.amount?.let { Fmt.n("%.2f", kotlin.math.abs(it)) } ?: "") }
     var interval by remember { mutableStateOf(fee?.intervalValue ?: FeeInterval.MONTHLY) }
+    var spread by remember {
+        mutableStateOf(
+            when {
+                fee?.singleSession == true -> FeeSpread.SESSION
+                fee?.spreadMonths != null -> FeeSpread.MONTHS
+                else -> FeeSpread.RANGE
+            }
+        )
+    }
+    var months by remember { mutableStateOf(fee?.spreadMonths ?: 1) }
+    var kindMenu by remember { mutableStateOf(false) }
+    var spreadMenu by remember { mutableStateOf(false) }
     var startDate by remember { mutableStateOf(initialStart) }
     var hasEndDate by remember { mutableStateOf(fee?.endDate != null) }
     // Vorschlag: ein Monat ab Start, letzter Tag inklusive (03.05. -> 02.06.).
@@ -220,12 +259,19 @@ fun AddEditFeeModal(fee: ProviderFee?, providers: List<Provider>, onDismiss: () 
     var isSaving by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Einmalige Gebuehren brauchen ein Enddatum - sonst waere der Zeitraum, auf den sie umgelegt
-    // wird, ein einziger Tag. Der Server verlangt das genauso (422).
-    val needsEndDate = interval == FeeInterval.ONCE
-    val usesEndDate = hasEndDate || needsEndDate
+    // Gutschriften und "eine Ladung"/"x Monate" brauchen Server 0.56.0 - sonst sichtbar, aber gesperrt.
+    val serverVersion by ServerCapabilities.serverVersion.collectAsState()
+    val creditLocked = remember(serverVersion) { !ServerCapabilities.supports(ServerFeature.PROVIDER_CREDIT) }
+    val effectiveSpread = if (creditLocked) FeeSpread.RANGE else spread
+    val once = interval == FeeInterval.ONCE
+
+    // Einmalige Betraege auf einen Zeitraum brauchen ein Enddatum - sonst waere der Zeitraum ein
+    // einziger Tag. Der Server verlangt das genauso (422).
+    val needsEndDate = once && effectiveSpread == FeeSpread.RANGE
+    val usesEndDate = (hasEndDate && !once) || needsEndDate
     val parsedAmount = amount.replace(",", ".").toDoubleOrNull()
-    val canSave = providerId.isNotEmpty() && parsedAmount != null && parsedAmount >= 0 &&
+    val canSave = providerId.isNotEmpty() && parsedAmount != null && parsedAmount > 0 &&
+        !(kind == FeeKind.CREDIT && creditLocked) &&
         !(usesEndDate && endDate.isBefore(startDate))
 
     fun save() {
@@ -234,13 +280,15 @@ fun AddEditFeeModal(fee: ProviderFee?, providers: List<Provider>, onDismiss: () 
             isSaving = true; errorMessage = null
             val payload = ProviderFeePayload(
                 providerId = providerId,
-                amount = value,
+                amount = if (kind == FeeKind.CREDIT) -kotlin.math.abs(value) else kotlin.math.abs(value),
                 interval = interval.wire,
                 startDate = startDate.atStartOfDay(zone).toInstant().toEpochMilli(),
                 endDate = if (usesEndDate) endDate.atStartOfDay(zone).toInstant().toEpochMilli() else null,
                 label = label.trim().ifEmpty { null },
-                notes = notes.trim().ifEmpty { null }
-            )
+                notes = notes.trim().ifEmpty { null },
+                singleSession = once && effectiveSpread == FeeSpread.SESSION,
+                spreadMonths = if (once && effectiveSpread == FeeSpread.MONTHS) months else null
+            ).normalized()
             try {
                 if (fee != null) AppRepository.updateFee(fee.id, payload)
                 else AppRepository.createFee(payload)
@@ -253,7 +301,18 @@ fun AddEditFeeModal(fee: ProviderFee?, providers: List<Provider>, onDismiss: () 
     FullScreenModal(onDismiss = onDismiss) {
         Scaffold(topBar = {
             TopAppBar(
-                title = { Text(if (isEditing) stringResource(R.string.fees_edit_title) else stringResource(R.string.fees_add_title)) },
+                title = {
+                    Text(
+                        stringResource(
+                            when {
+                                kind == FeeKind.CREDIT && isEditing -> R.string.fees_credit_edit_title
+                                kind == FeeKind.CREDIT -> R.string.fees_credit_add_title
+                                isEditing -> R.string.fees_edit_title
+                                else -> R.string.fees_add_title
+                            }
+                        )
+                    )
+                },
                 navigationIcon = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
                 actions = {
                     TextButton(onClick = { save() }, enabled = !isSaving && canSave) {
@@ -277,6 +336,32 @@ fun AddEditFeeModal(fee: ProviderFee?, providers: List<Provider>, onDismiss: () 
                     }
                 }
                 OutlinedTextField(value = label, onValueChange = { label = it }, label = { Text(stringResource(R.string.fees_field_label)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Box {
+                    OutlinedButton(
+                        onClick = { kindMenu = true },
+                        enabled = !(creditLocked && kind == FeeKind.FEE),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(kind.labelRes))
+                    }
+                    DropdownMenu(expanded = kindMenu, onDismissRequest = { kindMenu = false }) {
+                        FeeKind.entries.forEach { option ->
+                            DropdownMenuItem(text = { Text(stringResource(option.labelRes)) }, onClick = {
+                                kind = option; kindMenu = false
+                                // Eine Gutschrift ist fast immer einmalig.
+                                if (option == FeeKind.CREDIT && !isEditing) interval = FeeInterval.ONCE
+                            })
+                        }
+                    }
+                }
+                if (creditLocked) {
+                    Text(
+                        stringResource(R.string.fees_credit_locked_prefix) + " " +
+                            stringResource(R.string.server_feature_requires, ServerFeature.PROVIDER_CREDIT.minimumServerVersion),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 OutlinedTextField(
                     value = amount, onValueChange = { amount = it }, label = { Text(stringResource(R.string.fees_field_amount)) },
                     singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth()
@@ -291,23 +376,52 @@ fun AddEditFeeModal(fee: ProviderFee?, providers: List<Provider>, onDismiss: () 
                         }
                     }
                 }
+                if (once) {
+                    Box {
+                        OutlinedButton(onClick = { spreadMenu = true }, enabled = !creditLocked, modifier = Modifier.fillMaxWidth()) {
+                            Text(stringResource(R.string.fees_field_spread) + ": " + stringResource(effectiveSpread.labelRes))
+                        }
+                        DropdownMenu(expanded = spreadMenu, onDismissRequest = { spreadMenu = false }) {
+                            FeeSpread.entries.forEach { option ->
+                                DropdownMenuItem(text = { Text(stringResource(option.labelRes)) }, onClick = { spread = option; spreadMenu = false })
+                            }
+                        }
+                    }
+                    if (effectiveSpread == FeeSpread.MONTHS) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(pluralStringResource(R.plurals.fees_months_count, months, months), Modifier.weight(1f))
+                            OutlinedButton(onClick = { if (months > 1) months-- }, enabled = months > 1) { Text("−") }
+                            OutlinedButton(onClick = { if (months < 120) months++ }, enabled = months < 120, modifier = Modifier.padding(start = 8.dp)) { Text("+") }
+                        }
+                    }
+                }
                 Text(
                     stringResource(
                         when (interval) {
                             FeeInterval.MONTHLY -> R.string.fees_hint_monthly
                             FeeInterval.YEARLY -> R.string.fees_hint_yearly
-                            FeeInterval.ONCE -> R.string.fees_hint_once
+                            FeeInterval.ONCE -> when (effectiveSpread) {
+                                FeeSpread.SESSION -> R.string.fees_hint_once_session
+                                FeeSpread.MONTHS -> R.string.fees_hint_once_months
+                                FeeSpread.RANGE -> R.string.fees_hint_once
+                            }
                         }
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                val startLabel = stringResource(if (needsEndDate) R.string.fees_field_from else R.string.fees_field_since)
+                val startLabel = stringResource(
+                    when {
+                        once && effectiveSpread == FeeSpread.SESSION -> R.string.fees_field_since_next_session
+                        needsEndDate -> R.string.fees_field_from
+                        else -> R.string.fees_field_since
+                    }
+                )
                 OutlinedButton(onClick = { pickingDate = FeeDateField.START }, modifier = Modifier.fillMaxWidth()) {
                     Text("$startLabel: ${Fmt.dateMedium(startDate.atStartOfDay(zone).toInstant().toEpochMilli())}")
                 }
-                if (!needsEndDate) {
+                if (!once) {
                     Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.fees_field_cancelled), Modifier.weight(1f))
                         Switch(checked = hasEndDate, onCheckedChange = { hasEndDate = it })
@@ -319,7 +433,15 @@ fun AddEditFeeModal(fee: ProviderFee?, providers: List<Provider>, onDismiss: () 
                         Text("$endLabel: ${Fmt.dateMedium(endDate.atStartOfDay(zone).toInstant().toEpochMilli())}")
                     }
                 }
-                if (!needsEndDate) {
+                if (once && effectiveSpread == FeeSpread.MONTHS) {
+                    val zoneMillis = startDate.atStartOfDay(zone).toInstant().toEpochMilli()
+                    Text(
+                        stringResource(R.string.fees_until_inclusive, Fmt.dateMedium(ProviderFee.spreadEndDate(zoneMillis, months))),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (!once) {
                     Text(
                         stringResource(R.string.fees_hint_price_change),
                         style = MaterialTheme.typography.bodySmall,

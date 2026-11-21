@@ -284,6 +284,9 @@ data class LocalProviderFee(
     var endDate: Long? = null,
     var label: String? = null,
     var notes: String? = null,
+    /** Room 12 -> 13 (Server ab 0.56.0). */
+    var singleSession: Boolean = false,
+    var spreadMonths: Int? = null,
     var createdAt: Long = System.currentTimeMillis(),
     var updatedAt: Long = System.currentTimeMillis(),
     var isDirty: Boolean = true,
@@ -297,7 +300,9 @@ data class LocalProviderFee(
         startDate = startDate,
         endDate = endDate,
         label = label,
-        notes = notes
+        notes = notes,
+        singleSession = singleSession,
+        spreadMonths = spreadMonths
     )
 }
 

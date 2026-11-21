@@ -21,7 +21,10 @@ enum class ServerFeature(val minimumServerVersion: String) {
     THG_CREDIT("0.50.0"),
 
     /** Preisschaetzung auf der "Lädt gerade"-Karte. */
-    ACTIVE_CHARGING_PRICE("0.55.0")
+    ACTIVE_CHARGING_PRICE("0.55.0"),
+
+    /** Gutschriften (Rabatt, Gutschein) und einmalige Betraege auf eine Ladung bzw. x Monate. */
+    PROVIDER_CREDIT("0.56.0")
 }
 
 /**

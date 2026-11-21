@@ -209,8 +209,8 @@ private fun DashboardContent(
         val totalCostLabel = stringResource(R.string.dashboard_stat_total_cost)
         val totalKwhLabel = stringResource(R.string.dashboard_stat_total_kwh)
         val details = buildMap {
-            stats.totalFees?.takeIf { it > 0 }?.let {
-                put(totalCostLabel, stringResource(R.string.dashboard_total_cost_fees, Fmt.n("%.2f €", it)))
+            stats.totalFees?.takeIf { it != 0.0 }?.let {
+                put(totalCostLabel, feesDetailText(it))
             }
             // Sonnenanteil der Vorgaenge mit bekanntem Netzbezug (Laden zuhause mit PV/Hausakku).
             stats.solarShare?.takeIf { it.totalKwh > 0 }?.let {
@@ -573,9 +573,9 @@ private fun ProviderPriceSection(providers: List<ProviderStat>) {
                         Fmt.n("%.2f €", stat.totalCost)
                     ).joinToString(" · ")
                     Text(detail, style = MaterialTheme.typography.bodySmall, color = secondary)
-                    stat.totalFees?.takeIf { it > 0 }?.let {
+                    stat.totalFees?.takeIf { it != 0.0 }?.let {
                         Text(
-                            stringResource(R.string.dashboard_total_cost_fees, Fmt.n("%.2f €", it)),
+                            feesDetailText(it),
                             style = MaterialTheme.typography.bodySmall,
                             color = secondary
                         )
@@ -762,3 +762,12 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
         }
     }
 }
+
+/**
+ * "davon X € Grundgebühren" unter den Kosten - bzw. "davon X € Gutschriften", wenn Rabatte und
+ * Gutscheine (Server ab 0.56.0) ueberwiegen.
+ */
+@Composable
+private fun feesDetailText(fees: Double): String =
+    if (fees < 0) stringResource(R.string.dashboard_total_cost_credits, Fmt.n("%.2f €", -fees))
+    else stringResource(R.string.dashboard_total_cost_fees, Fmt.n("%.2f €", fees))

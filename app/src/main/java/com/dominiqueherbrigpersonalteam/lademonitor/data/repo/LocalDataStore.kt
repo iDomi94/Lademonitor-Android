@@ -298,7 +298,8 @@ object LocalDataStore {
         return LocalFeeAllocator.allocate(feeList, all)
     }
 
-    suspend fun createFee(payload: ProviderFeePayload): ProviderFee {
+    suspend fun createFee(rawPayload: ProviderFeePayload): ProviderFee {
+        val payload = rawPayload.normalized()
         val fee = LocalProviderFee(
             providerId = payload.providerId,
             amount = payload.amount,
@@ -306,14 +307,17 @@ object LocalDataStore {
             startDate = payload.startDate,
             endDate = payload.endDate,
             label = payload.label,
-            notes = payload.notes
+            notes = payload.notes,
+            singleSession = payload.singleSession,
+            spreadMonths = payload.spreadMonths
         )
         fees.upsert(fee)
         return fee.asDTO()
     }
 
     /** Ersetzt alle Felder: ein leeres Enddatum hebt eine Kuendigung wieder auf. */
-    suspend fun updateFee(id: String, payload: ProviderFeePayload): ProviderFee {
+    suspend fun updateFee(id: String, rawPayload: ProviderFeePayload): ProviderFee {
+        val payload = rawPayload.normalized()
         val fee = fees.find(id) ?: throw LocalStoreException.notFound()
         fee.providerId = payload.providerId
         fee.amount = payload.amount
@@ -322,6 +326,8 @@ object LocalDataStore {
         fee.endDate = payload.endDate
         fee.label = payload.label
         fee.notes = payload.notes
+        fee.singleSession = payload.singleSession
+        fee.spreadMonths = payload.spreadMonths
         fee.updatedAt = System.currentTimeMillis()
         fee.isDirty = true
         fees.upsert(fee)

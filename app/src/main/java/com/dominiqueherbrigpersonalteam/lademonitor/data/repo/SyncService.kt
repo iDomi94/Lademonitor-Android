@@ -447,7 +447,8 @@ object SyncService {
                     ?: throw UnresolvedReferenceException(LademonitorApp.appContext.getString(R.string.entity_provider))
                 val payload = ProviderFeePayload(
                     providerId = providerId, amount = fee.amount, interval = fee.interval,
-                    startDate = fee.startDate, endDate = fee.endDate, label = fee.label, notes = fee.notes
+                    startDate = fee.startDate, endDate = fee.endDate, label = fee.label, notes = fee.notes,
+                    singleSession = fee.singleSession, spreadMonths = fee.spreadMonths
                 )
                 if (fee.serverId != null) {
                     ApiClient.updateProviderFee(fee.serverId!!, payload)
@@ -804,6 +805,8 @@ object SyncService {
                     existing.endDate = sf.endDate
                     existing.label = sf.label
                     existing.notes = sf.notes
+                    existing.singleSession = sf.singleSession
+                    existing.spreadMonths = sf.spreadMonths
                     fees.upsert(existing)
                 }
             } else {
@@ -811,7 +814,8 @@ object SyncService {
                     LocalProviderFee(
                         serverId = sf.id, providerId = sf.providerId, amount = sf.amount,
                         interval = sf.interval, startDate = sf.startDate, endDate = sf.endDate,
-                        label = sf.label, notes = sf.notes, isDirty = false
+                        label = sf.label, notes = sf.notes,
+                        singleSession = sf.singleSession, spreadMonths = sf.spreadMonths, isDirty = false
                     )
                 )
             }

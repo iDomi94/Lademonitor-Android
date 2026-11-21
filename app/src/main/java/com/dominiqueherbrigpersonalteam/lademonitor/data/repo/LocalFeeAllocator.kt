@@ -24,6 +24,8 @@ import java.time.ZoneId
  * - Zugeordnet wird ueber den Kalendertag von `startTime`.
  * - Umgelegt nach kWh; haben alle Vorgaenge keine Energie, gleichmaessig. Auf den Cent gerundet,
  *   der Rest landet beim ersten groessten Vorgang.
+ * - Gutschriften (Server ab 0.56.0) sind Gebuehren mit negativem Betrag und laufen genauso durch;
+ *   `singleSession` legt den ganzen Betrag auf die erste Ladung des Anbieters ab dem Startdatum.
  */
 object LocalFeeAllocator {
 
@@ -34,7 +36,9 @@ object LocalFeeAllocator {
         val start: LocalDate,
         /** Exklusive. */
         val end: LocalDate,
-        val amount: Double
+        val amount: Double,
+        /** Ganzer Betrag auf die erste Ladung ab [start] (Server ab 0.56.0), [end] bedeutungslos. */
+        val singleSession: Boolean = false
     )
 
     data class Allocation(
@@ -58,6 +62,9 @@ object LocalFeeAllocator {
         if (start.isAfter(until)) return emptyList()
 
         if (fee.intervalValue == FeeInterval.ONCE) {
+            if (fee.singleSession) {
+                return listOf(Period(fee.id, fee.providerId, start, start.plusDays(1), fee.amount, singleSession = true))
+            }
             val last = endIncl?.takeIf { !it.isBefore(start) } ?: start
             return listOf(Period(fee.id, fee.providerId, start, last.plusDays(1), fee.amount))
         }
@@ -124,9 +131,13 @@ object LocalFeeAllocator {
         for (fee in fees) {
             val candidates = byProvider[fee.providerId].orEmpty()
             for (period in periods(fee, until)) {
-                val inPeriod = candidates.filter {
-                    val d = day(it.startTime)
-                    !d.isBefore(period.start) && d.isBefore(period.end)
+                val inPeriod = if (period.singleSession) {
+                    listOfNotNull(candidates.firstOrNull { !day(it.startTime).isBefore(period.start) })
+                } else {
+                    candidates.filter {
+                        val d = day(it.startTime)
+                        !d.isBefore(period.start) && d.isBefore(period.end)
+                    }
                 }
                 if (inPeriod.isEmpty()) {
                     unallocated += period
