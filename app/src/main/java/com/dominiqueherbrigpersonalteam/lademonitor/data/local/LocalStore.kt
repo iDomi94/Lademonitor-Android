@@ -22,7 +22,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         LocalReminder::class,
         LocalReimbursementRate::class
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 abstract class LademonitorDatabase : RoomDatabase() {
@@ -280,6 +280,17 @@ val MIGRATION_11_12 = object : Migration(11, 12) {
     }
 }
 
+/**
+ * 12 -> 13: Gutschriften und einmalige Betraege auf eine Ladung bzw. x Monate (Server ab 0.56.0) -
+ * `provider_fees.singleSession`/`spreadMonths`. Bestand: wie bisher (Zeitraum bis Enddatum).
+ */
+val MIGRATION_12_13 = object : Migration(12, 13) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE provider_fees ADD COLUMN singleSession INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE provider_fees ADD COLUMN spreadMonths INTEGER")
+    }
+}
+
 object LocalStore {
     lateinit var db: LademonitorDatabase
         private set
@@ -298,6 +309,6 @@ object LocalStore {
             context.applicationContext,
             LademonitorDatabase::class.java,
             "lademonitor.db"
-        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12).build()
+        ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13).build()
     }
 }

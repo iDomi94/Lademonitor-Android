@@ -359,8 +359,12 @@ private fun SessionRow(
             session.energyKwh?.let { Text(Fmt.n("%.1f kWh", it), style = MaterialTheme.typography.bodyMedium) }
             session.priceTotal?.let { Text(Fmt.n("%.2f €", it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             session.pricePerKwh?.let { Text(Fmt.n("%.3f €/kWh", it), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            session.feeShare?.let {
-                Text(stringResource(R.string.sessions_fee_share, Fmt.n("%.2f €", it)), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            session.feeShare?.takeIf { it != 0.0 }?.let {
+                // Negativ = Gutschrift (Rabatt, Gutschein) ueberwiegt.
+                Text(
+                    if (it < 0) stringResource(R.string.sessions_fee_credit, Fmt.n("%.2f €", -it))
+                    else stringResource(R.string.sessions_fee_share, Fmt.n("%.2f €", it)),
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (session.needsReview) {
                 IconButton(onClick = onConfirm, modifier = Modifier.size(28.dp)) {

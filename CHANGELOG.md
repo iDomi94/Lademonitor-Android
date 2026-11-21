@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.14
+
+- **Gutschriften für Ladeanbieter**: unter „Grundgebühren & Gutschriften“
+  lässt sich jetzt ein Rabatt oder Gutschein eintragen, z. B. 5 € von EnBW.
+  Er wird wie eine Grundgebühr nach kWh umgelegt, nur abgezogen, und senkt so
+  Gesamtkosten, Preis je kWh und Kosten je 100 km.
+- **Verteilen auf**: einmalige Beträge zählen auf eine Ladung (die nächste
+  Ladung des Anbieters ab dem Datum), eine Anzahl Monate oder einen Zeitraum
+  bis zum Enddatum.
+- In der Liste steht eine Gutschrift als „− 2,00 € Gutschrift“ unter dem
+  Preis, im Dashboard als „davon … Gutschriften“.
+- Braucht Lademonitor-Server 0.56.0. Auf älteren Servern bleibt die Auswahl
+  sichtbar, ist aber gesperrt. Im Local-Only-Modus geht es immer.
+  Datenbank-Migration 12 → 13.
+
 ## 1.13
 
 - **„Lädt gerade“ wie die übrigen Ladevorgänge**: Fahrzeug, Anbieter und

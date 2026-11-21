@@ -469,7 +469,7 @@
     <string name="fee_per_month">per month</string>
     <string name="fee_per_year">per year</string>
     <string name="fee_per_once">one-off</string>
-    <string name="settings_nav_fees">Base fees</string>
+    <string name="settings_nav_fees">Base fees &amp; credits</string>
     <string name="settings_section_display">Appearance</string>
     <string name="settings_nav_charge_bar">Charge bar</string>
     <string name="charge_bar_preview">Preview</string>
@@ -479,8 +479,8 @@
     <string name="charge_bar_hint">Red markers in the charge bar of the charging session list, e.g. for your minimum and target charge level. Applies to this device only.</string>
     <string name="charge_bar_content_description">Charged from %1$d%% to %2$d%%</string>
     <string name="fees_empty_title">No base fees</string>
-    <string name="fees_empty_message">For example a subscription with a monthly fee that gets you a cheaper price per kWh.</string>
-    <string name="fees_footer">The fee is split by kWh across the provider’s charging sessions in each period and counts towards total cost, price per kWh and cost per 100 km. The price at the charger stays unchanged.</string>
+    <string name="fees_empty_message">For example a subscription with a monthly fee that gives a lower price per kWh, or a voucher from the provider.</string>
+    <string name="fees_footer">The fee is split by kWh across the provider\'s charging sessions in each period and counts towards total cost, price per kWh and cost per 100 km. The price at the charger stays unchanged. A credit (discount, voucher) is split the same way, only subtracted.</string>
     <string name="fees_need_provider">Add a provider first.</string>
     <string name="fees_unknown_provider">Unknown provider</string>
     <string name="fees_since">since %1$s</string>
@@ -498,12 +498,34 @@
     <string name="fees_hint_yearly">Every year from the start day.</string>
     <string name="fees_hint_once">Once for the chosen period.</string>
     <string name="fees_hint_price_change">A price increase is a new entry from the effective date; set “Cancelled” on the old one.</string>
-    <string name="fees_delete_confirm_title">Delete base fee?</string>
+    <string name="fees_delete_confirm_title">Delete entry?</string>
     <string name="fees_delete_confirm_message">“%1$s” will be deleted.</string>
+    <string name="fees_per_credit">credit</string>
+    <string name="fees_next_session_since">Next charge from %1$s</string>
+    <string name="fees_kind_fee">Fee / subscription</string>
+    <string name="fees_kind_credit">Credit (discount, voucher)</string>
+    <string name="fees_spread_session">One charge</string>
+    <string name="fees_spread_months">Months</string>
+    <string name="fees_spread_range">Period until end date</string>
+    <string name="fees_field_spread">Spread over</string>
+    <string name="fees_credit_add_title">New credit</string>
+    <string name="fees_credit_edit_title">Edit credit</string>
+    <string name="fees_credit_locked_prefix">Credits:</string>
+    <string name="fees_hint_once_session">The whole amount counts towards this provider\'s next charge from the date.</string>
+    <string name="fees_hint_once_months">Split by kWh across this provider\'s charges in the months from the date.</string>
+    <string name="fees_field_since_next_session">From (next charge)</string>
+    <string name="fees_until_inclusive">Until %1$s inclusive.</string>
+    <string name="sessions_fee_credit">− %1$s credit</string>
+    <string name="dashboard_total_cost_credits">incl. %1$s credits</string>
+    <string name="session_detail_label_credit_share">Credit share</string>
+    <plurals name="fees_months_count">
+        <item quantity="one">%1$d month</item>
+        <item quantity="other">%1$d months</item>
+    </plurals>
     <string name="session_detail_label_fee_share">Base fee share</string>
     <string name="session_detail_label_effective_total">Effective total</string>
     <string name="session_detail_label_effective_per_kwh">Effective per kWh</string>
-    <string name="session_detail_fee_hint">The provider’s base fee is split by kWh across all of its charging sessions in each period.</string>
+    <string name="session_detail_fee_hint">The provider\'s base fees and credits are split by kWh across its charging sessions in each period.</string>
     <string name="sessions_fee_share">+ %1$s base fee</string>
     <string name="dashboard_total_cost_fees">incl. %1$s base fees</string>
     <!-- Solar share of home charging (server 0.41.0+, grid_energy_kwh) -->

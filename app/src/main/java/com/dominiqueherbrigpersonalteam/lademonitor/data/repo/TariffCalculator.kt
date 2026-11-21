@@ -209,6 +209,8 @@ object TariffCalculator {
     fun suggestedMonthlyFee(providerId: String, fees: List<ProviderFee>, today: LocalDate = LocalDate.now()): Double? {
         val active = fees.filter { fee ->
             if (fee.providerId != providerId) return@filter false
+            // Gutschriften und Betraege fuer eine einzelne Ladung sind keine laufende Grundgebuehr.
+            if (fee.amount <= 0 || fee.singleSession) return@filter false
             if (LocalFeeAllocator.day(fee.startDate).isAfter(today)) return@filter false
             val end = fee.endDate?.let { LocalFeeAllocator.day(it) }
             end == null || !end.isBefore(today)

@@ -216,7 +216,10 @@ fun SessionDetailScreen(
                     session.pricePerKwh?.let { LabeledRow(stringResource(R.string.session_detail_label_per_kwh), Fmt.n("%.4f €", it)) }
                     session.feeShare?.let { share ->
                         // Saeulenpreis bleibt unveraendert, die Grundgebuehr kommt nur in der Anzeige dazu.
-                        LabeledRow(stringResource(R.string.session_detail_label_fee_share), Fmt.n("%.2f €", share))
+                        LabeledRow(
+                            stringResource(if (share < 0) R.string.session_detail_label_credit_share else R.string.session_detail_label_fee_share),
+                            Fmt.n("%.2f €", share)
+                        )
                         session.effectiveTotal?.let { effective ->
                             LabeledRow(stringResource(R.string.session_detail_label_effective_total), Fmt.n("%.2f €", effective))
                             session.energyKwh?.takeIf { it > 0 }?.let { kwh ->

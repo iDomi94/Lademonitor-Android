@@ -1278,9 +1278,28 @@ data class ProviderFee(
     /** Letzter Tag, an dem die Gebuehr gilt (inklusive). Bei "once" Pflicht, sonst Kuendigung. */
     @ServerDate @Json(name = "end_date") val endDate: Long? = null,
     val label: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    /** Nur bei "once" (Server ab 0.56.0): ganzer Betrag auf die erste Ladung ab [startDate]. */
+    @Json(name = "single_session") val singleSession: Boolean = false,
+    /** Nur bei "once" (Server ab 0.56.0): Zeitraum in Monaten, [endDate] ist daraus abgeleitet. */
+    @Json(name = "spread_months") val spreadMonths: Int? = null
 ) {
     val intervalValue: FeeInterval get() = FeeInterval.from(interval)
+
+    /** Negativer Betrag = Gutschrift (Rabatt, Gutschein), Server ab 0.56.0. */
+    val isCredit: Boolean get() = amount < 0
+
+    companion object {
+        /**
+         * Letzter Tag bei "x Monate ab Start": Monatstag x Monate spaeter minus 1, wie
+         * `routers/provider_fees.py::_normalize()` im Server. Lokale Mitternacht in Millisekunden.
+         */
+        fun spreadEndDate(startDate: Long, months: Int): Long {
+            val zone = java.time.ZoneId.systemDefault()
+            val start = java.time.Instant.ofEpochMilli(startDate).atZone(zone).toLocalDate()
+            return start.plusMonths(months.toLong()).minusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        }
+    }
 }
 
 /**
@@ -1296,8 +1315,22 @@ data class ProviderFeePayload(
     @ServerDate @Json(name = "start_date") val startDate: Long,
     @ServerDate @Json(name = "end_date") val endDate: Long? = null,
     val label: String? = null,
-    val notes: String? = null
-)
+    val notes: String? = null,
+    @Json(name = "single_session") val singleSession: Boolean = false,
+    @Json(name = "spread_months") val spreadMonths: Int? = null
+) {
+    /**
+     * Bringt die abhaengigen Felder in dieselbe Form wie der Server (`_normalize()`): nur bei
+     * "once", eine Ladung ohne Enddatum, x Monate mit abgeleitetem Enddatum.
+     */
+    fun normalized(): ProviderFeePayload = when {
+        interval != FeeInterval.ONCE.wire -> copy(singleSession = false, spreadMonths = null)
+        singleSession -> copy(spreadMonths = null, endDate = null)
+        spreadMonths != null && spreadMonths >= 1 ->
+            copy(endDate = ProviderFee.spreadEndDate(startDate, spreadMonths))
+        else -> copy(spreadMonths = null)
+    }
+}
 
 // ---------- Fahrzeugkosten (Server ab 0.32.0) ----------
 
