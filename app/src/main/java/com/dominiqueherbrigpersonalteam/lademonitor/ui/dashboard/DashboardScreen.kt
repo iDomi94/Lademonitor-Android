@@ -4,12 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -637,23 +639,44 @@ private fun VehicleCostsSection(costs: VehicleCostSummary) {
                 Text(share?.let { Fmt.n("%.0f %%", it) } ?: "–", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
         }
-        // Gutschriften (THG-Quote) kommen negativ - Balkenlaenge nach Betrag.
-        val max = costs.byCategory.maxOfOrNull { kotlin.math.abs(it.amount) } ?: 0.0
+        // Gutschriften (THG-Quote) kommen negativ und wachsen von einer
+        // Nulllinie aus nach LINKS, Kosten nach rechts - beide im selben
+        // Massstab, wie im Web (renderCostBars). Ohne Gutschrift liegt die
+        // Nulllinie ganz links und alles sieht aus wie bisher.
+        val maxPos = costs.byCategory.maxOfOrNull { it.amount }?.coerceAtLeast(0.0) ?: 0.0
+        val maxNeg = costs.byCategory.maxOfOrNull { -it.amount }?.coerceAtLeast(0.0) ?: 0.0
+        val span = maxPos + maxNeg
+        val zeroFraction = if (span > 0) (maxNeg / span).toFloat() else 0f
         costs.byCategory.sortedByDescending { it.amount }.forEach { stat ->
+            val credit = stat.amount < 0
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(CostCategory.labelResFor(stat.category)), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                    Text(Fmt.n("%.2f €", stat.amount), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        Fmt.n("%.2f €", stat.amount),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (credit) Color(0xFF16A34A) else Color.Unspecified
+                    )
                 }
-                val fraction = if (max > 0) (kotlin.math.abs(stat.amount) / max).toFloat().coerceIn(0f, 1f) else 0f
-                Box(
+                val fraction = if (span > 0) (kotlin.math.abs(stat.amount) / span).toFloat().coerceIn(0f, 1f) else 0f
+                BoxWithConstraints(
                     Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
+                    val zero = maxWidth * zeroFraction
+                    val barWidth = maxWidth * fraction
                     if (fraction > 0f) {
                         Box(
-                            Modifier.fillMaxWidth(fraction).height(8.dp).clip(RoundedCornerShape(4.dp))
+                            Modifier.offset(x = if (credit) zero - barWidth else zero)
+                                .width(barWidth).height(8.dp).clip(RoundedCornerShape(4.dp))
                                 .background(costCategoryColor(stat.category))
+                        )
+                    }
+                    if (maxNeg > 0) {
+                        Box(
+                            Modifier.offset(x = zero - 1.dp).width(2.dp).height(8.dp)
+                                .background(secondary.copy(alpha = 0.7f))
                         )
                     }
                 }

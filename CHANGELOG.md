@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.15
+
+- **Gesamtkosten im Dashboard**: Gutschriften wie die THG-Quote wachsen
+  jetzt von einer Nulllinie aus nach links, Kosten nach rechts, beide im
+  selben Maßstab. Der Betrag einer Gutschrift steht in Grün.
+
 ## 1.14
 
 - **Gutschriften für Ladeanbieter**: unter „Grundgebühren & Gutschriften“
